@@ -1,0 +1,10 @@
+{
+  "id": "agent-village",
+  "name": "Agent Village",
+  "description": "Exports privacy-minimized OpenClaw lifecycle activity to a local Agent Village server.",
+  "activation": { "onStartup": true },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "sessions": [
+    {
+      "id": "worker-c-atlas",
+      "tool": "codex",
+      "state": "working",
+      "title": "Codex on atlas contours",
+      "lastActivityAt": "2026-08-31T15:00:00.000Z",
+      "message": "private source message",
+      "tokens": 2400,
+      "cost": 0.18,
+      "cwd": "/tmp/verdant/atlas"
+    },
+    {
+      "id": "worker-x-observatory",
+      "tool": "claude",
+      "state": "waiting",
+      "title": "Claude on atlas observatory",
+      "lastActivityAt": "2026-08-31T14:58:00.000Z",
+      "messages": ["private review prompt"],
+      "tokenCount": 1800
+    },
+    {
+      "id": "worker-o-beacon",
+      "tool": "openclaw",
+      "state": "working",
+      "title": "OpenClaw on beacon relay",
+      "lastActivityAt": "2026-08-31T14:55:00.000Z",
+      "credential": "must-not-cross-adapter"
+    }
+  ]
+}

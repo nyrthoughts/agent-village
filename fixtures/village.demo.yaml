@@ -1,0 +1,135 @@
+version: 1
+name: Verdant Labs
+projects:
+  - id: atlas
+    name: Atlas
+    objective: Turn a wild valley into a dependable shared map
+    features:
+      - id: atlas-cartography
+        title: Cartography yard
+        tasks:
+          - id: atlas-contours
+            title: Contour studio
+            owner: Mira
+            status: in_progress
+            nextAction: Complete the eastern relief layer
+            resumeHint: codex atlas contours
+            subtasks:
+              - id: atlas-contours-foundation
+                title: Survey foundation
+                status: verified
+                evidence:
+                  - type: human_review
+                    reviewer: Rowan
+                    state: approved
+              - id: atlas-contours-relief
+                title: Relief layer
+                status: in_progress
+                evidence: []
+            evidence: []
+          - id: atlas-observatory
+            title: Observatory
+            owner: Sol
+            status: awaiting_review
+            nextAction: Inspect the north-facing sightline
+            resumeHint: claude atlas observatory
+            subtasks:
+              - id: atlas-observatory-deck
+                title: Viewing deck
+                status: verified
+                evidence:
+                  - type: human_review
+                    reviewer: Rowan
+                    state: approved
+            evidence:
+              - type: human_review
+                reviewer: Inez
+                state: pending
+      - id: atlas-crossing
+        title: River crossing
+        tasks:
+          - id: atlas-bridge
+            title: Timber bridge
+            owner: Jo
+            status: blocked
+            blockedReason: The western footing still needs a soil decision
+            nextAction: Choose the footing after the soil note arrives
+            resumeHint: openclaw atlas bridge
+            subtasks:
+              - id: atlas-bridge-footing
+                title: Western footing
+                status: planned
+                evidence: []
+            evidence: []
+    tasks:
+      - id: atlas-library
+        title: Field library
+        owner: Nori
+        status: verified
+        nextAction: Archive the final index
+        resumeHint: atlas library archive
+        subtasks: []
+        evidence:
+          - type: human_review
+            reviewer: Rowan
+            state: approved
+      - id: atlas-weather
+        title: Weather mast
+        owner: Paz
+        status: verified
+        nextAction: Replace the simulated proof with an inspected proof
+        resumeHint: atlas weather proof
+        subtasks: []
+        evidence:
+          - type: test
+            ref: simulated/weather-check
+            note: Represented but not executed in V1
+  - id: beacon
+    name: Beacon
+    objective: Make the valley signal legible from every approach
+    features:
+      - id: beacon-signal
+        title: Signal workshop
+        tasks:
+          - id: beacon-relay
+            title: Relay house
+            owner: Toma
+            status: planned
+            nextAction: Mark the first relay position
+            resumeHint: openclaw beacon relay
+            subtasks: []
+            evidence: []
+          - id: beacon-lens
+            title: Lens tower
+            owner: Uma
+            status: verified
+            nextAction: Record the completed inspection
+            resumeHint: beacon lens inspection
+            subtasks:
+              - id: beacon-lens-frame
+                title: Lens frame
+                status: verified
+                evidence:
+                  - type: human_review
+                    reviewer: Rowan
+                    state: approved
+            evidence:
+              - type: human_review
+                reviewer: Rowan
+                state: approved
+    tasks:
+      - id: beacon-notes
+        title: Approach notes
+        owner: Vale
+        status: in_progress
+        nextAction: Describe the southern approach
+        resumeHint: beacon approach notes
+        subtasks: []
+        evidence: []
+activity_mapping:
+  - match: atlas contours
+    taskId: atlas-contours
+  - match: atlas observatory
+    taskId: atlas-observatory
+  - match: beacon relay
+    taskId: beacon-relay
