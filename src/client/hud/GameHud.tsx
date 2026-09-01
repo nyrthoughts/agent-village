@@ -26,7 +26,7 @@ export function GameHud({ village, activity }: GameHudProps) {
   const mode = activity?.status === 'live' ? 'Live' : activity?.status === 'demo' ? 'Demo' : 'Truth only';
 
   return (
-    <header className="game-hud" aria-label="Village HUD">
+    <header className="game-hud" aria-label="Village HUD" data-ui-style="pixel-window">
       <section className="game-hud__village">
         <div className="game-hud__crest" aria-hidden="true"><span /><i /></div>
         <div className="game-hud__identity">

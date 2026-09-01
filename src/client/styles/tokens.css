@@ -1,28 +1,32 @@
 :root {
   color-scheme: light;
-  --ink-950: #183a3b;
-  --ink-900: #224a48;
-  --ink-800: #345d57;
-  --paper-100: #fffdf3;
-  --paper-200: #f8efd8;
-  --paper-500: #6f776b;
-  --wood-top: #e6c58f;
-  --wood-left: #b77d4f;
-  --wood-right: #ce9962;
-  --blueprint: #77a2a6;
-  --blueprint-soft: rgba(119, 162, 166, 0.18);
-  --amber: #e7a93f;
-  --coral: #e66d55;
-  --leaf: #7fa879;
-  --leaf-deep: #3f6f57;
-  --focus: #ffe38a;
-  --line: rgba(40, 91, 82, 0.16);
-  --shadow: rgba(37, 74, 66, 0.2);
-  font-family: "Avenir Next", Avenir, ui-sans-serif, system-ui, sans-serif;
-  background: #f8f3df;
+  --ink-950: #173f35;
+  --ink-900: #245847;
+  --ink-800: #39735c;
+  --paper-100: #fffbe0;
+  --paper-200: #f4e8b8;
+  --paper-500: #6e765a;
+  --wood-top: #efc06b;
+  --wood-left: #9a5939;
+  --wood-right: #c77a45;
+  --blueprint: #5c9fd0;
+  --blueprint-soft: #d5ebec;
+  --amber: #f2a936;
+  --coral: #db5943;
+  --leaf: #61a94e;
+  --leaf-deep: #286447;
+  --focus: #ffdc43;
+  --line: #416b54;
+  --shadow: rgba(20, 54, 41, 0.32);
+  font-family: Geneva, Verdana, ui-sans-serif, system-ui, sans-serif;
+  background: #255b48;
   color: var(--ink-950);
+  font-synthesis: none;
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at 15% 5%,#fffdf4 0,transparent 28%),linear-gradient(180deg,#f4f8dc 0,#f9efd6 100%); }
+html { min-width: 320px; min-height: 100%; background: #255b48; }
+body { margin: 0; min-width: 320px; min-height: 100vh; overflow-x: hidden; background: #255b48; }
 button, input { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+::selection { color: #173f35; background: #ffdc43; }

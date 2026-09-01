@@ -19,7 +19,7 @@ export function DetailDrawer({ task, project, trigger, onClose }: DetailDrawerPr
 
   return (
     <div className="drawer-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <aside className="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+      <aside className="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" data-ui-style="field-menu">
         <header className="detail-drawer__header">
           <div><span>{project.name} / construction file</span><h2 id="drawer-title">{task.title}</h2></div>
           <button ref={closeRef} type="button" className="drawer-close" onClick={onClose} aria-label="Close details">×</button>

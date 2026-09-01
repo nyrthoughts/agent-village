@@ -62,7 +62,7 @@ export function VillageMap2D({ village, activity, onSelect }: VillageMap2DProps)
   const worldStyle: CSSProperties = {
     width: layout.width * TILE_SIZE,
     height: layout.height * TILE_SIZE,
-    transform: `translate(calc(-50% - ${camera.x * TILE_SIZE}px), calc(-50% - ${camera.y * TILE_SIZE}px))`,
+    transform: `translate(calc(-50% - ${camera.x * TILE_SIZE}px), calc(-50% - ${camera.y * TILE_SIZE}px)) scale(1.2)`,
   };
 
   return (

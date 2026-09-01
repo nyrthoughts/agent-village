@@ -29,7 +29,7 @@ const activity: ActivitySnapshot = {
 describe('GameHud', () => {
   it('turns village truth and agent activity into a compact game HUD', () => {
     render(<GameHud village={village} activity={activity} />);
-    expect(screen.getByRole('banner', { name: 'Village HUD' })).toBeTruthy();
+    expect(screen.getByRole('banner', { name: 'Village HUD' }).getAttribute('data-ui-style')).toBe('pixel-window');
     expect(screen.getByRole('heading', { name: 'Verdant Labs' })).toBeTruthy();
     expect(screen.getByText('1 of 4 built')).toBeTruthy();
     expect(screen.getByText('2 alerts')).toBeTruthy();

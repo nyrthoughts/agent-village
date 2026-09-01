@@ -18,7 +18,7 @@ describe('DetailDrawer', () => {
     render(<Harness />);
     const trigger = screen.getByRole('button', { name: 'Open bridge' });
     fireEvent.click(trigger);
-    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByRole('dialog').getAttribute('data-ui-style')).toBe('field-menu');
     expect(screen.getByText('Cross the river safely')).toBeTruthy();
     expect(screen.getByText('Soil decision missing')).toBeTruthy();
     expect(screen.getByText('Choose the footing')).toBeTruthy();

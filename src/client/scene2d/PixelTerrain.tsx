@@ -18,20 +18,20 @@ interface PixelTerrainProps { layout: VillageLayout2d }
 
 export function PixelTerrain({ layout }: PixelTerrainProps) {
   return (
-    <div className="pixel-terrain" aria-hidden="true">
-      <div className="pixel-ground" data-testid="pixel-ground" />
-      {layout.zones.map((zone) => <div key={zone.projectId} className="pixel-zone" style={{ ...placed(zone.x, zone.y), width: zone.width * TILE_SIZE, height: zone.height * TILE_SIZE }} />)}
-      {layout.paths.map((path, index) => <div key={`${path.x}-${path.y}-${index}`} className="pixel-path" data-testid="pixel-path" style={{ ...placed(path.x, path.y), width: path.width * TILE_SIZE, height: path.height * TILE_SIZE }} />)}
-      <div className="pixel-pond" data-testid="pixel-pond" style={{ ...placed(27, 27), width: 10 * TILE_SIZE, height: 6 * TILE_SIZE }}><i /><i /><i /></div>
-      {TREES.map(([x, y], index) => <span key={`tree-${index}`} className={`pixel-tree pixel-tree--${index % 3}`} data-testid="pixel-tree" style={placed(x, Math.min(y, layout.height - 5))}><i /><b /></span>)}
-      {FLOWERS.map(([x, y], index) => <span key={`flower-${index}`} className={`pixel-flower pixel-flower--${index % 3}`} style={placed(x, Math.min(y, layout.height - 3))}><i /><i /><i /></span>)}
-      {ROCKS.map(([x, y], index) => <span key={`rock-${index}`} className="pixel-rock" style={placed(x, Math.min(y, layout.height - 3))} />)}
+    <div className="pixel-terrain">
+      <div className="pixel-ground" data-testid="pixel-ground" aria-hidden="true" />
+      {layout.zones.map((zone) => <div key={zone.projectId} className="pixel-zone" aria-hidden="true" style={{ ...placed(zone.x, zone.y), width: zone.width * TILE_SIZE, height: zone.height * TILE_SIZE }} />)}
+      {layout.paths.map((path, index) => <div key={`${path.x}-${path.y}-${index}`} className="pixel-path" data-testid="pixel-path" aria-hidden="true" style={{ ...placed(path.x, path.y), width: path.width * TILE_SIZE, height: path.height * TILE_SIZE }} />)}
+      <div className="pixel-pond" data-testid="pixel-pond" aria-hidden="true" style={{ ...placed(27, 27), width: 10 * TILE_SIZE, height: 6 * TILE_SIZE }}><i /><i /><i /></div>
+      {TREES.map(([x, y], index) => <span key={`tree-${index}`} className={`pixel-tree pixel-tree--${index % 3}`} data-testid="pixel-tree" aria-hidden="true" style={placed(x, Math.min(y, layout.height - 5))}><i /><b /></span>)}
+      {FLOWERS.map(([x, y], index) => <span key={`flower-${index}`} className={`pixel-flower pixel-flower--${index % 3}`} aria-hidden="true" style={placed(x, Math.min(y, layout.height - 3))}><i /><i /><i /></span>)}
+      {ROCKS.map(([x, y], index) => <span key={`rock-${index}`} className="pixel-rock" aria-hidden="true" style={placed(x, Math.min(y, layout.height - 3))} />)}
       {layout.zones.map((zone) => (
         <span key={`sign-${zone.projectId}`} className="pixel-zone-sign" style={placed(zone.signX, zone.signY)}>
           <i aria-hidden="true" /><strong>{zone.name}</strong>
         </span>
       ))}
-      <span className="village-entrance" data-testid="village-entrance" style={placed(layout.entrance.x, layout.entrance.y)}><i /><b /></span>
+      <span className="village-entrance" data-testid="village-entrance" aria-hidden="true" style={placed(layout.entrance.x, layout.entrance.y)}><i /><b /></span>
     </div>
   );
 }
