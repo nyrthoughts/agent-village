@@ -36,6 +36,8 @@ describe('layoutVillage2d', () => {
     expect(layout.paths.length).toBeGreaterThan(2);
     expect(new Set(layout.paths.map(({ kind }) => kind))).toEqual(new Set(['vertical', 'horizontal', 'square', 'spur']));
     expect(layout.paths.some(({ height }) => height === layout.height)).toBe(false);
+    expect(layout.paths.find(({ kind }) => kind === 'square')?.width).toBeLessThan(20);
+    expect(layout.paths.filter(({ kind }) => kind === 'horizontal').length).toBeGreaterThanOrEqual(2);
     expect(layout.landmarks).toEqual(expect.arrayContaining([
       expect.objectContaining({ kind: 'pond' }),
       expect.objectContaining({ kind: 'cliff' }),

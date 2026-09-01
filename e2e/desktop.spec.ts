@@ -9,8 +9,15 @@ test('desktop pixel village exposes construction, navigation and one-click conte
   await expect(scene).toHaveAttribute('data-building-count', '8');
   await expect(scene).toHaveAttribute('data-worker-count', '3');
   await expect(scene).toHaveAttribute('data-world-width', '64');
+  await expect(scene.getByTestId('forest-frame')).toBeVisible();
+  await expect(scene.getByTestId('pixel-cliff')).toBeVisible();
+  await expect(scene.getByTestId('pixel-pond')).toBeVisible();
+  await expect(scene.locator('[data-path-kind="square"]')).toHaveCount(1);
+  await expect(scene.locator('[data-building-variant]').first()).toHaveAttribute('data-sprite-scale', 'compact');
   await expect(scene.locator('.pixel-zone-sign', { hasText: 'Atlas' })).toBeVisible();
   await expect(scene.locator('.pixel-zone-sign', { hasText: 'Beacon' })).toBeVisible();
+  await expect(page.locator('[data-layout="location-plaque"]')).toBeVisible();
+  await expect(page.locator('[data-layout="sprite-strip"]')).toBeVisible();
 
   await scene.focus();
   await page.keyboard.press('ArrowRight');

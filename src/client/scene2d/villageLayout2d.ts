@@ -31,8 +31,10 @@ export function layoutVillage2d(village: DerivedWorkspace): VillageLayout2d {
   const buildings: PixelBuildingPlacement[] = [];
   const paths: PixelPath[] = [
     { x: 29, y: Math.max(24, height - 15), width: 6, height: 15, kind: 'vertical' },
-    { x: 13, y: 17, width: 38, height: 7, kind: 'square' },
-    { x: 28, y: 10, width: 7, height: 9, kind: 'vertical' },
+    { x: 24, y: 15, width: 16, height: 14, kind: 'square' },
+    { x: 29, y: 8, width: 6, height: 9, kind: 'vertical' },
+    { x: 8, y: 18, width: 18, height: 5, kind: 'horizontal' },
+    { x: 38, y: 20, width: 18, height: 5, kind: 'horizontal' },
   ];
   const landmarks: PixelLandmark[] = [
     { kind: 'pond', x: 46, y: Math.min(29, height - 12), width: 13, height: 8 },
@@ -55,13 +57,6 @@ export function layoutVillage2d(village: DerivedWorkspace): VillageLayout2d {
         signY: rowY + 10,
       };
       zones.push(zone);
-      paths.push({
-        x: column === 0 ? x + 8 : 29,
-        y: rowY + 11,
-        width: 22,
-        height: 4,
-        kind: 'horizontal',
-      });
       projectTasks(project).forEach(({ task, compoundId }, index) => {
         const plotColumn = index % PLOT_COLUMNS;
         const plotRow = Math.floor(index / PLOT_COLUMNS);
@@ -70,11 +65,11 @@ export function layoutVillage2d(village: DerivedWorkspace): VillageLayout2d {
           projectId: project.id,
           compoundId,
           x: x + 3 + plotColumn * 11,
-          y: rowY + 3 + plotRow * 7,
+          y: rowY + 3 + plotRow * 11,
           variant: (index + row * ZONE_COLUMNS + column) % 3,
         };
         buildings.push(placement);
-        paths.push({ x: placement.x + 4, y: placement.y + 5, width: 3, height: 5, kind: 'spur' });
+        paths.push({ x: placement.x + 4, y: placement.y + 5, width: 3, height: 7, kind: 'spur' });
       });
     });
     rowY += rowHeight + 4;

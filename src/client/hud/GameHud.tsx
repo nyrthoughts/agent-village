@@ -27,7 +27,7 @@ export function GameHud({ village, activity }: GameHudProps) {
 
   return (
     <header className="game-hud" aria-label="Village HUD" data-ui-style="pixel-window">
-      <section className="game-hud__village">
+      <section className="game-hud__village" data-layout="location-plaque">
         <div className="game-hud__crest" aria-hidden="true"><span /><i /></div>
         <div className="game-hud__identity">
           <span>Agent Village · <b>{mode}</b></span>
@@ -40,7 +40,7 @@ export function GameHud({ village, activity }: GameHudProps) {
         </div>
       </section>
 
-      <section className="game-hud__party" aria-label="Agents in village">
+      <section className="game-hud__party" aria-label="Agents in village" data-layout="sprite-strip">
         <header><span>Agent party</span><strong>{workers.length}</strong></header>
         {workers.length === 0
           ? <p>No visible agents</p>
