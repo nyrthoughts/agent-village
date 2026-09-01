@@ -4,7 +4,7 @@ import type { DerivedWorkspace } from '../server/truth/derive.js';
 import type { ActivitySnapshot } from '../shared/activity.js';
 import { App } from './App.js';
 
-const village: DerivedWorkspace = { version: 1, name: 'Verdant Labs', projects: [{ id: 'atlas', name: 'Atlas', objective: 'Map the valley', effectiveStatus: 'in_progress', features: [], tasks: [{ id: 'map', title: 'Map room', effectiveStatus: 'in_progress', warnings: [], roof: false, subtasks: [] }] }] };
+const village: DerivedWorkspace = { version: 1, name: 'Verdant Labs', progress: { verified: 0, total: 1, remaining: 1 }, projects: [{ id: 'atlas', name: 'Atlas', objective: 'Map the valley', effectiveStatus: 'in_progress', progress: { verified: 0, total: 1, remaining: 1 }, features: [], tasks: [{ id: 'map', title: 'Map room', effectiveStatus: 'in_progress', warnings: [], roof: false, progress: { stage: 'foundation', stageIndex: 1, verified: 0, total: 1, remaining: 1 }, subtasks: [] }] }] };
 
 afterEach(() => vi.restoreAllMocks());
 

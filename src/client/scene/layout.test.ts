@@ -4,7 +4,7 @@ import { animatedTaskIds } from './animations.js';
 import { orderedTasks } from './layout.js';
 
 function task(id: string, effectiveStatus: DerivedTask['effectiveStatus']): DerivedTask {
-  return { id, title: id, effectiveStatus, warnings: [], roof: false, subtasks: [] };
+  return { id, title: id, effectiveStatus, warnings: [], roof: false, progress: { stage: 'foundation', stageIndex: 1, verified: 0, total: 1, remaining: 1 }, subtasks: [] };
 }
 
 describe('scene layout', () => {

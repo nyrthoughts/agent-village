@@ -3,21 +3,22 @@ import type { DerivedTask, DerivedWorkspace } from '../../server/truth/derive.js
 import { layoutVillage2d } from './villageLayout2d.js';
 
 function task(id: string): DerivedTask {
-  return { id, title: id, effectiveStatus: 'planned', warnings: [], roof: false, subtasks: [] };
+  return { id, title: id, effectiveStatus: 'planned', warnings: [], roof: false, progress: { stage: 'lot', stageIndex: 0, verified: 0, total: 1, remaining: 1 }, subtasks: [] };
 }
 
 const village: DerivedWorkspace = {
   version: 1,
   name: 'Verdant Labs',
+  progress: { verified: 0, total: 4, remaining: 4 },
   projects: [
     {
-      id: 'atlas', name: 'Atlas', objective: 'Map the valley', effectiveStatus: 'in_progress',
-      features: [{ id: 'cartography', title: 'Cartography', effectiveStatus: 'in_progress', tasks: [task('atlas-contours'), task('atlas-observatory')] }],
+      id: 'atlas', name: 'Atlas', objective: 'Map the valley', effectiveStatus: 'in_progress', progress: { verified: 0, total: 3, remaining: 3 },
+      features: [{ id: 'cartography', title: 'Cartography', effectiveStatus: 'in_progress', progress: { verified: 0, total: 2, remaining: 2 }, tasks: [task('atlas-contours'), task('atlas-observatory')] }],
       tasks: [task('atlas-library')],
     },
     {
-      id: 'beacon', name: 'Beacon', objective: 'Light the approach', effectiveStatus: 'in_progress',
-      features: [{ id: 'signal', title: 'Signal', effectiveStatus: 'in_progress', tasks: [task('beacon-lens')] }],
+      id: 'beacon', name: 'Beacon', objective: 'Light the approach', effectiveStatus: 'in_progress', progress: { verified: 0, total: 1, remaining: 1 },
+      features: [{ id: 'signal', title: 'Signal', effectiveStatus: 'in_progress', progress: { verified: 0, total: 1, remaining: 1 }, tasks: [task('beacon-lens')] }],
       tasks: [],
     },
   ],

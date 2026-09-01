@@ -7,13 +7,14 @@ import { VillageSummary } from './VillageSummary.js';
 const village: DerivedWorkspace = {
   version: 1,
   name: 'Verdant Labs',
+  progress: { verified: 1, total: 4, remaining: 3 },
   projects: [{
-    id: 'atlas', name: 'Atlas', objective: 'Map it', effectiveStatus: 'blocked', features: [],
+    id: 'atlas', name: 'Atlas', objective: 'Map it', effectiveStatus: 'blocked', progress: { verified: 1, total: 4, remaining: 3 }, features: [],
     tasks: [
-      { id: 'done', title: 'Done', effectiveStatus: 'verified', roof: true, warnings: [], subtasks: [] },
-      { id: 'blocked', title: 'Blocked', effectiveStatus: 'blocked', roof: false, warnings: [], subtasks: [] },
-      { id: 'review', title: 'Review', effectiveStatus: 'awaiting_review', roof: false, warnings: [], subtasks: [] },
-      { id: 'active', title: 'Active', effectiveStatus: 'in_progress', roof: false, warnings: [], subtasks: [] },
+      { id: 'done', title: 'Done', effectiveStatus: 'verified', roof: true, progress: { stage: 'complete', stageIndex: 5, verified: 1, total: 1, remaining: 0 }, warnings: [], subtasks: [] },
+      { id: 'blocked', title: 'Blocked', effectiveStatus: 'blocked', roof: false, progress: { stage: 'foundation', stageIndex: 1, verified: 0, total: 1, remaining: 1 }, warnings: [], subtasks: [] },
+      { id: 'review', title: 'Review', effectiveStatus: 'awaiting_review', roof: false, progress: { stage: 'foundation', stageIndex: 1, verified: 0, total: 1, remaining: 1 }, warnings: [], subtasks: [] },
+      { id: 'active', title: 'Active', effectiveStatus: 'in_progress', roof: false, progress: { stage: 'foundation', stageIndex: 1, verified: 0, total: 1, remaining: 1 }, warnings: [], subtasks: [] },
     ],
   }],
 };

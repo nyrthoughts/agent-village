@@ -4,10 +4,10 @@ import type { DerivedProject, DerivedTask } from '../../server/truth/derive.js';
 import { PixelBuilding } from './PixelBuilding.js';
 
 function task(overrides: Partial<DerivedTask> = {}): DerivedTask {
-  return { id: 'task', title: 'Contour studio', owner: 'Mira', effectiveStatus: 'in_progress', warnings: [], roof: false, subtasks: [], ...overrides };
+  return { id: 'task', title: 'Contour studio', owner: 'Mira', effectiveStatus: 'in_progress', warnings: [], roof: false, progress: { stage: 'foundation', stageIndex: 1, verified: 0, total: 1, remaining: 1 }, subtasks: [], ...overrides };
 }
 
-const project: DerivedProject = { id: 'atlas', name: 'Atlas', objective: 'Map it', effectiveStatus: 'in_progress', features: [], tasks: [] };
+const project: DerivedProject = { id: 'atlas', name: 'Atlas', objective: 'Map it', effectiveStatus: 'in_progress', progress: { verified: 0, total: 0, remaining: 0 }, features: [], tasks: [] };
 
 afterEach(cleanup);
 

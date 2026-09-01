@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Task } from '../../shared/schema.js';
-import { deriveProject, deriveTask, type EvidenceVerdict } from './derive.js';
+import { deriveProject, deriveTask, deriveWorkspace, type EvidenceVerdict } from './derive.js';
 
 function task(overrides: Partial<Task>): Task {
   return {
@@ -137,6 +137,55 @@ describe('deriveTask', () => {
     expect(derived.effectiveStatus).toBe('in_progress');
     expect(derived.roof).toBe(false);
   });
+
+  it('derives six construction stages from verified leaves and the roof gate', () => {
+    expect(deriveTask(task({ status: 'planned' }), {}).progress).toMatchObject({
+      stage: 'lot',
+      stageIndex: 0,
+      verified: 0,
+      total: 1,
+      remaining: 1,
+    });
+    expect(deriveTask(task({ status: 'in_progress' }), {}).progress.stage).toBe('foundation');
+
+    const halfBuilt = deriveTask(
+      task({
+        status: 'in_progress',
+        subtasks: [
+          { id: 's1', title: 'Foundation', status: 'verified', evidence: [verifiedCommit] },
+          { id: 's2', title: 'Roof', status: 'planned', evidence: [] },
+        ],
+      }),
+      verdicts('s1', ['verified']),
+    );
+    expect(halfBuilt.progress).toMatchObject({
+      stage: 'walls',
+      stageIndex: 3,
+      verified: 1,
+      total: 2,
+      remaining: 1,
+    });
+
+    const allLeavesVerified = deriveTask(
+      task({
+        status: 'in_progress',
+        subtasks: [
+          { id: 's1', title: 'Foundation', status: 'verified', evidence: [verifiedCommit] },
+          { id: 's2', title: 'Roof', status: 'verified', evidence: [verifiedCommit] },
+        ],
+      }),
+      { s1: ['verified'], s2: ['verified'] },
+    );
+    expect(allLeavesVerified.progress.stage).toBe('roof');
+    expect(allLeavesVerified.roof).toBe(false);
+
+    const complete = deriveTask(
+      task({ status: 'verified', evidence: [verifiedCommit] }),
+      verdicts('t1', ['verified']),
+    );
+    expect(complete.progress.stage).toBe('complete');
+    expect(complete.progress.stageIndex).toBe(5);
+  });
 });
 
 describe('deriveProject', () => {
@@ -162,5 +211,30 @@ describe('deriveProject', () => {
     );
     expect(derived.features[0]!.effectiveStatus).toBe('blocked');
     expect(derived.effectiveStatus).toBe('blocked');
+  });
+
+  it('rolls verified work and remaining work up without inventing progress', () => {
+    const derived = deriveWorkspace(
+      {
+        version: 1,
+        name: 'Village',
+        projects: [
+          {
+            id: 'p1',
+            name: 'P1',
+            objective: 'Measure truth',
+            features: [],
+            tasks: [
+              task({ id: 'done', status: 'verified', evidence: [verifiedCommit] }),
+              task({ id: 'todo', status: 'in_progress' }),
+            ],
+          },
+        ],
+      },
+      verdicts('done', ['verified']),
+    );
+
+    expect(derived.progress).toEqual({ verified: 1, total: 2, remaining: 1 });
+    expect(derived.projects[0]!.progress).toEqual({ verified: 1, total: 2, remaining: 1 });
   });
 });

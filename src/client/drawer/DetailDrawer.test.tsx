@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import type { DerivedProject, DerivedTask } from '../../server/truth/derive.js';
 import { DetailDrawer } from './DetailDrawer.js';
 
-const task: DerivedTask = { id: 'bridge', title: 'Timber bridge', owner: 'Jo', effectiveStatus: 'blocked', warnings: ['invalid_evidence'], roof: false, subtasks: [], blockedReason: 'Soil decision missing', nextAction: 'Choose the footing', resumeHint: 'openclaw bridge', evidence: [{ type: 'test', verdict: 'not_checked_v1', note: 'Simulated' }] };
-const project: DerivedProject = { id: 'atlas', name: 'Atlas', objective: 'Cross the river safely', effectiveStatus: 'blocked', features: [], tasks: [task] };
+const task: DerivedTask = { id: 'bridge', title: 'Timber bridge', owner: 'Jo', effectiveStatus: 'blocked', warnings: ['invalid_evidence'], roof: false, progress: { stage: 'foundation', stageIndex: 1, verified: 0, total: 1, remaining: 1 }, subtasks: [], blockedReason: 'Soil decision missing', nextAction: 'Choose the footing', resumeHint: 'openclaw bridge', evidence: [{ type: 'test', verdict: 'not_checked_v1', note: 'Simulated' }] };
+const project: DerivedProject = { id: 'atlas', name: 'Atlas', objective: 'Cross the river safely', effectiveStatus: 'blocked', progress: { verified: 0, total: 1, remaining: 1 }, features: [], tasks: [task] };
 
 function Harness() {
   const [open, setOpen] = useState(false);

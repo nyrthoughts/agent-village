@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { DerivedTask, DerivedWorkspace } from '../../server/truth/derive.js';
 import { AttentionList } from './AttentionList.js';
 
-const task = (id: string, status: DerivedTask['effectiveStatus']): DerivedTask => ({ id, title: id, effectiveStatus: status, warnings: [], roof: false, subtasks: [] });
-const village: DerivedWorkspace = { version: 1, name: 'Test', projects: [{ id: 'p', name: 'Project', objective: 'Objective', effectiveStatus: 'blocked', features: [], tasks: [task('verified', 'verified'), task('blocked', 'blocked'), task('review', 'awaiting_review'), task('active', 'in_progress')] }] };
+const task = (id: string, status: DerivedTask['effectiveStatus']): DerivedTask => ({ id, title: id, effectiveStatus: status, warnings: [], roof: status === 'verified', progress: { stage: status === 'verified' ? 'complete' : 'foundation', stageIndex: status === 'verified' ? 5 : 1, verified: status === 'verified' ? 1 : 0, total: 1, remaining: status === 'verified' ? 0 : 1 }, subtasks: [] });
+const village: DerivedWorkspace = { version: 1, name: 'Test', progress: { verified: 1, total: 4, remaining: 3 }, projects: [{ id: 'p', name: 'Project', objective: 'Objective', effectiveStatus: 'blocked', progress: { verified: 1, total: 4, remaining: 3 }, features: [], tasks: [task('verified', 'verified'), task('blocked', 'blocked'), task('review', 'awaiting_review'), task('active', 'in_progress')] }] };
 
 describe('AttentionList', () => {
   it('orders by attention and sends the same task selection contract', () => {

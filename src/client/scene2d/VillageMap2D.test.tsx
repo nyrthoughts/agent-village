@@ -9,11 +9,12 @@ afterEach(cleanup);
 const village: DerivedWorkspace = {
   version: 1,
   name: 'Verdant Labs',
+  progress: { verified: 1, total: 2, remaining: 1 },
   projects: [{
-    id: 'atlas', name: 'Atlas', objective: 'Map it', effectiveStatus: 'in_progress', features: [],
+    id: 'atlas', name: 'Atlas', objective: 'Map it', effectiveStatus: 'in_progress', progress: { verified: 1, total: 2, remaining: 1 }, features: [],
     tasks: [
-      { id: 'contours', title: 'Contour studio', owner: 'Mira', effectiveStatus: 'in_progress', roof: false, warnings: [], subtasks: [] },
-      { id: 'library', title: 'Field library', owner: 'Nori', effectiveStatus: 'verified', roof: true, warnings: [], subtasks: [] },
+      { id: 'contours', title: 'Contour studio', owner: 'Mira', effectiveStatus: 'in_progress', roof: false, progress: { stage: 'foundation', stageIndex: 1, verified: 0, total: 1, remaining: 1 }, warnings: [], subtasks: [] },
+      { id: 'library', title: 'Field library', owner: 'Nori', effectiveStatus: 'verified', roof: true, progress: { stage: 'complete', stageIndex: 5, verified: 1, total: 1, remaining: 0 }, warnings: [], subtasks: [] },
     ],
   }],
 };
