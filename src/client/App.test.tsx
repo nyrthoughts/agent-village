@@ -21,7 +21,9 @@ describe('App degraded activity', () => {
     mockApi({ status: 'live', fetchedAt: '2026-08-31T16:00:00.000Z', workers: [] });
     const view = render(<App />);
     expect(await screen.findByRole('region', { name: 'Verdant Labs village map' })).toBeTruthy();
+    expect(await screen.findByTestId('village-map-2d')).toBeTruthy();
     expect(screen.getByRole('banner', { name: 'Village HUD' })).toBeTruthy();
+    expect(screen.queryByTestId('village-scene-3d')).toBeNull();
     expect(screen.queryByText('Agents on site')).toBeNull();
     expect(screen.queryByText('Decision queue')).toBeNull();
     expect(screen.queryByRole('region', { name: 'Agent camp' })).toBeNull();

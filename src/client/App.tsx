@@ -5,10 +5,8 @@ import { useVillage } from './hooks/useVillage.js';
 import { DetailDrawer } from './drawer/DetailDrawer.js';
 import { AttentionList } from './mobile/AttentionList.js';
 import { DegradedBanner } from './scene/DegradedBanner.js';
-import { VillageTable } from './scene/VillageTable.js';
-import { VillageScene3D } from './scene3d/VillageScene3D.js';
-import { WebGLBoundary } from './scene3d/WebGLBoundary.js';
 import { GameHud } from './hud/GameHud.js';
+import { VillageMap2D } from './scene2d/VillageMap2D.js';
 
 interface Selection { task: DerivedTask; project: DerivedProject; trigger: HTMLButtonElement }
 
@@ -30,9 +28,7 @@ export function App() {
         {(activity.data?.status === 'degraded' || activity.error) && <DegradedBanner />}
         {workspace.projects.length === 0
           ? <section className="empty-village"><h2>The village is quiet.</h2><p>Add a project to village.yaml to place the first district.</p></section>
-          : <WebGLBoundary fallback={<VillageTable village={workspace} activity={activity.data} onSelect={select} />}>
-            {({ onUnavailable }) => <VillageScene3D village={workspace} activity={activity.data} onSelect={select} onUnavailable={onUnavailable} />}
-          </WebGLBoundary>}
+          : <VillageMap2D village={workspace} activity={activity.data} onSelect={select} />}
         <footer className="table-legend">
           <span><i className="legend-swatch legend-swatch--wood" />Built</span><span><i className="legend-swatch legend-swatch--frame" />In progress</span><span><i className="legend-swatch legend-swatch--plan" />Planned</span><span><i className="legend-swatch legend-swatch--block" />Blocked</span>
         </footer>
