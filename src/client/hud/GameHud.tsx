@@ -19,10 +19,10 @@ function villageTasks(village: DerivedWorkspace): DerivedTask[] {
 
 export function GameHud({ village, activity }: GameHudProps) {
   const tasks = villageTasks(village);
-  const built = tasks.filter(({ effectiveStatus }) => effectiveStatus === 'verified').length;
+  const built = village.progress.verified;
   const alerts = tasks.filter(({ effectiveStatus }) => effectiveStatus === 'blocked' || effectiveStatus === 'awaiting_review').length;
   const workers = activity?.status === 'live' || activity?.status === 'demo' ? activity.workers.slice(0, 4) : [];
-  const percent = tasks.length === 0 ? 0 : Math.round(built / tasks.length * 100);
+  const percent = village.progress.total === 0 ? 0 : Math.round(built / village.progress.total * 100);
   const mode = activity?.status === 'live' ? 'Live' : activity?.status === 'demo' ? 'Demo' : 'Truth only';
 
   return (
@@ -34,7 +34,7 @@ export function GameHud({ village, activity }: GameHudProps) {
           <h1>{village.name}</h1>
           <div className="game-hud__progress">
             <i aria-hidden="true"><b style={{ width: `${percent}%` }} /></i>
-            <strong>{built} of {tasks.length} built</strong>
+            <strong>{built} of {village.progress.total} built</strong>
             <small className={alerts > 0 ? 'game-hud__alerts game-hud__alerts--active' : 'game-hud__alerts'}>{alerts} alerts</small>
           </div>
         </div>

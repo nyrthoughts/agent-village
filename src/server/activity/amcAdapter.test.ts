@@ -57,8 +57,9 @@ describe('fetchAmcActivity', () => {
     expect(Object.keys(snapshot).sort()).toEqual(['fetchedAt', 'status', 'workers']);
     for (const worker of snapshot.workers) {
       expect(Object.keys(worker).sort()).toEqual([
-        'attachedTaskId', 'id', 'lastActivityAt', 'state', 'title', 'tool',
+        'attachedTaskId', 'id', 'lastActivityAt', 'role', 'state', 'title', 'tool',
       ]);
+      expect(worker.role).toBe('unknown');
     }
   });
 

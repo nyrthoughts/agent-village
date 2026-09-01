@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from 'react';
 import type { DerivedProject, DerivedTask, DerivedWorkspace } from '../../server/truth/derive.js';
-import type { ActivitySnapshot } from '../../shared/activity.js';
+import type { ActivitySnapshot, Worker } from '../../shared/activity.js';
 import { PixelBuilding } from './PixelBuilding.js';
 import { PixelTerrain, TILE_SIZE } from './PixelTerrain.js';
 import { PixelWorker } from './PixelWorker.js';
@@ -10,6 +10,7 @@ interface VillageMap2DProps {
   village: DerivedWorkspace;
   activity?: ActivitySnapshot;
   onSelect: (task: DerivedTask, trigger: HTMLButtonElement, project: DerivedProject) => void;
+  onSelectWorker?: (worker: Worker, trigger: HTMLButtonElement) => void;
 }
 
 interface Camera { x: number; y: number }
@@ -18,7 +19,7 @@ function clamp(value: number, limit: number): number {
   return Math.min(limit, Math.max(-limit, value));
 }
 
-export function VillageMap2D({ village, activity, onSelect }: VillageMap2DProps) {
+export function VillageMap2D({ village, activity, onSelect, onSelectWorker }: VillageMap2DProps) {
   const layout = useMemo(() => layoutVillage2d(village), [village]);
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0 });
   const dragRef = useRef<{ pointerId: number; x: number; y: number; camera: Camera }>();
@@ -30,6 +31,15 @@ export function VillageMap2D({ village, activity, onSelect }: VillageMap2DProps)
   ].map((task) => [task.id, { task, project }] as const))), [village]);
   const placements = useMemo(() => new Map(layout.buildings.map((building) => [building.taskId, building])), [layout]);
   const workers = activity?.status === 'live' || activity?.status === 'demo' ? activity.workers : [];
+  const leadCount = workers.filter((worker) => worker.role === 'lead').length;
+  const helperCount = workers.filter((worker) => worker.role === 'helper').length;
+  const helpersByParent = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const worker of workers) {
+      if (worker.role === 'helper' && worker.parentId) counts.set(worker.parentId, (counts.get(worker.parentId) ?? 0) + 1);
+    }
+    return counts;
+  }, [workers]);
 
   const moveCamera = (x: number, y: number) => setCamera({ x: clamp(x, maxX), y: clamp(y, maxY) });
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -72,6 +82,8 @@ export function VillageMap2D({ village, activity, onSelect }: VillageMap2DProps)
       data-testid="village-map-2d"
       data-building-count={layout.buildings.length}
       data-worker-count={workers.length}
+      data-lead-count={leadCount}
+      data-helper-count={helperCount}
       data-world-width={layout.width}
       data-world-height={layout.height}
       data-camera-x={Number(camera.x.toFixed(2))}
@@ -96,9 +108,9 @@ export function VillageMap2D({ village, activity, onSelect }: VillageMap2DProps)
         })}
         {workers.map((worker, index) => {
           const placement = worker.attachedTaskId ? placements.get(worker.attachedTaskId) : undefined;
-          const x = placement ? placement.x + 5 : layout.entrance.x + index * 2;
-          const y = placement ? placement.y + 5 : layout.entrance.y;
-          return <span key={worker.id} className="pixel-worker-plot" style={{ left: x * TILE_SIZE, top: y * TILE_SIZE }}><PixelWorker worker={worker} /></span>;
+          const x = placement ? placement.x + 8 + (index % 2) * 2 : layout.entrance.x + index * 2;
+          const y = placement ? placement.y + 2 + (index % 3) * 2 : layout.entrance.y;
+          return <span key={worker.id} className="pixel-worker-plot" style={{ left: x * TILE_SIZE, top: y * TILE_SIZE }}><PixelWorker worker={worker} helperCount={helpersByParent.get(worker.id)} onSelect={onSelectWorker} /></span>;
         })}
       </div>
       <button type="button" className="map-reset" onClick={() => setCamera({ x: 0, y: 0 })}>Reset village view</button>

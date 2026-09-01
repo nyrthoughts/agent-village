@@ -21,8 +21,8 @@ const village: DerivedWorkspace = {
 
 const activity: ActivitySnapshot = {
   status: 'live', fetchedAt: '2026-09-01T12:00:00.000Z', workers: [
-    { id: 'codex', tool: 'codex', state: 'working', title: 'Build contours', attachedTaskId: 'contours', lastActivityAt: '2026-09-01T12:00:00.000Z' },
-    { id: 'claude', tool: 'claude', state: 'waiting', title: 'Review map', lastActivityAt: '2026-09-01T12:00:00.000Z' },
+    { id: 'codex', tool: 'codex', role: 'lead', state: 'working', title: 'Build contours', attachedTaskId: 'contours', lastActivityAt: '2026-09-01T12:00:00.000Z' },
+    { id: 'claude', tool: 'claude', role: 'helper', parentId: 'codex', state: 'waiting', title: 'Review map', attachedTaskId: 'contours', lastActivityAt: '2026-09-01T12:00:00.000Z' },
   ],
 };
 
@@ -32,9 +32,22 @@ describe('VillageMap2D', () => {
     const map = screen.getByTestId('village-map-2d');
     expect(map.getAttribute('data-building-count')).toBe('2');
     expect(map.getAttribute('data-worker-count')).toBe('2');
+    expect(map.getAttribute('data-lead-count')).toBe('1');
+    expect(map.getAttribute('data-helper-count')).toBe('1');
     expect(map.getAttribute('data-world-width')).toBe('64');
     expect(screen.getByRole('button', { name: /Contour studio/ })).toBeTruthy();
-    expect(screen.getByLabelText(/Codex worker/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Codex lead agent/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Claude helper agent/ })).toBeTruthy();
+  });
+
+  it('forwards worker selection independently from building selection', () => {
+    const onSelectWorker = vi.fn();
+    render(<VillageMap2D village={village} activity={activity} onSelect={() => undefined} onSelectWorker={onSelectWorker} />);
+    fireEvent.click(screen.getByRole('button', { name: /Codex lead agent/ }));
+    expect(onSelectWorker).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'codex' }),
+      expect.any(HTMLButtonElement),
+    );
   });
 
   it('never invents workers when activity is absent', () => {

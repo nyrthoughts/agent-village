@@ -47,4 +47,14 @@ describe('App degraded activity', () => {
     expect(screen.queryByLabelText(/worker,/)).toBeNull();
     view.unmount();
   });
+
+  it('opens analytics when a person in the village is selected', async () => {
+    mockApi({ status: 'live', fetchedAt: '2026-08-31T16:00:00.000Z', workers: [{ id: 'codex:1', tool: 'codex', role: 'lead', state: 'working', title: 'Build Map room', attachedTaskId: 'map', lastActivityAt: '2026-08-31T16:00:00.000Z' }] });
+    const view = render(<App />);
+    const agent = await screen.findByRole('button', { name: /Codex lead agent/ });
+    agent.click();
+    expect(await screen.findByRole('heading', { name: 'Build Map room' })).toBeTruthy();
+    expect(screen.getByText('Token usage')).toBeTruthy();
+    view.unmount();
+  });
 });

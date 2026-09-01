@@ -24,6 +24,11 @@ describe('DetailDrawer', () => {
     expect(screen.getByText('Choose the footing')).toBeTruthy();
     expect(screen.getByText('openclaw bridge')).toBeTruthy();
     expect(screen.getByText('not checked v1')).toBeTruthy();
+    expect(screen.getByText('foundation')).toBeTruthy();
+    expect(screen.getByText('0 / 1 verified')).toBeTruthy();
+    expect(screen.getByText('1 remaining')).toBeTruthy();
+    expect(screen.getByText('0 connected')).toBeTruthy();
+    expect(screen.getAllByText('Unavailable')).toHaveLength(2);
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Close details' }));
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).toBeNull();
