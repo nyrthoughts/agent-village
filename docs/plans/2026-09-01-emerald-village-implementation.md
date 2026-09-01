@@ -371,7 +371,7 @@ Expected: only V4 design, plan, 2D scene, visual system, tests, dependency clean
 Run:
 
 ```bash
-bash /Users/Nylan1/.agents/skills/git-pushing/scripts/smart_commit.sh \
+bash "$AGENT_SKILLS/git-pushing/scripts/smart_commit.sh" \
   "feat(design): build emerald-style pixel village"
 ```
 
