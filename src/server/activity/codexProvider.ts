@@ -16,6 +16,7 @@ export interface CodexThreadRecord {
   preview: string;
   updatedAt: number;
   status: CodexThreadStatus;
+  source?: string;
 }
 
 export interface AppServerTransport {
@@ -34,6 +35,7 @@ const threadSchema = z.object({
     z.object({ type: z.literal('active'), activeFlags: z.array(z.string()) }),
     z.object({ type: z.enum(['idle', 'notLoaded', 'systemError']) }),
   ]),
+  source: z.string().optional(),
 });
 const threadListSchema = z.object({ data: z.array(threadSchema) });
 
@@ -157,6 +159,12 @@ function stateFor(status: CodexThreadStatus, updatedAt: Date, now: Date): Worker
   return 'unknown';
 }
 
+function roleFor(source: string | undefined): Worker['role'] {
+  if (!source) return 'unknown';
+  if (source.startsWith('subAgent')) return 'helper';
+  return 'lead';
+}
+
 export function mapCodexThreads(
   threads: readonly CodexThreadRecord[],
   now = new Date(),
@@ -170,6 +178,7 @@ export function mapCodexThreads(
     return [{
       id: `codex:${thread.id}`,
       tool: 'codex' as const,
+      role: roleFor(thread.source),
       state: stateFor(thread.status, updatedAt, now),
       project: redactTitle(basename(thread.cwd) || 'unknown').slice(0, 80),
       title: redactTitle(rawTitle).slice(0, 120),

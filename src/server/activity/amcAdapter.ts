@@ -45,6 +45,7 @@ function sanitizeSession(session: z.infer<typeof sourceSessionSchema>): Worker {
   return {
     id: session.id,
     tool: normalizeTool(session.tool.toLowerCase()),
+    role: 'unknown',
     state: normalizeState(session.state.toLowerCase()),
     lastActivityAt: new Date(session.lastActivityAt).toISOString(),
     ...(title === undefined ? {} : { title }),

@@ -18,7 +18,7 @@ describe('HookActivityStore', () => {
       prompt: 'secret customer data that must not be stored',
     });
     expect(store.workers()).toEqual([
-      expect.objectContaining({ id: 'claude:claude-1', tool: 'claude', state: 'working', project: 'atlas', title: 'atlas' }),
+      expect.objectContaining({ id: 'claude:claude-1', tool: 'claude', role: 'lead', state: 'working', project: 'atlas', title: 'atlas' }),
     ]);
 
     now = new Date('2026-09-01T12:01:00.000Z');
@@ -26,11 +26,25 @@ describe('HookActivityStore', () => {
     expect(store.workers()[0]?.state).toBe('waiting');
   });
 
+  it('tracks Claude helpers beside their lead without overwriting the session', () => {
+    const store = new HookActivityStore(() => new Date('2026-09-01T12:00:00.000Z'));
+    store.ingestClaude({ session_id: 'claude-1', hook_event_name: 'SessionStart', cwd: '/work/atlas' });
+    store.ingestClaude({ session_id: 'claude-1', hook_event_name: 'SubagentStart', agent_id: 'reviewer-1', agent_type: 'reviewer', cwd: '/work/atlas' });
+
+    expect(store.workers()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'claude:claude-1', role: 'lead' }),
+      expect.objectContaining({ id: 'claude:claude-1:helper:reviewer-1', role: 'helper', parentId: 'claude:claude-1', title: 'reviewer' }),
+    ]));
+
+    store.ingestClaude({ session_id: 'claude-1', hook_event_name: 'SubagentStop', agent_id: 'reviewer-1', cwd: '/work/atlas' });
+    expect(store.workers().map(({ id }) => id)).toEqual(['claude:claude-1']);
+  });
+
   it('accepts normalized OpenClaw events and expires ended sessions', () => {
     let now = new Date('2026-09-01T12:00:00.000Z');
     const store = new HookActivityStore(() => now, 30);
     expect(store.ingestOpenClaw({ sessionId: 'claw-1', event: 'session_start', title: 'Beacon relay' })).toBe(true);
-    expect(store.workers()[0]).toMatchObject({ tool: 'openclaw', state: 'working', title: 'Beacon relay' });
+    expect(store.workers()[0]).toMatchObject({ tool: 'openclaw', role: 'unknown', state: 'working', title: 'Beacon relay' });
 
     store.ingestOpenClaw({ sessionId: 'claw-1', event: 'session_end', title: 'Beacon relay' });
     now = new Date('2026-09-01T12:31:00.000Z');

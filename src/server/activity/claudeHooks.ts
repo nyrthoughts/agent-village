@@ -6,6 +6,8 @@ const EVENTS = [
   'PostToolUseFailure',
   'Notification',
   'Stop',
+  'SubagentStart',
+  'SubagentStop',
   'SessionEnd',
 ] as const;
 
