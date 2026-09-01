@@ -10,11 +10,11 @@ const toolLabels: Record<WorkerTool, string> = {
 };
 
 export function LiveAgentsPanel({ activity }: LiveAgentsPanelProps) {
-  if (activity?.status !== 'live') return null;
+  if (!activity || activity.status === 'absent' || activity.status === 'degraded') return null;
   return (
-    <section className="live-agents" aria-label="Live conversations">
+    <section className="live-agents" aria-label="Agent camp">
       <header className="live-agents__header">
-        <div><span>Activity plane</span><h2>Live conversations</h2></div>
+        <div><span>{activity.status === 'demo' ? 'Demo signals' : 'Live signals'}</span><h2>Agent camp</h2></div>
         <strong>{activity.workers.length}</strong>
       </header>
       <ul>

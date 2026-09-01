@@ -9,6 +9,7 @@ import { VillageTable } from './scene/VillageTable.js';
 import { VillageScene3D } from './scene3d/VillageScene3D.js';
 import { WebGLBoundary } from './scene3d/WebGLBoundary.js';
 import { LiveAgentsPanel } from './activity/LiveAgentsPanel.js';
+import { VillageSummary } from './summary/VillageSummary.js';
 
 interface Selection { task: DerivedTask; project: DerivedProject; trigger: HTMLButtonElement }
 
@@ -27,7 +28,7 @@ export function App() {
     <main className="app-shell" aria-label="Agent Village">
       <header className="topbar">
         <div className="brand-mark" aria-hidden="true"><span /><span /><span /></div>
-        <div className="topbar__title"><span>Agent Village / local truth plane</span><h1>{workspace.name}</h1></div>
+        <div className="topbar__title"><span>Agent Village · construction map</span><h1>{workspace.name}</h1></div>
         <div className="topbar__signals">
           <span className="live-dot" aria-label="Local server connected" />
           {activity.data?.status === 'demo' && <span className="mode-badge">Demo activity</span>}
@@ -35,6 +36,7 @@ export function App() {
           {activity.data?.status === 'absent' && <span className="mode-badge">Truth only</span>}
         </div>
       </header>
+      <VillageSummary village={workspace} activity={activity.data} />
       {(activity.data?.status === 'degraded' || activity.error) && <DegradedBanner />}
       <LiveAgentsPanel activity={activity.data} />
       {workspace.projects.length === 0

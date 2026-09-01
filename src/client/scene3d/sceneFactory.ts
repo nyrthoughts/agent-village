@@ -3,6 +3,7 @@ import {
   BoxGeometry,
   ConeGeometry,
   CylinderGeometry,
+  DodecahedronGeometry,
   Group,
   Material,
   Mesh,
@@ -20,18 +21,31 @@ const districtGeometry = new BoxGeometry(1, 0.42, 1);
 const fenceXGeometry = new BoxGeometry(1, 0.38, 0.12);
 const fenceZGeometry = new BoxGeometry(0.12, 0.38, 1);
 const districtMaterials = [
-  new MeshStandardMaterial({ color: 0x314939, roughness: 0.96 }),
-  new MeshStandardMaterial({ color: 0x3a4b3d, roughness: 0.96 }),
+  new MeshStandardMaterial({ color: 0x78bd65, roughness: 0.92 }),
+  new MeshStandardMaterial({ color: 0x88c86d, roughness: 0.92 }),
 ];
-const fenceMaterial = new MeshStandardMaterial({ color: 0xb88957, roughness: 0.86 });
+const sandMaterial = new MeshStandardMaterial({ color: 0xf2cf8d, roughness: 0.98 });
+const waterMaterial = new MeshStandardMaterial({ color: 0x72cbd2, roughness: 0.32, metalness: 0.03 });
+const fenceMaterial = new MeshStandardMaterial({ color: 0xd29354, roughness: 0.86 });
 const pathGeometry = new BoxGeometry(1, 0.07, 1);
-const pathMaterial = new MeshStandardMaterial({ color: 0xb99a69, roughness: 1 });
+const pathMaterial = new MeshStandardMaterial({ color: 0xf7dda8, roughness: 1 });
 const trunkGeometry = new CylinderGeometry(0.18, 0.24, 1.2, 8);
-const crownGeometry = new ConeGeometry(0.95, 2.3, 9);
+const crownGeometry = new DodecahedronGeometry(1.05, 0);
 const trunkMaterial = new MeshStandardMaterial({ color: 0x765038, roughness: 1 });
 const crownMaterials = [
-  new MeshStandardMaterial({ color: 0x496f4f, roughness: 1 }),
-  new MeshStandardMaterial({ color: 0x5a7d56, roughness: 1 }),
+  new MeshStandardMaterial({ color: 0x3e9d61, roughness: 1 }),
+  new MeshStandardMaterial({ color: 0x69b85f, roughness: 1 }),
+];
+const plazaGeometry = new CylinderGeometry(2.2, 2.3, 0.18, 16);
+const plazaMaterial = new MeshStandardMaterial({ color: 0xf4c97d, roughness: 0.96 });
+const fountainBaseGeometry = new CylinderGeometry(0.68, 0.82, 0.35, 12);
+const fountainWaterGeometry = new CylinderGeometry(0.5, 0.5, 0.08, 12);
+const fountainStoneMaterial = new MeshStandardMaterial({ color: 0xffedc5, roughness: 0.85 });
+const flowerBedGeometry = new DodecahedronGeometry(0.24, 0);
+const flowerMaterials = [
+  new MeshStandardMaterial({ color: 0xf06c7b, roughness: 0.8 }),
+  new MeshStandardMaterial({ color: 0xf9cf54, roughness: 0.8 }),
+  new MeshStandardMaterial({ color: 0x9d72d2, roughness: 0.8 }),
 ];
 
 export interface SceneContent {
@@ -105,6 +119,18 @@ function addDistrictLandscape(
   }
   district.add(paths);
 
+  const plaza = new Group();
+  plaza.name = `plaza:${projectId}`;
+  const plazaFloor = new Mesh(plazaGeometry, plazaMaterial);
+  plazaFloor.position.set(districtX, 0.1, districtZ);
+  plazaFloor.receiveShadow = true;
+  const fountainBase = new Mesh(fountainBaseGeometry, fountainStoneMaterial);
+  fountainBase.position.set(districtX, 0.32, districtZ);
+  const fountainWater = new Mesh(fountainWaterGeometry, waterMaterial);
+  fountainWater.position.set(districtX, 0.53, districtZ);
+  plaza.add(plazaFloor, fountainBase, fountainWater);
+  district.add(plaza);
+
   const insetX = width / 2 - 2.2;
   const insetZ = depth / 2 - 2.2;
   const positions = [
@@ -113,7 +139,18 @@ function addDistrictLandscape(
     [districtX - insetX, districtZ + insetZ],
     [districtX + insetX, districtZ + insetZ],
   ] as const;
-  positions.forEach(([x, z], index) => district.add(createTree(`tree:${projectId}:${index}`, x, z, index)));
+  positions.forEach(([x, z], index) => {
+    district.add(createTree(`tree:${projectId}:${index}`, x, z, index));
+    const flowers = new Group();
+    flowers.name = `flower-bed:${projectId}:${index}`;
+    for (let flowerIndex = 0; flowerIndex < 3; flowerIndex += 1) {
+      const flower = new Mesh(flowerBedGeometry, flowerMaterials[(index + flowerIndex) % flowerMaterials.length]);
+      flower.position.set(x + 1.1 + flowerIndex * 0.38, 0.28, z + 0.7 + (flowerIndex % 2) * 0.25);
+      flower.castShadow = true;
+      flowers.add(flower);
+    }
+    district.add(flowers);
+  });
 }
 
 export function buildSceneContent(village: DerivedWorkspace): SceneContent {
@@ -126,15 +163,27 @@ export function buildSceneContent(village: DerivedWorkspace): SceneContent {
   const buildingAnchors = new Map<string, Vector3>();
   const placements = new Map(layout.buildings.map((placement) => [placement.taskId, placement]));
 
+  const water = new Mesh(districtGeometry, waterMaterial);
+  water.name = 'world-water';
+  water.scale.set(layout.width + 26, 0.45, layout.depth + 22);
+  water.position.set(0, -0.72, 0);
+  water.receiveShadow = true;
+  root.add(water);
+
   layout.districts.forEach((placement, index) => {
     const district = new Group();
     district.name = `district:${placement.projectId}`;
-    const slab = new Mesh(districtGeometry, districtMaterials[index % districtMaterials.length]);
-    slab.name = 'district-slab';
-    slab.scale.set(placement.width, 1, placement.depth);
-    slab.position.set(placement.x, -0.24, placement.z);
-    slab.receiveShadow = true;
-    district.add(slab);
+    const sand = new Mesh(districtGeometry, sandMaterial);
+    sand.name = `district-sand:${placement.projectId}`;
+    sand.scale.set(placement.width + 1.4, 1, placement.depth + 1.4);
+    sand.position.set(placement.x, -0.36, placement.z);
+    sand.receiveShadow = true;
+    const grass = new Mesh(districtGeometry, districtMaterials[index % districtMaterials.length]);
+    grass.name = `district-grass:${placement.projectId}`;
+    grass.scale.set(placement.width, 1, placement.depth);
+    grass.position.set(placement.x, -0.14, placement.z);
+    grass.receiveShadow = true;
+    district.add(sand, grass);
     addDistrictLandscape(
       district,
       placement.projectId,

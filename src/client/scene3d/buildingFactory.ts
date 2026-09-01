@@ -2,9 +2,11 @@ import {
   BoxGeometry,
   BufferGeometry,
   ConeGeometry,
+  CylinderGeometry,
   Float32BufferAttribute,
   Group,
   Mesh,
+  SphereGeometry,
 } from 'three';
 import type { DerivedTask } from '../../server/truth/derive.js';
 import { buildingSpec, type FloorKind } from './buildingSpec.js';
@@ -23,6 +25,15 @@ const scaffoldBeamGeometry = new BoxGeometry(4.8, 0.12, 0.12);
 const flagPoleGeometry = new BoxGeometry(0.08, 2.4, 0.08);
 const doorGeometry = new BoxGeometry(0.72, 0.92, 0.09);
 const windowGeometry = new BoxGeometry(0.62, 0.5, 0.08);
+const roofCapGeometry = new BoxGeometry(0.22, 0.2, 4.1);
+const chimneyGeometry = new BoxGeometry(0.5, 1.15, 0.5);
+const flowerBoxGeometry = new BoxGeometry(0.9, 0.22, 0.3);
+const flowerGeometry = new SphereGeometry(0.14, 8, 6);
+const foundationGeometry = new CylinderGeometry(2.65, 2.75, 0.22, 8);
+
+function stableIndex(value: string, modulo: number): number {
+  return [...value].reduce((sum, character) => sum + character.charCodeAt(0), 0) % modulo;
+}
 
 function markPickable(mesh: Mesh, taskId: string): Mesh {
   mesh.userData.pickable = true;
@@ -108,6 +119,10 @@ export function createBuildingGroup(task: DerivedTask): Group {
   const building = new Group();
   building.name = `building:${task.id}`;
   building.userData.taskId = task.id;
+  const foundation = markPickable(new Mesh(foundationGeometry, buildingMaterials.trim), task.id);
+  foundation.name = 'foundation';
+  foundation.position.y = 0.11;
+  building.add(foundation);
   spec.floors.forEach((kind, index) => building.add(createFloor(kind, task.id, index)));
   const height = spec.floorCount * FLOOR_STEP;
 
@@ -122,11 +137,24 @@ export function createBuildingGroup(task: DerivedTask): Group {
   }
 
   if (spec.roof) {
-    const roof = markPickable(new Mesh(roofGeometry, buildingMaterials.roof), task.id);
+    const roofMaterials = [buildingMaterials.roof, buildingMaterials.roofBlue, buildingMaterials.roofGreen];
+    const roof = markPickable(new Mesh(roofGeometry, roofMaterials[stableIndex(task.id, roofMaterials.length)]), task.id);
     roof.name = 'roof';
     roof.position.y = height + 0.65;
     roof.rotation.y = Math.PI / 4;
-    building.add(roof);
+    const roofCap = markPickable(new Mesh(roofCapGeometry, buildingMaterials.trim), task.id);
+    roofCap.name = 'roof-cap';
+    roofCap.position.set(0, height + 1.28, 0);
+    const chimney = markPickable(new Mesh(chimneyGeometry, buildingMaterials.chimney), task.id);
+    chimney.name = 'chimney';
+    chimney.position.set(1.05, height + 1.25, -0.5);
+    const flowerBox = markPickable(new Mesh(flowerBoxGeometry, buildingMaterials.timber), task.id);
+    flowerBox.name = 'flower-box';
+    flowerBox.position.set(0.78, 0.45, 1.78);
+    const flower = markPickable(new Mesh(flowerGeometry, buildingMaterials.flower), task.id);
+    flower.name = 'flower';
+    flower.position.set(0.78, 0.68, 1.82);
+    building.add(roof, roofCap, chimney, flowerBox, flower);
   }
   if (spec.scaffold) building.add(createScaffold(Math.max(2.4, height)));
   if (spec.flag) building.add(createReviewFlag(height));

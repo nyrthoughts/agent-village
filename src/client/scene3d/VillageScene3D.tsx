@@ -99,10 +99,10 @@ export function VillageScene3D({
     host.prepend(renderer.domElement);
 
     const scene = new Scene();
-    scene.background = new Color(0x101713);
-    scene.fog = new Fog(0x101713, 55, 110);
-    scene.add(new AmbientLight(0xfff3dc, 1.7));
-    const sunlight = new DirectionalLight(0xffe5b5, 3.4);
+    scene.background = new Color(0xbfe8e5);
+    scene.fog = new Fog(0xbfe8e5, 62, 118);
+    scene.add(new AmbientLight(0xfff4d7, 2.25));
+    const sunlight = new DirectionalLight(0xfff0bf, 4.2);
     sunlight.position.set(-24, 38, 18);
     sunlight.castShadow = true;
     sunlight.shadow.mapSize.set(1024, 1024);

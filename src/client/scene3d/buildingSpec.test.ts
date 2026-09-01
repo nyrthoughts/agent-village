@@ -64,6 +64,9 @@ describe('createBuildingGroup', () => {
     expect(verified.getObjectByName('roof')).toBeDefined();
     expect(verified.getObjectByName('door')).toBeDefined();
     expect(verified.getObjectByName('window')).toBeDefined();
+    expect(verified.getObjectByName('roof-cap')).toBeDefined();
+    expect(verified.getObjectByName('chimney')).toBeDefined();
+    expect(verified.getObjectByName('flower-box')).toBeDefined();
     expect(blocked.getObjectByName('scaffold')).toBeDefined();
     expect(review.getObjectByName('review-flag')).toBeDefined();
     expect(verified.children.some((child) => child.userData.pickable === true)).toBe(true);
