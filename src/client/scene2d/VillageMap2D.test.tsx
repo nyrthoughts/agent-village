@@ -22,7 +22,7 @@ const village: DerivedWorkspace = {
 const activity: ActivitySnapshot = {
   status: 'live', fetchedAt: '2026-09-01T12:00:00.000Z', workers: [
     { id: 'codex', tool: 'codex', role: 'lead', state: 'working', title: 'Build contours', attachedTaskId: 'contours', lastActivityAt: '2026-09-01T12:00:00.000Z' },
-    { id: 'claude', tool: 'claude', role: 'helper', parentId: 'codex', state: 'waiting', title: 'Review map', attachedTaskId: 'contours', lastActivityAt: '2026-09-01T12:00:00.000Z' },
+    { id: 'claude', tool: 'claude', role: 'helper', parentId: 'codex', state: 'waiting', title: 'Review map', attachedTaskId: 'library', lastActivityAt: '2026-09-01T12:00:00.000Z' },
   ],
 };
 
@@ -48,6 +48,14 @@ describe('VillageMap2D', () => {
       expect.objectContaining({ id: 'codex' }),
       expect.any(HTMLButtonElement),
     );
+  });
+
+  it('keeps a helper beside its lead even when its own task mapping differs', () => {
+    render(<VillageMap2D village={village} activity={activity} onSelect={() => undefined} />);
+    const leadPlot = screen.getByRole('button', { name: /Codex lead agent/ }).parentElement as HTMLElement;
+    const helperPlot = screen.getByRole('button', { name: /Claude helper agent/ }).parentElement as HTMLElement;
+    expect(Math.abs(Number.parseInt(helperPlot.style.left) - Number.parseInt(leadPlot.style.left))).toBeLessThanOrEqual(32);
+    expect(Math.abs(Number.parseInt(helperPlot.style.top) - Number.parseInt(leadPlot.style.top))).toBeLessThanOrEqual(32);
   });
 
   it('never invents workers when activity is absent', () => {

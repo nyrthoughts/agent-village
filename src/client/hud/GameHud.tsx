@@ -34,7 +34,7 @@ export function GameHud({ village, activity }: GameHudProps) {
           <h1>{village.name}</h1>
           <div className="game-hud__progress">
             <i aria-hidden="true"><b style={{ width: `${percent}%` }} /></i>
-            <strong>{built} of {village.progress.total} built</strong>
+            <strong>{built} of {village.progress.total} verified</strong>
             <small className={alerts > 0 ? 'game-hud__alerts game-hud__alerts--active' : 'game-hud__alerts'}>{alerts} alerts</small>
           </div>
         </div>

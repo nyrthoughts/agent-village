@@ -9,6 +9,8 @@ export type CodexThreadStatus =
   | { type: 'active'; activeFlags: string[] }
   | { type: 'idle' | 'notLoaded' | 'systemError' };
 
+export type CodexThreadSource = string | Record<string, unknown>;
+
 export interface CodexThreadRecord {
   id: string;
   cwd: string;
@@ -16,7 +18,7 @@ export interface CodexThreadRecord {
   preview: string;
   updatedAt: number;
   status: CodexThreadStatus;
-  source?: string;
+  source?: CodexThreadSource;
 }
 
 export interface AppServerTransport {
@@ -35,7 +37,7 @@ const threadSchema = z.object({
     z.object({ type: z.literal('active'), activeFlags: z.array(z.string()) }),
     z.object({ type: z.enum(['idle', 'notLoaded', 'systemError']) }),
   ]),
-  source: z.string().optional(),
+  source: z.union([z.string(), z.record(z.unknown())]).optional(),
 });
 const threadListSchema = z.object({ data: z.array(threadSchema) });
 
@@ -159,10 +161,31 @@ function stateFor(status: CodexThreadStatus, updatedAt: Date, now: Date): Worker
   return 'unknown';
 }
 
-function roleFor(source: string | undefined): Worker['role'] {
+function roleFor(source: CodexThreadSource | undefined): Worker['role'] {
   if (!source) return 'unknown';
-  if (source.startsWith('subAgent')) return 'helper';
+  if (typeof source === 'string') {
+    if (source === 'unknown') return 'unknown';
+    return source.startsWith('subAgent') ? 'helper' : 'lead';
+  }
+  if ('subAgent' in source) return 'helper';
   return 'lead';
+}
+
+function parentThreadIdFor(source: CodexThreadSource | undefined): string | undefined {
+  if (!source || typeof source === 'string' || !('subAgent' in source)) return undefined;
+  const visit = (value: unknown): string | undefined => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+    const record = value as Record<string, unknown>;
+    if (typeof record.parent_thread_id === 'string' && record.parent_thread_id.length > 0) {
+      return record.parent_thread_id;
+    }
+    for (const child of Object.values(record)) {
+      const found = visit(child);
+      if (found) return found;
+    }
+    return undefined;
+  };
+  return visit(source.subAgent);
 }
 
 export function mapCodexThreads(
@@ -175,10 +198,12 @@ export function mapCodexThreads(
     const updatedAt = new Date(thread.updatedAt * 1000);
     if (thread.status.type !== 'active' && updatedAt.getTime() < cutoff) return [];
     const rawTitle = thread.name?.trim() || thread.preview.trim() || basename(thread.cwd) || 'Codex thread';
+    const parentThreadId = parentThreadIdFor(thread.source);
     return [{
       id: `codex:${thread.id}`,
       tool: 'codex' as const,
       role: roleFor(thread.source),
+      ...(parentThreadId ? { parentId: `codex:${parentThreadId}` } : {}),
       state: stateFor(thread.status, updatedAt, now),
       project: redactTitle(basename(thread.cwd) || 'unknown').slice(0, 80),
       title: redactTitle(rawTitle).slice(0, 120),

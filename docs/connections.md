@@ -4,7 +4,7 @@ Agent Village observes lifecycle state. It does not start, stop, approve, or sen
 
 ## Codex
 
-Run `VILLAGE_MODE=native npm start`. No installation step is required when the `codex` CLI is available. The server starts `codex app-server --stdio`, calls the read-only `thread/list` method, then closes the process. Results are cached for ten seconds and inactive conversations expire from the view after 30 minutes by default.
+Run `VILLAGE_MODE=native npm start`. No installation step is required when the `codex` CLI is available. The server starts `codex app-server --stdio`, calls the read-only `thread/list` method, then closes the process. Results are cached for ten seconds and inactive conversations expire from the view after 30 minutes by default. Codex `subAgent*` sources are helpers; known non-subagent sources are leads; missing source metadata stays unknown.
 
 Set `VILLAGE_IDLE_MINUTES` to change that window.
 
@@ -21,7 +21,7 @@ The installer updates `~/.claude/settings.json` atomically, preserves existing h
 npm run disconnect:claude
 ```
 
-The server stores only session ID, project folder name, normalized state, and timestamp in memory. It does not persist hook payloads.
+The server stores only session ID, helper ID/type, project folder name, normalized role/state, and timestamps in memory. `SubagentStart` creates a helper beside its lead; `SubagentStop` removes it. It does not persist hook payloads.
 
 ## OpenClaw
 
@@ -36,7 +36,7 @@ OpenClaw is not bundled. Installation must happen on the machine where its Gatew
 
 ## Map a conversation to a building
 
-Workers appear in the live-conversations panel even without a mapping. To place one beside a building, add a case-insensitive title substring to the YAML:
+People appear at the village entrance even without a mapping. To place one beside a building, add a case-insensitive title substring to the YAML:
 
 ```yaml
 activity_mapping:
@@ -45,3 +45,7 @@ activity_mapping:
 ```
 
 Mapping changes position only. Building status still comes exclusively from the truth plane and its evidence.
+
+## Analytics contract
+
+Selecting a building shows verified/total leaves, remaining work, owner, blocker, next action, evidence, and connected people. Selecting a person shows tool, state, role, project, task mapping, and observed timestamps. Token usage and active duration remain `Unavailable` until a provider exposes trustworthy values; Agent Village does not estimate either metric.

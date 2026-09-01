@@ -41,7 +41,7 @@ export function App() {
       </section>
       <AttentionList village={workspace} onSelect={select} />
       {selection?.kind === 'task' && <DetailDrawer task={selection.task} project={selection.project} trigger={selection.trigger} workers={activity.data?.workers.filter((worker) => worker.attachedTaskId === selection.task.id)} onClose={() => setSelection(undefined)} />}
-      {selection?.kind === 'worker' && <WorkerDrawer worker={selection.worker} trigger={selection.trigger} onClose={() => setSelection(undefined)} />}
+      {selection?.kind === 'worker' && <WorkerDrawer worker={selection.worker} helperCount={activity.data?.workers.filter((worker) => worker.parentId === selection.worker.id).length} trigger={selection.trigger} onClose={() => setSelection(undefined)} />}
     </main>
   );
 }

@@ -4,18 +4,18 @@ Agent Village turns parallel agent work into a small construction village you ca
 
 ![Agent Village desktop preview](docs/preview-desktop.png)
 
-Projects are 3D districts, features are compounds, tasks are buildings, subtasks are floors, and active agent sessions are workers. The important boundary is deliberate: **evidence builds the village; activity only shows who is nearby**.
+Projects are districts, features are compounds, tasks are buildings, verified subtasks advance construction, and active agent sessions are people. The important boundary is deliberate: **evidence builds the village; activity only shows who is nearby**.
 
 ## What V1 does
 
-- Renders `workspace → project → feature → task → subtask` as a real isometric Three.js scene.
-- Derives progress from a versioned YAML file and inspected evidence.
-- Shows blocked scaffolds, review flags, planned blueprints, active frames, and verified roofs.
-- Opens the owner, blocker, next action, resume hint, subtasks, and evidence in one click.
-- Supports bounded zoom and ground-plane panning while keeping the camera angle fixed.
-- Keeps every building keyboard-readable through projected HTML controls and falls back to the accessible table without WebGL.
-- Shows a fitted 3D panorama followed by the ordered attention list on mobile.
-- Shows every native conversation in a compact live panel, including tool, state, project folder, and building mapping.
+- Renders `workspace → project → feature → task → subtask` as an original top-down pixel village.
+- Advances every building through lot, foundation, frame, walls, roof, and complete stages from verified work only.
+- Assigns one of eight stable architectural families to each task without imported game assets.
+- Keeps blocked and review markers independent from how much of a building is already constructed.
+- Shows lead agents as full-sized people and helper agents as smaller people with a count above their lead.
+- Opens buildings and people independently for recovery context and honest analytics.
+- Reports progress and remaining work; unsupported token and active-time metrics say `Unavailable` instead of inventing zeroes.
+- Supports bounded panning, keyboard navigation, reduced motion, and a mobile attention list.
 - Connects Codex through its read-only app-server API, Claude Code through hooks, and OpenClaw through an observation-only plugin.
 - Optionally accepts redacted sessions from another local AMC-compatible endpoint.
 - Keeps the last known truth visible when activity disappears.
@@ -40,7 +40,7 @@ npm start
 
 Open `http://127.0.0.1:4180`.
 
-Drag the scene to pan and scroll or pinch to zoom. The camera never rotates, so the map stays easy to recognize.
+Drag the map or use the arrow keys to explore it. Select a house or person to open its field record.
 
 ## Connect your work
 
@@ -96,7 +96,7 @@ V1 inspects two proof types:
 
 ### Native Codex + Claude Code
 
-Codex needs no configuration. Agent Village calls the local, read-only `codex app-server` thread list and retains only the conversation ID, redacted title, project folder name, state, and timestamp.
+Codex needs no configuration. Agent Village calls the local, read-only `codex app-server` thread list and retains only the conversation ID, source role, redacted title, project folder name, state, and timestamp. Codex subagent sources render as helpers.
 
 Install the Claude Code lifecycle hooks once, then start the dashboard:
 
@@ -105,7 +105,7 @@ npm run connect:claude
 VILLAGE_MODE=native npm start
 ```
 
-The installer preserves existing Claude settings and is idempotent. Remove only Agent Village's hooks with `npm run disconnect:claude`.
+The installer preserves existing Claude settings and is idempotent. It observes `SubagentStart` and `SubagentStop` so helpers remain attached to their lead. Remove only Agent Village's hooks with `npm run disconnect:claude`.
 
 ### OpenClaw
 
@@ -141,6 +141,6 @@ See [connections](docs/connections.md), [architecture](docs/architecture.md), [p
 
 ## V1 boundaries
 
-No database, game engine, imported model pack, WebSocket layer, authentication system, agent control plane, or public hosting. Three.js is the only 3D runtime dependency; YAML remains the source of truth and polling is enough for the first release. See [the backlog](docs/backlog.md) for deliberately deferred work.
+No database, game engine, copied game asset, WebSocket layer, authentication system, agent control plane, or public hosting. React, CSS pixel art, and YAML are enough for the first release. See [the backlog](docs/backlog.md) for deliberately deferred work.
 
 Apache-2.0. See `LICENSE` and `NOTICE`.

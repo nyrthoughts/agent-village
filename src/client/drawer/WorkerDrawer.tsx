@@ -3,6 +3,7 @@ import type { Worker } from '../../shared/activity.js';
 
 interface WorkerDrawerProps {
   worker: Worker;
+  helperCount?: number;
   trigger: HTMLButtonElement;
   onClose: () => void;
 }
@@ -13,7 +14,7 @@ const ROLE_LABELS = {
   unknown: 'Agent role unavailable',
 } as const;
 
-export function WorkerDrawer({ worker, trigger, onClose }: WorkerDrawerProps) {
+export function WorkerDrawer({ worker, helperCount = 0, trigger, onClose }: WorkerDrawerProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeRef.current?.focus();
@@ -34,6 +35,7 @@ export function WorkerDrawer({ worker, trigger, onClose }: WorkerDrawerProps) {
           <dl className="drawer-facts">
             <div><dt>Role</dt><dd>{ROLE_LABELS[role]}</dd></div>
             <div><dt>State</dt><dd>{worker.state}</dd></div>
+            <div><dt>Helpers</dt><dd>{helperCount} {helperCount === 1 ? 'helper' : 'helpers'}</dd></div>
             <div><dt>Project</dt><dd>{worker.project ?? 'Unavailable'}</dd></div>
             <div><dt>Task link</dt><dd>{worker.attachedTaskId ?? 'Unavailable'}</dd></div>
             <div><dt>Observed since</dt><dd>{worker.firstSeenAt ?? 'Unavailable'}</dd></div>

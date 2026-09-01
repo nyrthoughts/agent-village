@@ -40,6 +40,7 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker }: Vi
     }
     return counts;
   }, [workers]);
+  const workersById = useMemo(() => new Map(workers.map((worker) => [worker.id, worker])), [workers]);
 
   const moveCamera = (x: number, y: number) => setCamera({ x: clamp(x, maxX), y: clamp(y, maxY) });
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -107,7 +108,9 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker }: Vi
           </span>;
         })}
         {workers.map((worker, index) => {
-          const placement = worker.attachedTaskId ? placements.get(worker.attachedTaskId) : undefined;
+          const parent = worker.role === 'helper' && worker.parentId ? workersById.get(worker.parentId) : undefined;
+          const attachedTaskId = parent?.attachedTaskId ?? worker.attachedTaskId;
+          const placement = attachedTaskId ? placements.get(attachedTaskId) : undefined;
           const x = placement ? placement.x + 8 + (index % 2) * 2 : layout.entrance.x + index * 2;
           const y = placement ? placement.y + 2 + (index % 3) * 2 : layout.entrance.y;
           return <span key={worker.id} className="pixel-worker-plot" style={{ left: x * TILE_SIZE, top: y * TILE_SIZE }}><PixelWorker worker={worker} helperCount={helpersByParent.get(worker.id)} onSelect={onSelectWorker} /></span>;

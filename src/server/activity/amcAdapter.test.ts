@@ -49,18 +49,20 @@ describe('fetchAmcActivity', () => {
       'beacon-relay',
     ]);
     expect(snapshot.workers.map((worker) => worker.tool)).toEqual(['codex', 'claude', 'openclaw']);
+    expect(snapshot.workers.map((worker) => worker.role)).toEqual(['lead', 'helper', 'unknown']);
+    expect(snapshot.workers[1]?.parentId).toBe('worker-c-atlas');
 
     const encoded = JSON.stringify(snapshot);
     for (const forbidden of ['message', 'messages', 'tokens', 'tokenCount', 'cost', 'cwd', 'credential', '/tmp/']) {
       expect(encoded).not.toContain(forbidden);
     }
     expect(Object.keys(snapshot).sort()).toEqual(['fetchedAt', 'status', 'workers']);
-    for (const worker of snapshot.workers) {
-      expect(Object.keys(worker).sort()).toEqual([
-        'attachedTaskId', 'id', 'lastActivityAt', 'role', 'state', 'title', 'tool',
-      ]);
-      expect(worker.role).toBe('unknown');
-    }
+    expect(Object.keys(snapshot.workers[0]!).sort()).toEqual([
+      'attachedTaskId', 'id', 'lastActivityAt', 'role', 'state', 'title', 'tool',
+    ]);
+    expect(Object.keys(snapshot.workers[1]!).sort()).toEqual([
+      'attachedTaskId', 'id', 'lastActivityAt', 'parentId', 'role', 'state', 'title', 'tool',
+    ]);
   });
 
   it('returns a live empty snapshot for an empty dashboard', async () => {

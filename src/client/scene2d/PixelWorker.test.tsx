@@ -25,13 +25,17 @@ describe('PixelWorker', () => {
     expect(screen.queryByText('Pokémon')).toBeNull();
   });
 
-  it('renders helpers as smaller people, shows their group count and stays clickable', () => {
+  it('renders helpers as smaller people and keeps them clickable', () => {
     const onSelect = vi.fn();
-    render(<PixelWorker worker={worker({ role: 'helper' })} helperCount={3} onSelect={onSelect} />);
+    render(<PixelWorker worker={worker({ role: 'helper' })} onSelect={onSelect} />);
     const person = screen.getByRole('button', { name: 'Codex helper agent, working, Build contours' });
     expect(person.className).toContain('pixel-worker--helper');
-    expect(screen.getByLabelText('3 helper agents')).toBeTruthy();
     fireEvent.click(person);
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'worker' }), person);
+  });
+
+  it('includes the helper count in the lead button accessible name', () => {
+    render(<PixelWorker worker={worker()} helperCount={3} />);
+    expect(screen.getByRole('button', { name: 'Codex lead agent, working, Build contours, 3 helper agents' })).toBeTruthy();
   });
 });

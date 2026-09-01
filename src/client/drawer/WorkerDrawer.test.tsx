@@ -18,7 +18,7 @@ const worker: Worker = {
 function Harness() {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
-  return <><button ref={trigger} onClick={() => setOpen(true)}>Open agent</button>{open && trigger.current && <WorkerDrawer worker={worker} trigger={trigger.current} onClose={() => setOpen(false)} />}</>;
+  return <><button ref={trigger} onClick={() => setOpen(true)}>Open agent</button>{open && trigger.current && <WorkerDrawer worker={worker} helperCount={2} trigger={trigger.current} onClose={() => setOpen(false)} />}</>;
 }
 
 describe('WorkerDrawer', () => {
@@ -29,6 +29,7 @@ describe('WorkerDrawer', () => {
     expect(screen.getByRole('heading', { name: 'Build the living village' })).toBeTruthy();
     expect(screen.getByText('Lead agent')).toBeTruthy();
     expect(screen.getByText('agent-village')).toBeTruthy();
+    expect(screen.getByText('2 helpers')).toBeTruthy();
     expect(screen.getByText('2026-09-01T11:00:00.000Z')).toBeTruthy();
     expect(screen.getAllByText('Unavailable')).toHaveLength(3);
     fireEvent.keyDown(document, { key: 'Escape' });

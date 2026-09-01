@@ -44,6 +44,27 @@ describe('mapCodexThreads', () => {
     expect(workers.map(({ role }) => role)).toEqual(['lead', 'helper', 'unknown']);
   });
 
+  it('accepts the real app-server subAgent object and links its parent thread', () => {
+    const workers = mapCodexThreads([
+      thread({
+        id: 'helper',
+        source: {
+          subAgent: { thread_spawn: { parent_thread_id: 'lead' } },
+        },
+      }),
+    ], now);
+
+    expect(workers[0]).toMatchObject({
+      id: 'codex:helper',
+      role: 'helper',
+      parentId: 'codex:lead',
+    });
+  });
+
+  it('does not invent a lead role for the literal unknown source', () => {
+    expect(mapCodexThreads([thread({ source: 'unknown' })], now)[0]?.role).toBe('unknown');
+  });
+
   it('keeps recent idle threads and drops stale ones', () => {
     const workers = mapCodexThreads([
       thread({ id: 'just-active', status: { type: 'idle' }, updatedAt: now.getTime() / 1000 - 10 }),

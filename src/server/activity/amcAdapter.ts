@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ActivitySnapshot, Worker, WorkerState, WorkerTool } from '../../shared/activity.js';
+import type { ActivitySnapshot, Worker, WorkerRole, WorkerState, WorkerTool } from '../../shared/activity.js';
 import type { ActivityMapping } from '../../shared/schema.js';
 import { mapWorkers } from './mapWorkers.js';
 import { redactTitle } from './redact.js';
@@ -12,6 +12,8 @@ const sourceSessionSchema = z.object({
   state: z.string().min(1),
   title: z.string().optional(),
   lastActivityAt: z.string().refine((value) => !Number.isNaN(Date.parse(value))),
+  role: z.enum(['lead', 'helper', 'unknown']).optional(),
+  parentId: z.string().regex(/^[A-Za-z0-9._:-]{1,80}$/).optional(),
 });
 
 const dashboardSchema = z.object({ sessions: z.array(sourceSessionSchema) });
@@ -45,7 +47,8 @@ function sanitizeSession(session: z.infer<typeof sourceSessionSchema>): Worker {
   return {
     id: session.id,
     tool: normalizeTool(session.tool.toLowerCase()),
-    role: 'unknown',
+    role: (session.role ?? 'unknown') as WorkerRole,
+    ...(session.parentId === undefined ? {} : { parentId: session.parentId }),
     state: normalizeState(session.state.toLowerCase()),
     lastActivityAt: new Date(session.lastActivityAt).toISOString(),
     ...(title === undefined ? {} : { title }),

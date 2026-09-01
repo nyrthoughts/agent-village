@@ -34,7 +34,7 @@ describe('GameHud', () => {
     expect(screen.getByRole('banner', { name: 'Village HUD' }).querySelector('.game-hud__village')?.getAttribute('data-layout')).toBe('location-plaque');
     expect(screen.getByRole('region', { name: 'Agents in village' }).getAttribute('data-layout')).toBe('sprite-strip');
     expect(screen.getByRole('heading', { name: 'Verdant Labs' })).toBeTruthy();
-    expect(screen.getByText('1 of 4 built')).toBeTruthy();
+    expect(screen.getByText('1 of 4 verified')).toBeTruthy();
     expect(screen.getByText('2 alerts')).toBeTruthy();
     expect(screen.getByText('Build the village')).toBeTruthy();
     expect(screen.getByText('Review Atlas')).toBeTruthy();
