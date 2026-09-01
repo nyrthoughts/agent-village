@@ -19,6 +19,7 @@ Projects are districts, features are compounds, tasks are buildings, verified su
 - Connects Codex through its read-only app-server API, Claude Code through hooks, and OpenClaw through an observation-only plugin.
 - Optionally accepts redacted sessions from another local AMC-compatible endpoint.
 - Keeps the last known truth visible when activity disappears.
+- Publishes a safe static demo without exposing local agent data.
 
 ## Quick start
 
@@ -141,6 +142,6 @@ See [connections](docs/connections.md), [architecture](docs/architecture.md), [p
 
 ## V1 boundaries
 
-No database, game engine, copied game asset, WebSocket layer, authentication system, agent control plane, or public hosting. React, CSS pixel art, and YAML are enough for the first release. See [the backlog](docs/backlog.md) for deliberately deferred work.
+No database, game engine, copied game asset, WebSocket layer, authentication system, or agent control plane. Public hosting serves the fictional demo only; real agent activity stays on the local machine. React, CSS pixel art, and YAML are enough for the first release. See [the backlog](docs/backlog.md) for deliberately deferred work.
 
 Apache-2.0. See `LICENSE` and `NOTICE`.

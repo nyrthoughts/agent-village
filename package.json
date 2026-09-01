@@ -16,6 +16,7 @@
     "start": "tsx src/server/index.ts",
     "connect:claude": "tsx scripts/connect-claude.ts",
     "disconnect:claude": "tsx scripts/connect-claude.ts --remove",
+    "prebuild": "tsx scripts/export-demo.ts",
     "build": "vite build",
     "e2e": "playwright test",
     "preview": "vite preview",

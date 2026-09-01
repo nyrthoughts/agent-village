@@ -1,6 +1,17 @@
-# Private deployment
+# Deployment
 
-V1 is designed to run locally. It has not been deployed or exposed by this repository.
+V1 has two deliberately separate surfaces:
+
+- A public static preview can show the fictional fixture only.
+- A private local server can observe real Codex, Claude Code, and OpenClaw activity.
+
+Browsers cannot read local agent sessions from a hosted page. V1 does not add a database or upload bridge to work around that boundary.
+
+## Public demo
+
+`npm run build` exports redacted demo snapshots to `dist/demo` and builds the static client. When `/api/village` and `/api/activity` are absent, the client falls back on an HTTP 404 or a static host's HTML shell. Validation failures and server errors remain visible.
+
+The export runs through the same activity allowlist as the local server. It contains no prompts, transcripts, secrets, costs, token counts, or local paths.
 
 ## Local production run
 
