@@ -52,7 +52,7 @@ async function requestWithStaticFallback<T>(
 export function fetchVillage(fetchImpl: typeof fetch = fetch): Promise<DerivedWorkspace> {
   return requestWithStaticFallback<DerivedWorkspace>(
     '/api/village',
-    '/demo/village.json',
+    `${import.meta.env.BASE_URL}demo/village.json`,
     fetchImpl,
   );
 }
@@ -60,7 +60,7 @@ export function fetchVillage(fetchImpl: typeof fetch = fetch): Promise<DerivedWo
 export function fetchActivity(fetchImpl: typeof fetch = fetch): Promise<ActivitySnapshot> {
   return requestWithStaticFallback<ActivitySnapshot>(
     '/api/activity',
-    '/demo/activity.json',
+    `${import.meta.env.BASE_URL}demo/activity.json`,
     fetchImpl,
   );
 }

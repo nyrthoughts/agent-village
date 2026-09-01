@@ -2,9 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  base: process.env.VILLAGE_PUBLIC_BASE || '/',
   plugins: [react()],
   build: {
-    // Three.js is the product's renderer; the shipped bundle remains ~186 kB gzip.
+    // Keep the complete pixel village in one small browser bundle.
     chunkSizeWarningLimit: 720,
   },
   server: {

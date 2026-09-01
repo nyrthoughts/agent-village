@@ -13,6 +13,8 @@ Browsers cannot read local agent sessions from a hosted page. V1 does not add a 
 
 The export runs through the same activity allowlist as the local server. It contains no prompts, transcripts, secrets, costs, token counts, or local paths.
 
+The `deploy public demo` workflow publishes `design/emerald-village-v4` to GitHub Pages. It sets `VILLAGE_PUBLIC_BASE=/agent-village/` so assets and demo snapshots work from the repository subpath.
+
 ## Local production run
 
 ```sh
