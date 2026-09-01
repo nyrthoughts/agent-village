@@ -17,6 +17,7 @@ describe('PixelBuilding', () => {
     const building = screen.getByRole('button', { name: 'Contour studio. In progress. Owner Mira.' });
     expect(building.getAttribute('data-building-variant')).toBe('construction');
     expect(building.getAttribute('data-roof-palette')).toBe('1');
+    expect(building.getAttribute('data-sprite-scale')).toBe('compact');
   });
 
   it('distinguishes all five construction states without changing task truth', () => {
@@ -28,6 +29,7 @@ describe('PixelBuilding', () => {
     expect(screen.getByTestId('pixel-building-task').getAttribute('data-building-variant')).toBe('review');
     rerender(<PixelBuilding task={task({ effectiveStatus: 'verified', roof: true })} project={project} variant={0} onSelect={() => undefined} />);
     expect(screen.getByTestId('pixel-building-task').getAttribute('data-building-variant')).toBe('complete');
+    expect(screen.getByTestId('pixel-building-task').querySelector('.pixel-building__porch')).toBeTruthy();
   });
 
   it('opens the existing task context with the semantic button as trigger', () => {

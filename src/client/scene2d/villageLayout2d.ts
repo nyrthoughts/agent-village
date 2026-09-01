@@ -1,5 +1,5 @@
 import type { DerivedWorkspace } from '../../server/truth/derive.js';
-import type { PixelBuildingPlacement, PixelPath, PixelZone, VillageLayout2d } from './types.js';
+import type { PixelBuildingPlacement, PixelLandmark, PixelPath, PixelZone, VillageLayout2d } from './types.js';
 
 const WORLD_WIDTH = 64;
 const ZONE_WIDTH = 28;
@@ -29,7 +29,15 @@ export function layoutVillage2d(village: DerivedWorkspace): VillageLayout2d {
   const height = Math.max(44, 12 + rowHeights.reduce((sum, value) => sum + value, 0) + Math.max(0, rowCount - 1) * 4);
   const zones: PixelZone[] = [];
   const buildings: PixelBuildingPlacement[] = [];
-  const paths: PixelPath[] = [{ x: 30, y: 0, width: 4, height }];
+  const paths: PixelPath[] = [
+    { x: 29, y: Math.max(24, height - 15), width: 6, height: 15, kind: 'vertical' },
+    { x: 13, y: 17, width: 38, height: 7, kind: 'square' },
+    { x: 28, y: 10, width: 7, height: 9, kind: 'vertical' },
+  ];
+  const landmarks: PixelLandmark[] = [
+    { kind: 'pond', x: 46, y: Math.min(29, height - 12), width: 13, height: 8 },
+    { kind: 'cliff', x: 3, y: Math.min(28, height - 13), width: 12, height: 8 },
+  ];
   let rowY = 6;
 
   rowHeights.forEach((rowHeight, row) => {
@@ -48,26 +56,29 @@ export function layoutVillage2d(village: DerivedWorkspace): VillageLayout2d {
       };
       zones.push(zone);
       paths.push({
-        x: column === 0 ? x + 10 : 30,
-        y: rowY + 10,
-        width: column === 0 ? 22 : 12,
-        height: 3,
+        x: column === 0 ? x + 8 : 29,
+        y: rowY + 11,
+        width: 22,
+        height: 4,
+        kind: 'horizontal',
       });
       projectTasks(project).forEach(({ task, compoundId }, index) => {
         const plotColumn = index % PLOT_COLUMNS;
         const plotRow = Math.floor(index / PLOT_COLUMNS);
-        buildings.push({
+        const placement: PixelBuildingPlacement = {
           taskId: task.id,
           projectId: project.id,
           compoundId,
           x: x + 3 + plotColumn * 11,
           y: rowY + 3 + plotRow * 7,
           variant: (index + row * ZONE_COLUMNS + column) % 3,
-        });
+        };
+        buildings.push(placement);
+        paths.push({ x: placement.x + 4, y: placement.y + 5, width: 3, height: 5, kind: 'spur' });
       });
     });
     rowY += rowHeight + 4;
   });
 
-  return { width: WORLD_WIDTH, height, zones, buildings, paths, entrance: { x: 31, y: height - 4 } };
+  return { width: WORLD_WIDTH, height, zones, buildings, paths, landmarks, entrance: { x: 31, y: height - 4 } };
 }

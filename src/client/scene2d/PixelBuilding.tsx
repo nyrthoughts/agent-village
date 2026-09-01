@@ -33,6 +33,7 @@ export function PixelBuilding({ task, project, variant, onSelect }: PixelBuildin
       data-task-id={task.id}
       data-building-variant={VARIANTS[task.effectiveStatus]}
       data-roof-palette={variant}
+      data-sprite-scale="compact"
       aria-label={`${task.title}. ${status}. ${task.owner ? `Owner ${task.owner}.` : 'No owner.'}`}
       onClick={(event) => onSelect(task, event.currentTarget, project)}
     >
@@ -42,6 +43,7 @@ export function PixelBuilding({ task, project, variant, onSelect }: PixelBuildin
         <span className="pixel-building__roof" />
         <span className="pixel-building__wall" />
         <span className="pixel-building__door" />
+        <span className="pixel-building__porch" />
         <span className="pixel-building__window pixel-building__window--left" />
         <span className="pixel-building__window pixel-building__window--right" />
         <span className="pixel-building__frame"><i /><i /><i /></span>
