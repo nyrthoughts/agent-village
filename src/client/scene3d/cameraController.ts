@@ -129,8 +129,8 @@ export function createCameraController(
     updateViewport(width, height) {
       viewportWidth = Math.max(1, width);
       if (!hasSized && width < 600) {
-        zoom = 0.72;
-        defaultZoom = 0.72;
+        zoom = 1.18;
+        defaultZoom = 1.18;
       }
       hasSized = true;
       const bounds = orthographicBounds(width, height);

@@ -61,11 +61,11 @@ describe('createCameraController', () => {
     expect(remove).toHaveBeenCalledTimes(add.mock.calls.length);
   });
 
-  it('starts wider on compact screens so both districts remain discoverable', () => {
+  it('starts close enough on compact screens for buildings to remain readable', () => {
     const canvas = document.createElement('canvas');
     const controller = createCameraController(canvas);
     controller.updateViewport(390, 320);
-    expect(controller.getState().zoom).toBeCloseTo(0.72);
+    expect(controller.getState().zoom).toBeCloseTo(1.18);
     controller.dispose();
   });
 });

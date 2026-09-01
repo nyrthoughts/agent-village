@@ -17,6 +17,17 @@ function mockApi(activity: ActivitySnapshot) {
 }
 
 describe('App degraded activity', () => {
+  it('uses a map-first game composition without dashboard panels', async () => {
+    mockApi({ status: 'live', fetchedAt: '2026-08-31T16:00:00.000Z', workers: [] });
+    const view = render(<App />);
+    expect(await screen.findByRole('region', { name: 'Verdant Labs village map' })).toBeTruthy();
+    expect(screen.getByRole('banner', { name: 'Village HUD' })).toBeTruthy();
+    expect(screen.queryByText('Agents on site')).toBeNull();
+    expect(screen.queryByText('Decision queue')).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Agent camp' })).toBeNull();
+    view.unmount();
+  });
+
   it('keeps buildings visible and renders no workers when activity is degraded', async () => {
     mockApi({ status: 'degraded', fetchedAt: '2026-08-31T16:00:00.000Z', workers: [] });
     const view = render(<App />);
