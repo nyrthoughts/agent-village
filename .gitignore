@@ -4,6 +4,7 @@ dist/
 public/demo/
 coverage/
 playwright-report/
+.playwright-cli/
 test-results/
 logs/
 *.log
