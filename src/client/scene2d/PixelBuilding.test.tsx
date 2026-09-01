@@ -18,6 +18,15 @@ describe('PixelBuilding', () => {
     expect(building.getAttribute('data-building-variant')).toBe('construction');
     expect(building.getAttribute('data-roof-palette')).toBe('1');
     expect(building.getAttribute('data-sprite-scale')).toBe('compact');
+    expect(building.getAttribute('data-stage')).toBe('foundation');
+    expect(building.getAttribute('data-family')).toBeTruthy();
+  });
+
+  it('renders the server-derived construction stage independently from status', () => {
+    render(<PixelBuilding task={task({ effectiveStatus: 'blocked', progress: { stage: 'frame', stageIndex: 2, verified: 1, total: 3, remaining: 2 } })} project={project} variant={0} onSelect={() => undefined} />);
+    const building = screen.getByTestId('pixel-building-task');
+    expect(building.getAttribute('data-building-variant')).toBe('blocked');
+    expect(building.getAttribute('data-stage')).toBe('frame');
   });
 
   it('distinguishes all five construction states without changing task truth', () => {

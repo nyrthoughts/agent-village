@@ -1,4 +1,6 @@
+import type { CSSProperties } from 'react';
 import type { DerivedProject, DerivedTask } from '../../server/truth/derive.js';
+import { buildingFamilyFor } from './buildingFamilies.js';
 
 const STATUS_LABELS = {
   planned: 'Planned',
@@ -25,6 +27,16 @@ interface PixelBuildingProps {
 
 export function PixelBuilding({ task, project, variant, onSelect }: PixelBuildingProps) {
   const status = STATUS_LABELS[task.effectiveStatus];
+  const family = buildingFamilyFor(task.id);
+  const familyStyle = {
+    '--building-roof': family.roofColor,
+    '--building-roof-light': family.roofLight,
+    '--building-roof-dark': family.roofDark,
+    '--building-wall': family.wallColor,
+    '--building-wall-light': family.wallLight,
+    '--building-wall-dark': family.wallDark,
+    '--building-trim': family.trimColor,
+  } as CSSProperties;
   return (
     <button
       type="button"
@@ -32,8 +44,12 @@ export function PixelBuilding({ task, project, variant, onSelect }: PixelBuildin
       data-testid={`pixel-building-${task.id}`}
       data-task-id={task.id}
       data-building-variant={VARIANTS[task.effectiveStatus]}
+      data-stage={task.progress.stage}
+      data-family={family.id}
+      data-roof-shape={family.roof}
       data-roof-palette={variant}
       data-sprite-scale="compact"
+      style={familyStyle}
       aria-label={`${task.title}. ${status}. ${task.owner ? `Owner ${task.owner}.` : 'No owner.'}`}
       onClick={(event) => onSelect(task, event.currentTarget, project)}
     >
