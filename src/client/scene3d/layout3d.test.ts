@@ -63,6 +63,8 @@ describe('layoutVillage3d', () => {
     ]);
     expect(new Set(layout.buildings.map(({ x, z }) => `${x}:${z}`)).size)
       .toBe(layout.buildings.length);
+    expect(Math.abs(layout.districts[0]!.x - layout.districts[1]!.x)).toBeLessThan(30);
+    expect(layout.buildings.some(({ rotationY }) => rotationY !== 0)).toBe(true);
     expect(layoutVillage3d(village)).toEqual(layout);
   });
 

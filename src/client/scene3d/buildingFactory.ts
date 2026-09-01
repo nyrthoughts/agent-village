@@ -30,6 +30,8 @@ const chimneyGeometry = new BoxGeometry(0.5, 1.15, 0.5);
 const flowerBoxGeometry = new BoxGeometry(0.9, 0.22, 0.3);
 const flowerGeometry = new SphereGeometry(0.14, 8, 6);
 const foundationGeometry = new CylinderGeometry(2.65, 2.75, 0.22, 8);
+const porchGeometry = new BoxGeometry(1.9, 0.18, 1.05);
+const roofRidgeGeometry = new BoxGeometry(0.16, 0.16, 4.45);
 
 function stableIndex(value: string, modulo: number): number {
   return [...value].reduce((sum, character) => sum + character.charCodeAt(0), 0) % modulo;
@@ -133,7 +135,10 @@ export function createBuildingGroup(task: DerivedTask): Group {
     const window = markPickable(new Mesh(windowGeometry, buildingMaterials.window), task.id);
     window.name = 'window';
     window.position.set(0.78, 0.78, 1.65);
-    building.add(door, window);
+    const porch = markPickable(new Mesh(porchGeometry, buildingMaterials.trim), task.id);
+    porch.name = 'porch';
+    porch.position.set(-0.7, 0.2, 2.05);
+    building.add(door, window, porch);
   }
 
   if (spec.roof) {
@@ -145,6 +150,9 @@ export function createBuildingGroup(task: DerivedTask): Group {
     const roofCap = markPickable(new Mesh(roofCapGeometry, buildingMaterials.trim), task.id);
     roofCap.name = 'roof-cap';
     roofCap.position.set(0, height + 1.28, 0);
+    const roofRidge = markPickable(new Mesh(roofRidgeGeometry, buildingMaterials.chimney), task.id);
+    roofRidge.name = 'roof-ridge';
+    roofRidge.position.set(0, height + 1.35, 0);
     const chimney = markPickable(new Mesh(chimneyGeometry, buildingMaterials.chimney), task.id);
     chimney.name = 'chimney';
     chimney.position.set(1.05, height + 1.25, -0.5);
@@ -154,7 +162,7 @@ export function createBuildingGroup(task: DerivedTask): Group {
     const flower = markPickable(new Mesh(flowerGeometry, buildingMaterials.flower), task.id);
     flower.name = 'flower';
     flower.position.set(0.78, 0.68, 1.82);
-    building.add(roof, roofCap, chimney, flowerBox, flower);
+    building.add(roof, roofCap, roofRidge, chimney, flowerBox, flower);
   }
   if (spec.scaffold) building.add(createScaffold(Math.max(2.4, height)));
   if (spec.flag) building.add(createReviewFlag(height));

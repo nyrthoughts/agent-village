@@ -1,13 +1,15 @@
 import {
   Box3,
   BoxGeometry,
-  ConeGeometry,
+  CatmullRomCurve3,
   CylinderGeometry,
   DodecahedronGeometry,
   Group,
   Material,
   Mesh,
   MeshStandardMaterial,
+  SphereGeometry,
+  TubeGeometry,
   Vector3,
 } from 'three';
 import type { DerivedWorkspace } from '../../server/truth/derive.js';
@@ -17,18 +19,18 @@ import { layoutVillage3d } from './layout3d.js';
 import type { BuildingPlacement, VillageLayout3d } from './types.js';
 import { createWorkerGroup } from './workers3d.js';
 
-const districtGeometry = new BoxGeometry(1, 0.42, 1);
+const terrainGeometry = new CylinderGeometry(1, 1, 1, 16);
 const fenceXGeometry = new BoxGeometry(1, 0.38, 0.12);
 const fenceZGeometry = new BoxGeometry(0.12, 0.38, 1);
 const districtMaterials = [
-  new MeshStandardMaterial({ color: 0x78bd65, roughness: 0.92 }),
-  new MeshStandardMaterial({ color: 0x88c86d, roughness: 0.92 }),
+  new MeshStandardMaterial({ color: 0x83c95f, roughness: 0.94 }),
+  new MeshStandardMaterial({ color: 0x72be59, roughness: 0.94 }),
 ];
-const sandMaterial = new MeshStandardMaterial({ color: 0xf2cf8d, roughness: 0.98 });
+const meadowMaterial = new MeshStandardMaterial({ color: 0x62ad4d, roughness: 0.98 });
+const cliffMaterial = new MeshStandardMaterial({ color: 0xd8a86b, roughness: 1 });
 const waterMaterial = new MeshStandardMaterial({ color: 0x72cbd2, roughness: 0.32, metalness: 0.03 });
 const fenceMaterial = new MeshStandardMaterial({ color: 0xd29354, roughness: 0.86 });
-const pathGeometry = new BoxGeometry(1, 0.07, 1);
-const pathMaterial = new MeshStandardMaterial({ color: 0xf7dda8, roughness: 1 });
+const pathMaterial = new MeshStandardMaterial({ color: 0xf4d18f, roughness: 1 });
 const trunkGeometry = new CylinderGeometry(0.18, 0.24, 1.2, 8);
 const crownGeometry = new DodecahedronGeometry(1.05, 0);
 const trunkMaterial = new MeshStandardMaterial({ color: 0x765038, roughness: 1 });
@@ -47,6 +49,16 @@ const flowerMaterials = [
   new MeshStandardMaterial({ color: 0xf9cf54, roughness: 0.8 }),
   new MeshStandardMaterial({ color: 0x9d72d2, roughness: 0.8 }),
 ];
+const rockGeometry = new DodecahedronGeometry(0.55, 0);
+const rockMaterials = [
+  new MeshStandardMaterial({ color: 0xb48358, roughness: 1 }),
+  new MeshStandardMaterial({ color: 0xc19568, roughness: 1 }),
+];
+const shrubGeometry = new SphereGeometry(0.65, 8, 6);
+const shrubMaterial = new MeshStandardMaterial({ color: 0x328f50, roughness: 1 });
+const signPostGeometry = new CylinderGeometry(0.09, 0.12, 1.5, 8);
+const signBoardGeometry = new BoxGeometry(1.15, 0.55, 0.18);
+const signMaterial = new MeshStandardMaterial({ color: 0xb96d43, roughness: 0.9 });
 
 export interface SceneContent {
   root: Group;
@@ -106,16 +118,19 @@ function addDistrictLandscape(
 ): void {
   const paths = new Group();
   paths.name = `path:${projectId}`;
-  for (const placement of projectBuildings) {
-    const horizontal = new Mesh(pathGeometry, pathMaterial);
-    horizontal.scale.set(Math.max(0.8, Math.abs(placement.x - districtX)), 1, 0.65);
-    horizontal.position.set((placement.x + districtX) / 2, 0.03, placement.z + 2.25);
-    horizontal.receiveShadow = true;
-    const vertical = new Mesh(pathGeometry, pathMaterial);
-    vertical.scale.set(0.65, 1, Math.max(0.8, Math.abs(placement.z + 2.25 - districtZ)));
-    vertical.position.set(districtX, 0.03, (placement.z + 2.25 + districtZ) / 2);
-    vertical.receiveShadow = true;
-    paths.add(horizontal, vertical);
+  for (const [index, placement] of projectBuildings.entries()) {
+    const bend = index % 2 === 0 ? 1.8 : -1.8;
+    const curve = new CatmullRomCurve3([
+      new Vector3(districtX, 0, districtZ),
+      new Vector3((districtX + placement.x) / 2 + bend, 0, (districtZ + placement.z) / 2),
+      new Vector3(placement.x, 0, placement.z + 2.1),
+    ]);
+    const trail = new Mesh(new TubeGeometry(curve, 18, 0.62, 6, false), pathMaterial);
+    trail.name = `trail:${projectId}:${placement.taskId}`;
+    trail.scale.y = 0.16;
+    trail.position.y = 0.18;
+    trail.receiveShadow = true;
+    paths.add(trail);
   }
   district.add(paths);
 
@@ -131,14 +146,26 @@ function addDistrictLandscape(
   plaza.add(plazaFloor, fountainBase, fountainWater);
   district.add(plaza);
 
+  const signpost = new Group();
+  signpost.name = `signpost:${projectId}`;
+  const signPost = new Mesh(signPostGeometry, signMaterial);
+  signPost.position.set(districtX + 2.7, 0.75, districtZ + 1.6);
+  const signBoard = new Mesh(signBoardGeometry, signMaterial);
+  signBoard.position.set(districtX + 2.7, 1.35, districtZ + 1.6);
+  signBoard.rotation.y = -0.25;
+  signpost.add(signPost, signBoard);
+  district.add(signpost);
+
   const insetX = width / 2 - 2.2;
   const insetZ = depth / 2 - 2.2;
-  const positions = [
-    [districtX - insetX, districtZ - insetZ],
-    [districtX + insetX, districtZ - insetZ],
-    [districtX - insetX, districtZ + insetZ],
-    [districtX + insetX, districtZ + insetZ],
-  ] as const;
+  const positions = Array.from({ length: 9 }, (_, index) => {
+    const angle = index / 9 * Math.PI * 2 + 0.2;
+    const radiusScale = index % 2 === 0 ? 1 : 0.82;
+    return [
+      districtX + Math.cos(angle) * insetX * radiusScale,
+      districtZ + Math.sin(angle) * insetZ * radiusScale,
+    ] as const;
+  });
   positions.forEach(([x, z], index) => {
     district.add(createTree(`tree:${projectId}:${index}`, x, z, index));
     const flowers = new Group();
@@ -150,6 +177,18 @@ function addDistrictLandscape(
       flowers.add(flower);
     }
     district.add(flowers);
+    const rock = new Mesh(rockGeometry, rockMaterials[index % rockMaterials.length]);
+    rock.name = `cliff-rock:${projectId}:${index}`;
+    rock.position.set(x + Math.cos(index) * 1.4, 0.42, z + Math.sin(index) * 1.1);
+    rock.scale.setScalar(index % 3 === 0 ? 1.3 : 0.9);
+    rock.castShadow = true;
+    district.add(rock);
+    const shrub = new Mesh(shrubGeometry, shrubMaterial);
+    shrub.name = `shrub:${projectId}:${index}`;
+    shrub.position.set(x - Math.cos(index) * 1.2, 0.45, z - Math.sin(index) * 1.1);
+    shrub.scale.set(1.2, 0.78, 1);
+    shrub.castShadow = true;
+    district.add(shrub);
   });
 }
 
@@ -163,27 +202,30 @@ export function buildSceneContent(village: DerivedWorkspace): SceneContent {
   const buildingAnchors = new Map<string, Vector3>();
   const placements = new Map(layout.buildings.map((placement) => [placement.taskId, placement]));
 
-  const water = new Mesh(districtGeometry, waterMaterial);
-  water.name = 'world-water';
-  water.scale.set(layout.width + 26, 0.45, layout.depth + 22);
-  water.position.set(0, -0.72, 0);
-  water.receiveShadow = true;
-  root.add(water);
+  const meadow = new Mesh(terrainGeometry, meadowMaterial);
+  meadow.name = 'world-meadow';
+  meadow.scale.set((layout.width + 20) / 2, 0.72, (layout.depth + 18) / 2);
+  meadow.position.set(0, -0.56, 0);
+  meadow.rotation.y = 0.08;
+  meadow.receiveShadow = true;
+  root.add(meadow);
 
   layout.districts.forEach((placement, index) => {
     const district = new Group();
     district.name = `district:${placement.projectId}`;
-    const sand = new Mesh(districtGeometry, sandMaterial);
-    sand.name = `district-sand:${placement.projectId}`;
-    sand.scale.set(placement.width + 1.4, 1, placement.depth + 1.4);
-    sand.position.set(placement.x, -0.36, placement.z);
-    sand.receiveShadow = true;
-    const grass = new Mesh(districtGeometry, districtMaterials[index % districtMaterials.length]);
-    grass.name = `district-grass:${placement.projectId}`;
-    grass.scale.set(placement.width, 1, placement.depth);
-    grass.position.set(placement.x, -0.14, placement.z);
-    grass.receiveShadow = true;
-    district.add(sand, grass);
+    const cliff = new Mesh(terrainGeometry, cliffMaterial);
+    cliff.name = `district-cliff:${placement.projectId}`;
+    cliff.scale.set(placement.width / 2 + 1.2, 0.55, placement.depth / 2 + 1.2);
+    cliff.position.set(placement.x, -0.2, placement.z);
+    cliff.rotation.y = index % 2 === 0 ? 0.08 : -0.07;
+    cliff.receiveShadow = true;
+    const terrain = new Mesh(terrainGeometry, districtMaterials[index % districtMaterials.length]);
+    terrain.name = `district-terrain:${placement.projectId}`;
+    terrain.scale.set(placement.width / 2, 0.36, placement.depth / 2);
+    terrain.position.set(placement.x, 0.05, placement.z);
+    terrain.rotation.y = cliff.rotation.y;
+    terrain.receiveShadow = true;
+    district.add(cliff, terrain);
     addDistrictLandscape(
       district,
       placement.projectId,

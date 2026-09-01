@@ -2,12 +2,15 @@ import type { DerivedWorkspace } from '../../server/truth/derive.js';
 import type { BuildingPlacement, DistrictPlacement, VillageLayout3d } from './types.js';
 
 const DISTRICT_COLUMNS = 2;
-const DISTRICT_WIDTH = 30;
-const DISTRICT_GAP = 6;
+const DISTRICT_WIDTH = 26;
+const DISTRICT_GAP = -4;
 const PLOT_COLUMNS = 3;
-const PLOT_X_GAP = 8;
-const PLOT_Z_GAP = 7;
-const PLOT_TOP_INSET = 7;
+const PLOT_Z_GAP = 6.5;
+
+const VILLAGE_OFFSETS = [
+  [-7.5, -5.5], [0, -7], [7.2, -4.8],
+  [-7, 4.4], [1.2, 6.2], [8, 4.5],
+] as const;
 
 interface ProjectSize {
   width: number;
@@ -18,7 +21,7 @@ function projectSize(taskCount: number): ProjectSize {
   const rows = Math.max(1, Math.ceil(taskCount / PLOT_COLUMNS));
   return {
     width: DISTRICT_WIDTH,
-    depth: Math.max(20, 10 + rows * PLOT_Z_GAP),
+    depth: Math.max(22, 12 + rows * PLOT_Z_GAP),
   };
 }
 
@@ -73,15 +76,17 @@ export function layoutVillage3d(village: DerivedWorkspace): VillageLayout3d {
         ...project.tasks.map((task) => ({ task, compoundId: undefined })),
       ];
       tasks.forEach(({ task, compoundId }, index) => {
-        const plotColumn = index % PLOT_COLUMNS;
-        const plotRow = Math.floor(index / PLOT_COLUMNS);
+        const villageOffset = VILLAGE_OFFSETS[index];
+        const overflowIndex = Math.max(0, index - VILLAGE_OFFSETS.length);
+        const plotColumn = overflowIndex % PLOT_COLUMNS;
+        const plotRow = Math.floor(overflowIndex / PLOT_COLUMNS);
         buildings.push({
           taskId: task.id,
           projectId: project.id,
           compoundId,
-          x: districtX - DISTRICT_WIDTH / 2 + 7 + plotColumn * PLOT_X_GAP,
-          z: districtZ - size.depth / 2 + PLOT_TOP_INSET + plotRow * PLOT_Z_GAP,
-          rotationY: 0,
+          x: districtX + (villageOffset?.[0] ?? -7 + plotColumn * 7),
+          z: districtZ + (villageOffset?.[1] ?? 10 + plotRow * PLOT_Z_GAP),
+          rotationY: ((index % 3) - 1) * 0.07,
         });
       });
     });

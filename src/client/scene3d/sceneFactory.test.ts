@@ -61,11 +61,17 @@ describe('buildSceneContent', () => {
     expect(content.root.getObjectByName('compound:atlas-yard')).toBeDefined();
     expect(content.root.getObjectByName('path:atlas')).toBeDefined();
     expect(content.root.getObjectByName('tree:atlas:0')).toBeDefined();
-    expect(content.root.getObjectByName('world-water')).toBeDefined();
-    expect(content.root.getObjectByName('district-sand:atlas')).toBeDefined();
-    expect(content.root.getObjectByName('district-grass:atlas')).toBeDefined();
+    expect(content.root.getObjectByName('world-meadow')).toBeDefined();
+    expect(content.root.getObjectByName('world-water')).toBeUndefined();
+    expect(content.root.getObjectByName('district-cliff:atlas')).toBeDefined();
+    expect(content.root.getObjectByName('district-terrain:atlas')).toBeDefined();
     expect(content.root.getObjectByName('plaza:atlas')).toBeDefined();
     expect(content.root.getObjectByName('flower-bed:atlas:0')).toBeDefined();
+    expect(content.root.getObjectByName('cliff-rock:atlas:0')).toBeDefined();
+    expect(content.root.getObjectByName('shrub:atlas:0')).toBeDefined();
+    expect(content.root.getObjectByName('signpost:atlas')).toBeDefined();
+    const atlasPaths = content.root.getObjectByName('path:atlas');
+    expect(atlasPaths?.children.some((child) => (child as Mesh).geometry?.type === 'TubeGeometry')).toBe(true);
     expect([...content.buildings.keys()]).toEqual([
       'atlas-bridge', 'atlas-observatory', 'atlas-library', 'beacon-relay',
     ]);
