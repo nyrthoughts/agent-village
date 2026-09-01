@@ -39,6 +39,7 @@ async function requestWithStaticFallback<T>(
   staticPath: string,
   fetchImpl: typeof fetch,
 ): Promise<T> {
+  if (import.meta.env.BASE_URL !== '/') return request<T>(staticPath, fetchImpl);
   try {
     return await request<T>(apiPath, fetchImpl);
   } catch (error) {
