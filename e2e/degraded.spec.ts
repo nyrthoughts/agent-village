@@ -7,7 +7,7 @@ test('truth-only activity removes workers without changing buildings', async ({ 
   }));
   await page.goto('/');
   await expect(page.getByText('Truth only')).toBeVisible();
-  const scene = page.getByTestId('village-scene-3d');
+  const scene = page.getByTestId('village-map-2d');
   await expect(scene).toHaveAttribute('data-building-count', '8');
   await expect(scene).toHaveAttribute('data-worker-count', '0');
   await expect(scene.getByRole('button', { name: /Contour studio/i })).toBeVisible();

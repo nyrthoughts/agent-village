@@ -42,6 +42,7 @@ export function VillageMap2D({ village, activity, onSelect }: VillageMap2DProps)
     event.preventDefault();
   };
   const onPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    if ((event.target as HTMLElement).closest('button')) return;
     dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, camera };
     event.currentTarget.setPointerCapture?.(event.pointerId);
   };
