@@ -17,6 +17,18 @@ The `deploy public demo` workflow publishes `design/emerald-village-v4` to GitHu
 
 ## Local production run
 
+### Temporary Codex observer
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nyrthoughts/agent-village/design/emerald-village-v4/scripts/run-temporary.sh | sh
+```
+
+The launcher contains download, dependencies, npm cache, build, and runtime below one validated `mktemp` directory. It stops its child server and deletes that directory on normal exit and handled termination signals. It binds to loopback and never uploads local activity.
+
+This is not zero-resource execution: temporary disk and RAM are required while the observer runs. It is zero-installation after the process stops. Claude Code hooks and the OpenClaw plugin are excluded because they intentionally change local tool configuration.
+
+### Source checkout
+
 ```sh
 npm ci
 npm run build

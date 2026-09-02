@@ -25,6 +25,27 @@ Projects are districts, features are compounds, tasks are buildings, verified su
 
 Requirements: Node.js 20.19+ and npm.
 
+### Observe your current Codex activity without installing Agent Village
+
+Requirements: Node.js 20.19+, npm, Codex, curl, and tar.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nyrthoughts/agent-village/design/emerald-village-v4/scripts/run-temporary.sh | sh
+```
+
+The launcher downloads and builds Agent Village below `mktemp`, keeps its npm cache there, binds only to `127.0.0.1`, and removes the runtime when you stop it with `Ctrl-C`. It uses temporary disk and RAM while running; it does not install Agent Village, a daemon, hooks, or a database.
+
+The local page shows real redacted Codex conversations as people. They do not advance construction. Without a private configuration, the village contains no fictional tasks. To map people beside your own task buildings:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nyrthoughts/agent-village/design/emerald-village-v4/scripts/run-temporary.sh \
+  | VILLAGE_FILE=/absolute/private/path/village.yaml sh
+```
+
+The public [GitHub Pages preview](https://nyrthoughts.github.io/agent-village/) always remains fictional. Inspect the [launcher source](scripts/run-temporary.sh) before running the one-line command if you prefer not to pipe remote code directly into a shell.
+
+### Develop from source
+
 ```sh
 npm ci
 npm run dev

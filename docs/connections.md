@@ -8,6 +8,14 @@ Run `VILLAGE_MODE=native npm start`. No installation step is required when the `
 
 Set `VILLAGE_IDLE_MINUTES` to change that window.
 
+For a temporary run that leaves no Agent Village installation or npm cache after exit:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/nyrthoughts/agent-village/design/emerald-village-v4/scripts/run-temporary.sh | sh
+```
+
+This default uses `fixtures/village.observer.yaml`, which contains no fictional tasks. Real Codex conversations appear at the entrance. An optional private `VILLAGE_FILE` can supply evidence-backed buildings and `activity_mapping`; it is read locally and never uploaded.
+
 ## Claude Code
 
 ```sh
@@ -23,6 +31,8 @@ npm run disconnect:claude
 
 The server stores only session ID, helper ID/type, project folder name, normalized role/state, and timestamps in memory. `SubagentStart` creates a helper beside its lead; `SubagentStop` removes it. It does not persist hook payloads.
 
+The temporary Codex command does not install these hooks. Claude Code remains an explicit, reversible setup because its lifecycle events require a configuration change.
+
 ## OpenClaw
 
 ```sh
@@ -33,6 +43,8 @@ VILLAGE_MODE=native npm start
 The bundled plugin uses the typed `session_start`, `before_agent_run`, `agent_end`, and `session_end` hooks. It reports the session key, agent ID, workspace folder, and lifecycle state to loopback. It never reads messages, prompts, tool calls, or outputs.
 
 OpenClaw is not bundled. Installation must happen on the machine where its Gateway runs.
+
+The temporary Codex command does not install this plugin.
 
 ## Map a conversation to a building
 
