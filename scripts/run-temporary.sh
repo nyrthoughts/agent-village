@@ -126,7 +126,7 @@ export VILLAGE_FILE
 export VILLAGE_MODE=native
 export PORT
 
-npm start &
+node node_modules/tsx/dist/cli.mjs src/server/index.ts &
 SERVER_PID=$!
 
 if ! wait_for_health; then

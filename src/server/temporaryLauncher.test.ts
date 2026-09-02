@@ -25,7 +25,13 @@ function harness(options: { codex?: boolean; failInstall?: boolean; longRunning?
   mkdirSync(bin);
   mkdirSync(runtimeParent);
 
-  executable(join(bin, 'node'), 'echo v20.19.0');
+  const startBody = options.longRunning
+    ? `printf 'STARTED\n' >> '${log}'\ntrap 'exit 0' TERM INT HUP\nwhile :; do sleep 1; done`
+    : `printf 'STARTED\n' >> '${log}'\nexit 0`;
+  executable(join(bin, 'node'), `
+if [ "\${1-}" = '--version' ]; then echo v20.19.0; exit 0; fi
+printf 'NODE_SERVER|PWD=%s|CACHE=%s|MODE=%s|FILE=%s\n' "$PWD" "\${npm_config_cache-}" "\${VILLAGE_MODE-}" "\${VILLAGE_FILE-}" >> '${log}'
+${startBody}`);
   executable(join(bin, 'curl'), `
 output=''
 previous=''
@@ -48,14 +54,11 @@ printf 'version: 1\nname: My Agent Village\nprojects: []\n' > "$target/fixtures/
   executable(join(bin, 'open'), `printf 'OPEN|%s\n' "$*" >> '${log}'`);
   if (options.codex !== false) executable(join(bin, 'codex'), 'exit 0');
 
-  const startBody = options.longRunning
-    ? `printf 'STARTED\n' >> '${log}'\ntrap 'exit 0' TERM INT HUP\nwhile :; do sleep 1; done`
-    : `printf 'STARTED\n' >> '${log}'\nexit 0`;
   executable(join(bin, 'npm'), `
 printf 'NPM|%s|PWD=%s|CACHE=%s|MODE=%s|FILE=%s\n' "$*" "$PWD" "\${npm_config_cache-}" "\${VILLAGE_MODE-}" "\${VILLAGE_FILE-}" >> '${log}'
 if [ "\${1-}" = 'ci' ]; then ${options.failInstall ? 'exit 23' : 'exit 0'}; fi
 if [ "\${1-} \${2-}" = 'run build' ]; then exit 0; fi
-if [ "\${1-}" = 'start' ]; then ${startBody}; fi
+if [ "\${1-}" = 'start' ]; then exit 91; fi
 exit 0`);
 
   return {
@@ -114,6 +117,8 @@ describe('temporary Codex observer launcher', () => {
     expect(result.code).toBe(0);
     const log = readFileSync(test.log, 'utf8');
     expect(log).toContain('MODE=native');
+    expect(log).toContain('NODE_SERVER');
+    expect(log).not.toContain('NPM|start');
     expect(log).toMatch(/FILE=.*\/source\/fixtures\/village\.observer\.yaml/);
     expect(log).toMatch(/CACHE=.*\/npm-cache/);
     expect(log).toContain('OPEN|http://127.0.0.1:4180');
