@@ -3,6 +3,7 @@
     {
       "id": "worker-c-atlas",
       "tool": "codex",
+      "role": "lead",
       "state": "working",
       "title": "Codex on atlas contours",
       "lastActivityAt": "2026-08-31T15:00:00.000Z",
@@ -14,6 +15,8 @@
     {
       "id": "worker-x-observatory",
       "tool": "claude",
+      "role": "helper",
+      "parentId": "worker-c-atlas",
       "state": "waiting",
       "title": "Claude on atlas observatory",
       "lastActivityAt": "2026-08-31T14:58:00.000Z",

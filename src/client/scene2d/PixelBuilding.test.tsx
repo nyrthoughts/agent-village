@@ -1,0 +1,51 @@
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { DerivedProject, DerivedTask } from '../../server/truth/derive.js';
+import { PixelBuilding } from './PixelBuilding.js';
+
+function task(overrides: Partial<DerivedTask> = {}): DerivedTask {
+  return { id: 'task', title: 'Contour studio', owner: 'Mira', effectiveStatus: 'in_progress', warnings: [], roof: false, progress: { stage: 'foundation', stageIndex: 1, verified: 0, total: 1, remaining: 1 }, subtasks: [], ...overrides };
+}
+
+const project: DerivedProject = { id: 'atlas', name: 'Atlas', objective: 'Map it', effectiveStatus: 'in_progress', progress: { verified: 0, total: 0, remaining: 0 }, features: [], tasks: [] };
+
+afterEach(cleanup);
+
+describe('PixelBuilding', () => {
+  it('maps task truth to an original pixel construction variant', () => {
+    render(<PixelBuilding task={task()} project={project} variant={1} onSelect={() => undefined} />);
+    const building = screen.getByRole('button', { name: 'Contour studio. In progress. Owner Mira.' });
+    expect(building.getAttribute('data-building-variant')).toBe('construction');
+    expect(building.getAttribute('data-roof-palette')).toBe('1');
+    expect(building.getAttribute('data-sprite-scale')).toBe('compact');
+    expect(building.getAttribute('data-stage')).toBe('foundation');
+    expect(building.getAttribute('data-family')).toBeTruthy();
+  });
+
+  it('renders the server-derived construction stage independently from status', () => {
+    render(<PixelBuilding task={task({ effectiveStatus: 'blocked', progress: { stage: 'frame', stageIndex: 2, verified: 1, total: 3, remaining: 2 } })} project={project} variant={0} onSelect={() => undefined} />);
+    const building = screen.getByTestId('pixel-building-task');
+    expect(building.getAttribute('data-building-variant')).toBe('blocked');
+    expect(building.getAttribute('data-stage')).toBe('frame');
+  });
+
+  it('distinguishes all five construction states without changing task truth', () => {
+    const { rerender } = render(<PixelBuilding task={task({ effectiveStatus: 'planned' })} project={project} variant={0} onSelect={() => undefined} />);
+    expect(screen.getByTestId('pixel-building-task').getAttribute('data-building-variant')).toBe('plot');
+    rerender(<PixelBuilding task={task({ effectiveStatus: 'blocked' })} project={project} variant={0} onSelect={() => undefined} />);
+    expect(screen.getByTestId('pixel-building-task').getAttribute('data-building-variant')).toBe('blocked');
+    rerender(<PixelBuilding task={task({ effectiveStatus: 'awaiting_review' })} project={project} variant={0} onSelect={() => undefined} />);
+    expect(screen.getByTestId('pixel-building-task').getAttribute('data-building-variant')).toBe('review');
+    rerender(<PixelBuilding task={task({ effectiveStatus: 'verified', roof: true })} project={project} variant={0} onSelect={() => undefined} />);
+    expect(screen.getByTestId('pixel-building-task').getAttribute('data-building-variant')).toBe('complete');
+    expect(screen.getByTestId('pixel-building-task').querySelector('.pixel-building__porch')).toBeTruthy();
+  });
+
+  it('opens the existing task context with the semantic button as trigger', () => {
+    const onSelect = vi.fn();
+    render(<PixelBuilding task={task()} project={project} variant={0} onSelect={onSelect} />);
+    const button = screen.getByRole('button', { name: /Contour studio/ });
+    fireEvent.click(button);
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'task' }), button, project);
+  });
+});

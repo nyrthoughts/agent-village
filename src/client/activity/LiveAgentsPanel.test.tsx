@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
 import type { ActivitySnapshot } from '../../shared/activity.js';
 import { LiveAgentsPanel } from './LiveAgentsPanel.js';
 
@@ -12,11 +12,13 @@ const activity: ActivitySnapshot = {
   ],
 };
 
+afterEach(cleanup);
+
 describe('LiveAgentsPanel', () => {
   it('shows every conversation, its project, tool, state and building mapping', () => {
     render(<LiveAgentsPanel activity={activity} />);
 
-    expect(screen.getByRole('region', { name: 'Live conversations' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Agent camp' })).toBeTruthy();
     expect(screen.getByText('Publish and connect')).toBeTruthy();
     expect(screen.getByText('agent-village')).toBeTruthy();
     expect(screen.getByText('Codex')).toBeTruthy();
@@ -25,8 +27,9 @@ describe('LiveAgentsPanel', () => {
     expect(screen.getByText('Unmapped')).toBeTruthy();
   });
 
-  it('does not render outside live activity mode', () => {
-    const { container } = render(<LiveAgentsPanel activity={{ ...activity, status: 'demo' }} />);
-    expect(container.firstChild).toBeNull();
+  it('renders demo workers while clearly labeling them as fictional signals', () => {
+    const view = render(<LiveAgentsPanel activity={{ ...activity, status: 'demo' }} />);
+    expect(view.getByRole('region', { name: 'Agent camp' })).toBeTruthy();
+    expect(view.getByText('Demo signals')).toBeTruthy();
   });
 });

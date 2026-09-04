@@ -8,6 +8,17 @@ export const STATUSES = [
 
 export type Status = (typeof STATUSES)[number];
 
+export const CONSTRUCTION_STAGES = [
+  'lot',
+  'foundation',
+  'frame',
+  'walls',
+  'roof',
+  'complete',
+] as const;
+
+export type ConstructionStage = (typeof CONSTRUCTION_STAGES)[number];
+
 export const EVIDENCE_TYPES = [
   'test',
   'commit',

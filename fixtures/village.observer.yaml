@@ -1,0 +1,8 @@
+version: 1
+name: My Agent Village
+projects:
+  - id: observed-work
+    name: Observed work
+    objective: See current agent activity without inferring task progress
+    features: []
+    tasks: []

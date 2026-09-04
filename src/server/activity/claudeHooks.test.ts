@@ -15,6 +15,8 @@ describe('Claude Code hook settings', () => {
     expect(merged.hooks.Stop).toHaveLength(2);
     expect(JSON.stringify(merged)).toContain('agent-village-hook');
     expect(JSON.stringify(merged)).toContain('127.0.0.1:4180/api/hooks/claude');
+    expect(merged.hooks.SubagentStart).toHaveLength(1);
+    expect(merged.hooks.SubagentStop).toHaveLength(1);
   });
 
   it('is idempotent and can remove only Agent Village hooks', () => {

@@ -60,6 +60,17 @@ projects:
                 title: Western footing
                 status: planned
                 evidence: []
+              - id: atlas-bridge-pier
+                title: Eastern pier
+                status: verified
+                evidence:
+                  - type: human_review
+                    reviewer: Rowan
+                    state: approved
+              - id: atlas-bridge-deck
+                title: Timber deck
+                status: planned
+                evidence: []
             evidence: []
     tasks:
       - id: atlas-library
@@ -73,7 +84,7 @@ projects:
           - type: human_review
             reviewer: Rowan
             state: approved
-      - id: atlas-weather
+      - id: atlas-weather-site
         title: Weather mast
         owner: Paz
         status: verified
@@ -91,7 +102,7 @@ projects:
       - id: beacon-signal
         title: Signal workshop
         tasks:
-          - id: beacon-relay
+          - id: beacon-relay-hub
             title: Relay house
             owner: Toma
             status: planned
@@ -132,4 +143,4 @@ activity_mapping:
   - match: atlas observatory
     taskId: atlas-observatory
   - match: beacon relay
-    taskId: beacon-relay
+    taskId: beacon-relay-hub

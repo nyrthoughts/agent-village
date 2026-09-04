@@ -16,6 +16,7 @@ function thread(overrides: Partial<CodexThreadRecord> = {}): CodexThreadRecord {
     preview: 'Build Atlas bridge',
     updatedAt: now.getTime() / 1000,
     status: { type: 'active', activeFlags: [] },
+    source: 'appServer',
     ...overrides,
   };
 }
@@ -28,9 +29,40 @@ describe('mapCodexThreads', () => {
     ], now);
 
     expect(workers).toEqual([
-      expect.objectContaining({ id: 'codex:thread-1', tool: 'codex', state: 'working', project: 'atlas', title: 'Build Atlas bridge' }),
+      expect.objectContaining({ id: 'codex:thread-1', tool: 'codex', role: 'lead', state: 'working', project: 'atlas', title: 'Build Atlas bridge' }),
       expect.objectContaining({ id: 'codex:thread-2', tool: 'codex', state: 'waiting' }),
     ]);
+  });
+
+  it('preserves Codex subagent source as an explicit helper role', () => {
+    const workers = mapCodexThreads([
+      thread({ id: 'lead', source: 'appServer' }),
+      thread({ id: 'helper', source: 'subAgentReview' }),
+      thread({ id: 'legacy', source: undefined }),
+    ], now);
+
+    expect(workers.map(({ role }) => role)).toEqual(['lead', 'helper', 'unknown']);
+  });
+
+  it('accepts the real app-server subAgent object and links its parent thread', () => {
+    const workers = mapCodexThreads([
+      thread({
+        id: 'helper',
+        source: {
+          subAgent: { thread_spawn: { parent_thread_id: 'lead' } },
+        },
+      }),
+    ], now);
+
+    expect(workers[0]).toMatchObject({
+      id: 'codex:helper',
+      role: 'helper',
+      parentId: 'codex:lead',
+    });
+  });
+
+  it('does not invent a lead role for the literal unknown source', () => {
+    expect(mapCodexThreads([thread({ source: 'unknown' })], now)[0]?.role).toBe('unknown');
   });
 
   it('keeps recent idle threads and drops stale ones', () => {

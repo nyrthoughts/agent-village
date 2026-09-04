@@ -7,7 +7,7 @@ import type {
   Task,
   Workspace,
 } from '../../shared/schema.js';
-import type { Status } from '../../shared/statuses.js';
+import { CONSTRUCTION_STAGES, type ConstructionStage, type Status } from '../../shared/statuses.js';
 
 // Verdicts are produced by the evidence verifiers (Task 04) and passed in so
 // derivation stays pure. Anything not explicitly verified proves nothing.
@@ -33,13 +33,26 @@ export interface DerivedTask extends DerivedSubtask {
   nextAction?: string;
   resumeHint?: string;
   roof: boolean;
+  progress: TaskProgress;
   subtasks: DerivedSubtask[];
+}
+
+export interface ProgressRollup {
+  verified: number;
+  total: number;
+  remaining: number;
+}
+
+export interface TaskProgress extends ProgressRollup {
+  stage: ConstructionStage;
+  stageIndex: number;
 }
 
 export interface DerivedFeature {
   id: string;
   title: string;
   effectiveStatus: Status;
+  progress: ProgressRollup;
   tasks: DerivedTask[];
 }
 
@@ -48,6 +61,7 @@ export interface DerivedProject {
   name: string;
   objective: string;
   effectiveStatus: Status;
+  progress: ProgressRollup;
   features: DerivedFeature[];
   tasks: DerivedTask[];
 }
@@ -55,7 +69,37 @@ export interface DerivedProject {
 export interface DerivedWorkspace {
   version: 1;
   name: string;
+  progress: ProgressRollup;
   projects: DerivedProject[];
+}
+
+function rollup(progress: readonly ProgressRollup[]): ProgressRollup {
+  const verified = progress.reduce((sum, item) => sum + item.verified, 0);
+  const total = progress.reduce((sum, item) => sum + item.total, 0);
+  return { verified, total, remaining: Math.max(0, total - verified) };
+}
+
+function taskProgress(
+  effectiveStatus: Status,
+  roof: boolean,
+  subtasks: readonly DerivedSubtask[],
+): TaskProgress {
+  const leaves = subtasks.length > 0 ? subtasks : [{ effectiveStatus }];
+  const total = leaves.length;
+  const verified = leaves.filter((leaf) => leaf.effectiveStatus === 'verified').length;
+  const stageIndex = roof
+    ? 5
+    : verified === 0
+      ? effectiveStatus === 'planned' ? 0 : 1
+      : 1 + Math.min(3, Math.ceil((verified * 3) / total));
+
+  return {
+    stage: CONSTRUCTION_STAGES[stageIndex]!,
+    stageIndex,
+    verified,
+    total,
+    remaining: total - verified,
+  };
 }
 
 function dominant(statuses: readonly Status[]): Status {
@@ -122,6 +166,7 @@ export function deriveTask(task: Task, verdictsById: VerdictsById): DerivedTask 
     ...(ownContributes ? [own.effectiveStatus] : []),
     ...subtasks.map((s) => s.effectiveStatus),
   ]);
+  const roof = effectiveStatus === 'verified';
 
   return {
     ...own,
@@ -130,7 +175,8 @@ export function deriveTask(task: Task, verdictsById: VerdictsById): DerivedTask 
     nextAction: task.nextAction,
     resumeHint: task.resumeHint,
     effectiveStatus,
-    roof: effectiveStatus === 'verified',
+    roof,
+    progress: taskProgress(effectiveStatus, roof, subtasks),
     subtasks,
   };
 }
@@ -141,6 +187,7 @@ export function deriveFeature(feature: Feature, verdictsById: VerdictsById): Der
     id: feature.id,
     title: feature.title,
     effectiveStatus: dominant(tasks.map((t) => t.effectiveStatus)),
+    progress: rollup(tasks.map((task) => task.progress)),
     tasks,
   };
 }
@@ -148,6 +195,10 @@ export function deriveFeature(feature: Feature, verdictsById: VerdictsById): Der
 export function deriveProject(project: Project, verdictsById: VerdictsById): DerivedProject {
   const features = project.features.map((feature) => deriveFeature(feature, verdictsById));
   const tasks = project.tasks.map((task) => deriveTask(task, verdictsById));
+  const progress = rollup([
+    ...features.map((feature) => feature.progress),
+    ...tasks.map((task) => task.progress),
+  ]);
   return {
     id: project.id,
     name: project.name,
@@ -156,15 +207,18 @@ export function deriveProject(project: Project, verdictsById: VerdictsById): Der
       ...features.map((f) => f.effectiveStatus),
       ...tasks.map((t) => t.effectiveStatus),
     ]),
+    progress,
     features,
     tasks,
   };
 }
 
 export function deriveWorkspace(workspace: Workspace, verdictsById: VerdictsById): DerivedWorkspace {
+  const projects = workspace.projects.map((project) => deriveProject(project, verdictsById));
   return {
     version: workspace.version,
     name: workspace.name,
-    projects: workspace.projects.map((project) => deriveProject(project, verdictsById)),
+    progress: rollup(projects.map((project) => project.progress)),
+    projects,
   };
 }

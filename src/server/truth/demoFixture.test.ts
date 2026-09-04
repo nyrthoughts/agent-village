@@ -18,15 +18,20 @@ describe('canonical demo fixture', () => {
     const verdicts = await verifyWorkspaceEvidence(loaded.workspace, dirname(fixturePath));
     const derived = deriveWorkspace(loaded.workspace, verdicts);
     const statuses: Record<string, string> = {};
+    const stages: Record<string, string> = {};
 
     for (const project of derived.projects) {
       for (const feature of project.features) {
         for (const task of feature.tasks) {
           statuses[task.id] = task.effectiveStatus;
+          stages[task.id] = task.progress.stage;
           for (const subtask of task.subtasks) statuses[subtask.id] = subtask.effectiveStatus;
         }
       }
-      for (const task of project.tasks) statuses[task.id] = task.effectiveStatus;
+      for (const task of project.tasks) {
+        statuses[task.id] = task.effectiveStatus;
+        stages[task.id] = task.progress.stage;
+      }
     }
 
     expect(statuses).toEqual({
@@ -37,13 +42,18 @@ describe('canonical demo fixture', () => {
       'atlas-observatory-deck': 'verified',
       'atlas-bridge': 'blocked',
       'atlas-bridge-footing': 'planned',
+      'atlas-bridge-pier': 'verified',
+      'atlas-bridge-deck': 'planned',
       'atlas-library': 'verified',
-      'atlas-weather': 'in_progress',
-      'beacon-relay': 'planned',
+      'atlas-weather-site': 'in_progress',
+      'beacon-relay-hub': 'planned',
       'beacon-lens': 'verified',
       'beacon-lens-frame': 'verified',
       'beacon-notes': 'in_progress',
     });
+    expect(new Set(Object.values(stages))).toEqual(new Set([
+      'lot', 'foundation', 'frame', 'walls', 'roof', 'complete',
+    ]));
   });
 
   it('passes the public hygiene gate', () => {

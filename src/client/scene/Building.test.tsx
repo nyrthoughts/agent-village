@@ -11,6 +11,7 @@ function task(overrides: Partial<DerivedTask>): DerivedTask {
     effectiveStatus: 'in_progress',
     warnings: [],
     roof: false,
+    progress: { stage: 'foundation', stageIndex: 1, verified: 0, total: 1, remaining: 1 },
     subtasks: [],
     ...overrides,
   };
