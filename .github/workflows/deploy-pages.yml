@@ -2,7 +2,7 @@ name: deploy public demo
 
 on:
   push:
-    branches: [design/emerald-village-v4]
+    branches: [main, design/emerald-village-v4]
   workflow_dispatch:
 
 permissions:
