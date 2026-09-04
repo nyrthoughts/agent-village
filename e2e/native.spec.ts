@@ -1,0 +1,32 @@
+import { expect, test } from '@playwright/test';
+import { observedVillage } from '../src/server/activity/projectObserver.js';
+import type { ObservedSession } from '../src/shared/observation.js';
+
+test('private project cockpit keeps six buildings, sourced history and incremental catch-up', async ({ page }) => {
+  const names = ['Product', 'Data', 'Delivery', 'CLI', 'Research', 'Village'];
+  const sessions: ObservedSession[] = names.map((name, index) => ({ id: `codex:${index}`, tool: 'codex', state: 'idle', projectKey: name, project: name, title: `${name} work`, history: [{ at: '2026-09-04T12:00:00Z', kind: 'report', text: `## Fait\n- ${name} prototype livré.\n## Reste à faire\n- Revue indépendante.` }], lastActivityAt: '2026-09-04T12:00:00Z' }));
+  let snapshot = observedVillage(sessions, [], names);
+  await page.route('**/api/village', (route) => route.fulfill({ json: snapshot }));
+  await page.route('**/api/activity', (route) => route.fulfill({ json: { status: 'live', fetchedAt: '2026-09-04T12:00:00Z', workers: [] } }));
+  await page.goto('/');
+  await expect(page.locator('[data-task-id]')).toHaveCount(6);
+  expect(new Set(await page.locator('[data-task-id]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-family')))).size).toBe(6);
+  await page.getByRole('button', { name: 'Ouvrir Product', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Bilan du projet' })).toBeVisible();
+  await expect(page.getByText('Product prototype livré.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Marquer comme lu' }).click();
+  sessions[0]!.history.push({ at: '2026-09-04T12:01:00Z', kind: 'report', text: 'Revue terminée, déploiement restant.' });
+  snapshot = observedVillage(sessions, [], names);
+  await expect(page.getByText('1 nouveaux échanges', { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('dialog').getByText('Revue terminée, déploiement restant.', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Évolution', exact: true }).click();
+  await expect(page.locator('.observed-evolution li')).toHaveCount(2);
+  await page.locator('.observed-evolution .observed-source').first().click();
+  await expect(page.getByRole('heading', { name: 'Dernière demande' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Historique récent' })).toBeVisible();
+  await page.getByRole('button', { name: 'Fermer le projet' }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.reload();
+  await expect(page.getByText('1 nouveaux échanges', { exact: true })).toBeVisible();
+});

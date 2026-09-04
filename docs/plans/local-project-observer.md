@@ -12,6 +12,12 @@ by project, without uploading conversations or inventing completion percentages.
    contain only the existing fictional demo. No model calls or new cloud service.
 4. Test parsers, grouping, privacy, failures and UI; verify real sessions in-browser.
 
+Delivered catch-up layer: project-level extractive briefs; chronological history
+across sessions; source navigation; explicit done/next/blocker sections only;
+persisted read points with new-exchange counts; optional focused projects with
+distinct stable buildings and access to all remaining conversations. No paid
+model, new conversation database or invented percentage.
+
 Limits: bounded recent history, not a complete archive; source timestamps do not
 measure work time; idle sessions do not imply a completed project. A CLI stopped
 at a trust prompt cannot be treated as an active agent. No remote private hosting

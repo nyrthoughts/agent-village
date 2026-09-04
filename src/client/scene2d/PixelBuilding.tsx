@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { DerivedProject, DerivedTask } from '../../server/truth/derive.js';
-import { buildingFamilyFor } from './buildingFamilies.js';
+import { BUILDING_FAMILIES, buildingFamilyFor } from './buildingFamilies.js';
 
 const STATUS_LABELS = {
   planned: 'Planned',
@@ -29,7 +29,9 @@ export function PixelBuilding({ task, project, variant, onSelect }: PixelBuildin
   const status = project.observation
     ? `${project.observation.sessions.length} sessions · ${project.observation.sessions.filter((session) => session.state === 'working').length} en cours`
     : STATUS_LABELS[task.effectiveStatus];
-  const family = buildingFamilyFor(task.id);
+  const family = project.observation?.buildingFamilyIndex !== undefined
+    ? BUILDING_FAMILIES[project.observation.buildingFamilyIndex % BUILDING_FAMILIES.length]!
+    : buildingFamilyFor(task.id);
   const familyStyle = {
     '--building-roof': family.roofColor,
     '--building-roof-light': family.roofLight,

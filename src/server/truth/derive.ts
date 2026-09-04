@@ -69,7 +69,7 @@ export interface DerivedProject {
 }
 
 export interface DerivedWorkspace {
-  observation?: { fetchedAt: string; errors: string[]; historyWindow: string };
+  observation?: { fetchedAt: string; errors: string[]; historyWindow: string; focusProjects?: string[] };
   version: 1;
   name: string;
   progress: ProgressRollup;

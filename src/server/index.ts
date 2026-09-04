@@ -48,6 +48,7 @@ async function main(): Promise<void> {
     demoActivityPath: resolve(process.env.AMC_FIXTURE ?? 'fixtures/amc/dashboard.nominal.json'),
     nativeActivity: mode === 'native' ? nativeActivity : undefined,
     localSessions: mode === 'native' ? new LocalSessions({ aliases: JSON.parse(process.env.VILLAGE_PROJECT_ALIASES ?? '{}') }) : undefined,
+    focusProjects: JSON.parse(process.env.VILLAGE_FOCUS_PROJECTS ?? '[]'),
   });
   await listenLocal(server, port);
   console.log(`Agent Village listening on http://${LOCAL_HOST}:${port}`);

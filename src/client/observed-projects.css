@@ -1,4 +1,4 @@
-.observed-shell { background: #eeeeda; color: #243e35; display: flex; flex-direction: column; min-height: 100vh; padding: 20px; gap: 12px; }
+.app-shell.observed-shell { background: #eeeeda; color: #243e35; display: flex; flex-direction: column; min-height: 100vh; padding: 20px; gap: 12px; }
 .observed-header { display:flex; align-items:center; justify-content:space-between; gap:20px; padding: 12px 18px; border:3px solid #38544a; box-shadow:4px 4px #bbc6a5; background:#faf6df; }
 .observed-header h1 { font-size:24px; margin:6px 0; }
 .observed-header p { margin:4px 0; font-size:13px; }
@@ -11,7 +11,7 @@
 .observed-projects button strong { font-size:17px; }
 .observed-projects button span { font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
 .observed-projects time { font-size:11px; color:#526258; }
-.observed-map { min-height:620px; height:74vh; position:relative; }
+.game-stage.observed-map { min-height:620px; height:74vh; position:relative; }
 .observed-map-note { position:absolute; top:12px; left:14px; right:14px; z-index:3; background:#fff7dfed; padding:10px; border:2px solid #557052; font-size:12px; pointer-events:none; }
 .pixel-building[data-observed="true"].pixel-building--awaiting_review .pixel-building__status-mark::before { content:'·'; }
 .pixel-building[data-observed="true"].pixel-building--awaiting_review::after { display:none; }
@@ -26,4 +26,16 @@
 .observed-session ol { padding-left:20px; }
 .observed-session li { padding:8px 0; }
 .observed-session small { overflow-wrap:anywhere; }
-@media(max-width:800px) { .observed-shell{padding:10px;} .observed-header { align-items:flex-start; flex-direction:column; gap:8px; } .observed-layout { display:flex;flex-direction:column-reverse; } .observed-map { min-height:400px;height:50vh; } .observed-projects {max-height:none;} }
+.observed-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.observed-tabs button { padding:9px 12px; border:2px solid #708770; background:#fff9e6; color:#243e35; cursor:pointer; }
+.observed-tabs button[aria-pressed="true"] { background:#315849; color:#fff9e6; }
+.observed-source { display:block; font:12px/1.4 system-ui,sans-serif; color:#326d61; border:0; padding:4px 0; background:transparent; text-decoration:underline; cursor:pointer; text-align:left; }
+.observed-brief p,.observed-evolution p { white-space:pre-wrap; overflow-wrap:anywhere; font:14px/1.6 system-ui,sans-serif; }
+.observed-brief article { padding:12px; margin:12px 0; border-left:4px solid #708770; background:#f6f2dd; }
+.observed-brief h4 { margin:0 0 6px; }
+.observed-evolution ol { padding-left:20px; }
+.observed-evolution li { border-bottom:1px solid #becab0; padding:15px 0; }
+.observed-new { color:#905016; font-size:12px; }
+.observed-explanation { color:#50645b; }
+.observed-projects button.observed-scope { background:#dbe7c9; font-size:13px; padding:10px; }
+@media(max-width:800px) { .app-shell.observed-shell{padding:10px;} .observed-header { align-items:flex-start; flex-direction:column; gap:8px; } .observed-layout { display:flex;flex-direction:column-reverse; } .game-stage.observed-map { min-height:400px;height:50vh; } .observed-projects {max-height:none;} }

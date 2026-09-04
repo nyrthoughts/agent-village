@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from 'react';
 import type { DerivedProject, DerivedTask, DerivedWorkspace } from '../../server/truth/derive.js';
 import type { ActivitySnapshot, Worker } from '../../shared/activity.js';
 import { PixelBuilding } from './PixelBuilding.js';
@@ -19,9 +19,24 @@ function clamp(value: number, limit: number): number {
   return Math.min(limit, Math.max(-limit, value));
 }
 
+export function fitVillageScale(width: number, height: number, tilesWide: number, tilesHigh: number): number {
+  return Math.max(0.15, Math.min(1.2, (width - 40) / (tilesWide * TILE_SIZE), (height - 100) / (tilesHigh * TILE_SIZE)));
+}
+
 export function VillageMap2D({ village, activity, onSelect, onSelectWorker }: VillageMap2DProps) {
   const layout = useMemo(() => layoutVillage2d(village), [village]);
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0 });
+  const viewport = useRef<HTMLElement>(null);
+  const [scale, setScale] = useState(0.65);
+  const observed = Boolean(village.observation);
+  useEffect(() => {
+    if (!observed || !viewport.current || typeof ResizeObserver === 'undefined') return;
+    const resize = new ResizeObserver(([entry]) => {
+      if (entry) setScale(fitVillageScale(entry.contentRect.width, entry.contentRect.height, layout.width, layout.height));
+    });
+    resize.observe(viewport.current);
+    return () => resize.disconnect();
+  }, [observed, layout.width, layout.height]);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; camera: Camera }>();
   const maxX = Math.max(0, (layout.width - 32) / 2);
   const maxY = Math.max(0, (layout.height - 24) / 2);
@@ -74,11 +89,12 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker }: Vi
   const worldStyle: CSSProperties = {
     width: layout.width * TILE_SIZE,
     height: layout.height * TILE_SIZE,
-    transform: `translate(calc(-50% - ${camera.x * TILE_SIZE}px), calc(-50% - ${camera.y * TILE_SIZE}px)) scale(${village.observation ? 0.65 : 1.2})`,
+    transform: `translate(calc(-50% - ${camera.x * TILE_SIZE}px), calc(-50% - ${camera.y * TILE_SIZE}px)) scale(${observed ? scale : 1.2})`,
   };
 
   return (
     <section
+      ref={viewport}
       className="village-map2d"
       data-testid="village-map-2d"
       data-building-count={layout.buildings.length}

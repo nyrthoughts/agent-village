@@ -14,6 +14,7 @@ export interface ObservedSession extends Worker {
   sourceNote?: string;
 }
 export interface ProjectObservation {
+  buildingFamilyIndex?: number;
   sessions: ObservedSession[];
   lastActivityAt: string;
 }

@@ -121,6 +121,8 @@ Codex needs no API key. The observer uses `sqlite3 -readonly` against `~/.codex/
 
 The private view includes user requests and assistant reports, but excludes reasoning and tool payloads. It refreshes every five seconds while visible. History survives dashboard restarts by rereading the original journals, not by creating another conversation database. Limits: 60 recent sessions per source, seven days, a 4 MiB transcript tail and 24 exchanges per session. Unsupported metrics are omitted. Reports are agent claims, not independently verified outcomes. Native requests reject foreign hosts/origins; the server binds to loopback only. Do not expose it through a public tunnel.
 
+Each project opens a sourced **brief**, a combined **evolution timeline**, and its **conversations**. Explicit done/next/blocker sections are extracted verbatim from the latest reports, not inferred by a model. Mark a project as read to see new exchanges on your next visit; this reading point stays in browser storage. Set `VILLAGE_FOCUS_PROJECTS='["Product","Data"]'` to show a focused set of project buildings by default; search and “other projects” still expose the rest. Focused projects retain distinct architectural styles when filtered.
+
 Start the dashboard; hooks are optional for additional lifecycle events:
 
 ```sh

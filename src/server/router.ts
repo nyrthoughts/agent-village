@@ -20,6 +20,7 @@ export interface RouterOptions {
   demoActivityPath?: string;
   nativeActivity?: NativeActivityHub;
   localSessions?: LocalSessions;
+  focusProjects?: string[];
   now?: () => Date;
 }
 
@@ -115,7 +116,7 @@ export function createRouter(options: RouterOptions) {
     if (rawPath === '/api/village') {
       if (options.mode === 'native' && options.localSessions) {
         const snapshot = await observed();
-        json(response, 200, observedVillage(snapshot.sessions, snapshot.errors)); return;
+        json(response, 200, observedVillage(snapshot.sessions, snapshot.errors, options.focusProjects)); return;
       }
       const loaded = loadWorkspace(options.villagePath);
       if (!loaded.ok) {

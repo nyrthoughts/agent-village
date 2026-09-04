@@ -77,7 +77,7 @@ export function mergeLiveSessions(sessions: ObservedSession[], hooks: Worker[]):
   return [...entries.values()];
 }
 
-export function observedVillage(sessions: ObservedSession[], errors: string[]): DerivedWorkspace {
+export function observedVillage(sessions: ObservedSession[], errors: string[], focusProjects: string[] = []): DerivedWorkspace {
   const groups = new Map<string, ObservedSession[]>();
   for (const session of sessions) {
     const group = groups.get(session.projectKey) ?? [];
@@ -87,7 +87,7 @@ export function observedVillage(sessions: ObservedSession[], errors: string[]): 
   const empty = { verified: 0, total: 0, remaining: 0 };
   return {
     version: 1, name: 'Mon village', progress: empty,
-    observation: { fetchedAt: new Date().toISOString(), errors, historyWindow: '7 jours · 24 derniers échanges par session · lecture bornée à 4 Mio par journal' },
+    observation: { fetchedAt: new Date().toISOString(), errors, focusProjects, historyWindow: '7 jours · 24 derniers échanges par session · lecture bornée à 4 Mio par journal' },
     projects: [...groups.entries()].map(([key, entries]) => {
       entries.sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt));
       const latest = entries[0]!;
@@ -96,7 +96,7 @@ export function observedVillage(sessions: ObservedSession[], errors: string[]): 
       return {
         id, name: latest.project ?? 'Projet', objective: latest.objective ?? latest.title ?? 'Session observée',
         effectiveStatus, progress: empty, features: [],
-        observation: { sessions: entries, lastActivityAt: latest.lastActivityAt },
+        observation: { sessions: entries, lastActivityAt: latest.lastActivityAt, buildingFamilyIndex: focusProjects.includes(latest.project ?? '') ? focusProjects.indexOf(latest.project!) : undefined },
         tasks: [{ id, title: latest.project ?? 'Projet', effectiveStatus, warnings: [], roof: false,
           progress: { ...empty, stage: 'frame' as const, stageIndex: 2 }, subtasks: [] }],
       };

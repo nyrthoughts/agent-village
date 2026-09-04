@@ -4,6 +4,13 @@ import { parseTranscript, observedVillage, mergeLiveSessions } from './projectOb
 const line = (type: string, payload: unknown, timestamp = '2026-09-04T12:00:00Z') => JSON.stringify({ type, payload, timestamp });
 
 describe('private project observer', () => {
+  it('keeps distinct building identities for focused projects even when filtered', () => {
+    const names = ['One', 'Two', 'Three', 'Four', 'Five', 'Six'];
+    const sessions = names.map((project) => ({ id: project, tool: 'codex' as const, state: 'idle' as const, projectKey: project, project, history: [], lastActivityAt: '2026-09-04T12:00:00Z' }));
+    const village = observedVillage(sessions, [], names);
+    expect(new Set(village.projects.map((project) => project.observation?.buildingFamilyIndex)).size).toBe(6);
+    expect(observedVillage([sessions[4]!], [], names).projects[0]?.observation?.buildingFamilyIndex).toBe(4);
+  });
   it('attaches helpers to the project and applies newer hooks without losing reports', () => {
     const sessions = [{ id: 'claude:a', tool: 'claude' as const, state: 'unknown' as const, projectKey: 'repo', project: 'Project', attachedTaskId: 'building', history: [], summary: 'Built parser.', lastActivityAt: '2026-09-04T12:00:00Z' }];
     const result = mergeLiveSessions(sessions, [
