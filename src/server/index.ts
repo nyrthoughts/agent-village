@@ -3,9 +3,9 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { resolveMode } from './mode.js';
 import { createRouter, type RouterOptions } from './router.js';
-import { CodexAppServerProvider } from './activity/codexProvider.js';
 import { HookActivityStore } from './activity/hookStore.js';
 import { NativeActivityHub } from './activity/nativeActivity.js';
+import { LocalSessions } from './activity/localSessions.js';
 
 export const LOCAL_HOST = '127.0.0.1';
 
@@ -38,9 +38,6 @@ async function main(): Promise<void> {
   const mode = resolveMode();
   const hooks = new HookActivityStore();
   const nativeActivity = new NativeActivityHub([
-    new CodexAppServerProvider({
-      idleMinutes: Number(process.env.VILLAGE_IDLE_MINUTES ?? 30),
-    }),
     { read: async () => hooks.workers() },
   ], undefined, hooks);
   const server = createVillageServer({
@@ -50,6 +47,7 @@ async function main(): Promise<void> {
     amcEndpoint: process.env.AMC_ENDPOINT,
     demoActivityPath: resolve(process.env.AMC_FIXTURE ?? 'fixtures/amc/dashboard.nominal.json'),
     nativeActivity: mode === 'native' ? nativeActivity : undefined,
+    localSessions: mode === 'native' ? new LocalSessions({ aliases: JSON.parse(process.env.VILLAGE_PROJECT_ALIASES ?? '{}') }) : undefined,
   });
   await listenLocal(server, port);
   console.log(`Agent Village listening on http://${LOCAL_HOST}:${port}`);

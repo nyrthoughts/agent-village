@@ -26,7 +26,9 @@ interface PixelBuildingProps {
 }
 
 export function PixelBuilding({ task, project, variant, onSelect }: PixelBuildingProps) {
-  const status = STATUS_LABELS[task.effectiveStatus];
+  const status = project.observation
+    ? `${project.observation.sessions.length} sessions · ${project.observation.sessions.filter((session) => session.state === 'working').length} en cours`
+    : STATUS_LABELS[task.effectiveStatus];
   const family = buildingFamilyFor(task.id);
   const familyStyle = {
     '--building-roof': family.roofColor,
@@ -44,7 +46,8 @@ export function PixelBuilding({ task, project, variant, onSelect }: PixelBuildin
       data-testid={`pixel-building-${task.id}`}
       data-task-id={task.id}
       data-building-variant={VARIANTS[task.effectiveStatus]}
-      data-stage={task.progress.stage}
+      data-stage={project.observation ? 'roof' : task.progress.stage}
+      data-observed={project.observation ? 'true' : undefined}
       data-family={family.id}
       data-roof-shape={family.roof}
       data-roof-palette={variant}

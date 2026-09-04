@@ -4,7 +4,7 @@ Agent Village turns parallel agent work into a small construction village you ca
 
 ![Agent Village desktop preview](docs/preview-desktop.png)
 
-Projects are districts, features are compounds, tasks are buildings, verified subtasks advance construction, and active agent sessions are people. The important boundary is deliberate: **evidence builds the village; activity only shows who is nearby**.
+In private native mode, each project has a building containing its actual Codex and Claude Code conversations, recent requests and timestamped reports. The public demo retains the evidence-backed task-building model. Activity never proves delivery.
 
 ## What V1 does
 
@@ -14,9 +14,9 @@ Projects are districts, features are compounds, tasks are buildings, verified su
 - Keeps blocked and review markers independent from how much of a building is already constructed.
 - Shows lead agents as full-sized people and helper agents as smaller people with a count above their lead.
 - Opens buildings and people independently for recovery context and honest analytics.
-- Reports progress and remaining work; unsupported token and active-time metrics say `Unavailable` instead of inventing zeroes.
+- Shows sourced reports and history in native mode, hiding unsupported token/time estimates. The fictional demo demonstrates evidence-backed progress.
 - Supports bounded panning, keyboard navigation, reduced motion, and a mobile attention list.
-- Connects Codex through its read-only app-server API, Claude Code through hooks, and OpenClaw through an observation-only plugin.
+- Reads existing Codex Desktop/CLI and Claude Code sessions locally, including Claude tmux metadata. Optional hooks observe new lifecycle events.
 - Optionally accepts redacted sessions from another local AMC-compatible endpoint.
 - Keeps the last known truth visible when activity disappears.
 - Publishes a safe static demo without exposing local agent data.
@@ -25,21 +25,20 @@ Projects are districts, features are compounds, tasks are buildings, verified su
 
 Requirements: Node.js 20.19+ and npm.
 
-### Observe your current Codex activity without installing Agent Village
+### Temporary observer launcher
 
-Requirements: Node.js 20.19+, npm, Codex, curl, and tar.
+Requirements: Node.js 20.19+, npm, sqlite3, curl, and tar.
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/nyrthoughts/agent-village/design/emerald-village-v4/scripts/run-temporary.sh | sh
+curl -fsSL https://raw.githubusercontent.com/nyrthoughts/agent-village/main/scripts/run-temporary.sh | sh
 ```
 
 The launcher downloads and builds Agent Village below `mktemp`, keeps its npm cache there, binds only to `127.0.0.1`, and removes the runtime when you stop it with `Ctrl-C`. It uses temporary disk and RAM while running; it does not install Agent Village, a daemon, hooks, or a database.
 
-The local page shows real redacted Codex conversations as people. They do not advance construction. Without a private configuration, the village contains no fictional tasks. To map people beside your own task buildings:
+The local page reads private conversations on this computer, never from GitHub. Each detected project gets a building automatically. For explicit project grouping, set `VILLAGE_PROJECT_ALIASES` to a JSON object of absolute directory paths (or `session:codex:ID`, `session:claude:ID`, `title:PREFIX`) mapped to display names. Matching aliases share a building. For example:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/nyrthoughts/agent-village/design/emerald-village-v4/scripts/run-temporary.sh \
-  | VILLAGE_FILE=/absolute/private/path/village.yaml sh
+VILLAGE_MODE=native VILLAGE_PROJECT_ALIASES='{"title:CLI":"CLI project"}' npm start
 ```
 
 The public [GitHub Pages preview](https://nyrthoughts.github.io/agent-village/) always remains fictional. Inspect the [launcher source](scripts/run-temporary.sh) before running the one-line command if you prefer not to pipe remote code directly into a shell.
@@ -113,18 +112,21 @@ V1 inspects two proof types:
 | --- | --- |
 | `demo` | Uses the fictional activity fixture. This is the default. |
 | `truth-only` | Shows no workers. Progress still works completely. |
-| `native` | Reads local Codex threads and accepts Claude Code/OpenClaw lifecycle hooks. |
+| `native` | Reads local Codex/Claude transcripts and shows project buildings, reports and history. |
 | `live` | Reads a local AMC-compatible JSON endpoint with an 800 ms timeout. |
 
 ### Native Codex + Claude Code
 
-Codex needs no configuration. Agent Village calls the local, read-only `codex app-server` thread list and retains only the conversation ID, source role, redacted title, project folder name, state, and timestamp. Codex subagent sources render as helpers.
+Codex needs no API key. The observer uses `sqlite3 -readonly` against `~/.codex/state_5.sqlite`, then reads bounded transcript tails. Claude sessions are discovered from `~/.claude/projects` and running-process metadata in `~/.claude/sessions`. Existing tmux sessions appear without restarting their agents. Sources are limited to this computer; a remote CLI is not implicitly connected.
 
-Install the Claude Code lifecycle hooks once, then start the dashboard:
+The private view includes user requests and assistant reports, but excludes reasoning and tool payloads. It refreshes every five seconds while visible. History survives dashboard restarts by rereading the original journals, not by creating another conversation database. Limits: 60 recent sessions per source, seven days, a 4 MiB transcript tail and 24 exchanges per session. Unsupported metrics are omitted. Reports are agent claims, not independently verified outcomes. Native requests reject foreign hosts/origins; the server binds to loopback only. Do not expose it through a public tunnel.
+
+Start the dashboard; hooks are optional for additional lifecycle events:
 
 ```sh
-npm run connect:claude
+npm run build
 VILLAGE_MODE=native npm start
+# Optional: npm run connect:claude
 ```
 
 The installer preserves existing Claude settings and is idempotent. It observes `SubagentStart` and `SubagentStop` so helpers remain attached to their lead. Remove only Agent Village's hooks with `npm run disconnect:claude`.

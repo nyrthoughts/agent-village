@@ -1,0 +1,29 @@
+.observed-shell { background: #eeeeda; color: #243e35; display: flex; flex-direction: column; min-height: 100vh; padding: 20px; gap: 12px; }
+.observed-header { display:flex; align-items:center; justify-content:space-between; gap:20px; padding: 12px 18px; border:3px solid #38544a; box-shadow:4px 4px #bbc6a5; background:#faf6df; }
+.observed-header h1 { font-size:24px; margin:6px 0; }
+.observed-header p { margin:4px 0; font-size:13px; }
+.observed-layout { display:grid; grid-template-columns:320px minmax(0,1fr); gap:16px; flex:1; min-height:620px; }
+.observed-projects { max-height:74vh; overflow:auto; padding:4px; }
+.observed-projects label { display:block; font-size:13px; margin-bottom:12px; }
+.observed-projects input { display:block; padding:10px; width:100%; background:#fffdf2; color:#243e35; border:2px solid #708770; }
+.observed-projects button { display:flex; flex-direction:column; gap:7px; width:100%; text-align:left; padding:16px; margin-bottom:10px; background:#fffdf2; color:#243e35; border:2px solid #829379; border-radius:3px; cursor:pointer; }
+.observed-projects button:hover,.observed-projects button:focus-visible { background:#e3efd0; outline:2px solid #3f7860; }
+.observed-projects button strong { font-size:17px; }
+.observed-projects button span { font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
+.observed-projects time { font-size:11px; color:#526258; }
+.observed-map { min-height:620px; height:74vh; position:relative; }
+.observed-map-note { position:absolute; top:12px; left:14px; right:14px; z-index:3; background:#fff7dfed; padding:10px; border:2px solid #557052; font-size:12px; pointer-events:none; }
+.pixel-building[data-observed="true"].pixel-building--awaiting_review .pixel-building__status-mark::before { content:'·'; }
+.pixel-building[data-observed="true"].pixel-building--awaiting_review::after { display:none; }
+.pixel-building[data-observed="true"].pixel-building--in_progress .pixel-building__frame { display:block; opacity:.7; }
+.observed-footer { font-size:12px; line-height:1.5; }
+.observed-warning { background:#ffe3ae; padding:12px; color:#493313; }
+.observed-drawer { width:min(740px,95vw); }
+.observed-session { padding:20px 0; border-bottom:2px solid #d4dbc9; }
+.observed-session p { white-space:pre-wrap; overflow-wrap:anywhere; font:14px/1.6 system-ui,sans-serif; }
+.observed-session h3 { margin:8px 0; }
+.observed-session h4 { margin:20px 0 4px; }
+.observed-session ol { padding-left:20px; }
+.observed-session li { padding:8px 0; }
+.observed-session small { overflow-wrap:anywhere; }
+@media(max-width:800px) { .observed-shell{padding:10px;} .observed-header { align-items:flex-start; flex-direction:column; gap:8px; } .observed-layout { display:flex;flex-direction:column-reverse; } .observed-map { min-height:400px;height:50vh; } .observed-projects {max-height:none;} }

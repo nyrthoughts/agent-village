@@ -1,4 +1,5 @@
 import { attentionScore } from '../../shared/attention.js';
+import type { ProjectObservation } from '../../shared/observation.js';
 import type {
   Evidence,
   Feature,
@@ -57,6 +58,7 @@ export interface DerivedFeature {
 }
 
 export interface DerivedProject {
+  observation?: ProjectObservation;
   id: string;
   name: string;
   objective: string;
@@ -67,6 +69,7 @@ export interface DerivedProject {
 }
 
 export interface DerivedWorkspace {
+  observation?: { fetchedAt: string; errors: string[]; historyWindow: string };
   version: 1;
   name: string;
   progress: ProgressRollup;

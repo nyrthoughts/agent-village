@@ -72,7 +72,7 @@ open_browser() {
   fi
 }
 
-for required in node npm codex curl tar; do
+for required in node npm sqlite3 curl tar; do
   require_command "$required"
 done
 check_node_version
@@ -111,7 +111,7 @@ curl \
   --show-error \
   --retry 2 \
   --output "$ARCHIVE_PATH" \
-  'https://github.com/nyrthoughts/agent-village/archive/refs/heads/design/emerald-village-v4.tar.gz'
+  'https://github.com/nyrthoughts/agent-village/archive/refs/heads/main.tar.gz'
 tar -xzf "$ARCHIVE_PATH" -C "$SOURCE_DIR" --strip-components=1
 
 cd "$SOURCE_DIR"

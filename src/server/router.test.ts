@@ -28,11 +28,11 @@ async function start(villagePath = fixturePath) {
   return { server, origin: `http://127.0.0.1:${address.port}` };
 }
 
-async function rawStatus(origin: string, path: string): Promise<number> {
+async function rawStatus(origin: string, path: string, headers?: Record<string, string>): Promise<number> {
   const url = new URL(origin);
   return new Promise((resolveStatus, reject) => {
     const outgoing = request(
-      { hostname: url.hostname, port: url.port, path, method: 'GET' },
+      { hostname: url.hostname, port: url.port, path, method: 'GET', headers },
       (response) => {
         response.resume();
         response.on('end', () => resolveStatus(response.statusCode ?? 0));
@@ -44,6 +44,15 @@ async function rawStatus(origin: string, path: string): Promise<number> {
 }
 
 describe('local village server', () => {
+  it('rejects foreign origins and hosts before exposing private native data', async () => {
+    const server = createVillageServer({ villagePath: fixturePath, distDir: '/tmp', mode: 'native' });
+    await listenLocal(server, 0);
+    cleanups.push(() => new Promise<void>((done) => server.close(() => done())));
+    const origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    expect((await fetch(`${origin}/api/health`, { headers: { origin: 'https://evil.example' } })).status).toBe(403);
+    expect(await rawStatus(origin, '/api/health', { host: 'evil.example' })).toBe(403);
+    expect((await fetch(`${origin}/api/health`, { headers: { origin } })).status).toBe(200);
+  });
   it('serves health and an evidence-derived village snapshot', async () => {
     const { origin } = await start();
     await expect(fetch(`${origin}/api/health`).then((response) => response.json())).resolves.toEqual({ ok: true });

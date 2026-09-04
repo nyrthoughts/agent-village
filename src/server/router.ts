@@ -9,6 +9,8 @@ import { loadWorkspace } from './config/load.js';
 import { deriveWorkspace } from './truth/derive.js';
 import { verifyWorkspaceEvidence } from './truth/evidence/verify.js';
 import { hasTraversal, readStatic } from './static.js';
+import type { LocalSessions } from './activity/localSessions.js';
+import { observedVillage, mergeLiveSessions } from './activity/projectObserver.js';
 
 export interface RouterOptions {
   villagePath: string;
@@ -17,6 +19,7 @@ export interface RouterOptions {
   amcEndpoint?: string;
   demoActivityPath?: string;
   nativeActivity?: NativeActivityHub;
+  localSessions?: LocalSessions;
   now?: () => Date;
 }
 
@@ -58,7 +61,24 @@ async function readJsonBody(request: IncomingMessage): Promise<
 }
 
 export function createRouter(options: RouterOptions) {
+  const observed = async () => {
+    const local = await options.localSessions!.snapshot();
+    const hooks = options.nativeActivity ? await options.nativeActivity.snapshot([]) : undefined;
+    return { ...local, sessions: mergeLiveSessions(local.sessions, hooks?.workers ?? []) };
+  };
   return async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
+    if (options.mode === 'native') {
+      const host = request.headers.host ?? '';
+      if (!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)
+        || (request.headers.origin && request.headers.origin !== `http://${host}`)
+        || request.headers['sec-fetch-site'] === 'cross-site') {
+        json(response, 403, { error: 'local_access_only' }); return;
+      }
+      response.setHeader('cache-control', 'no-store');
+      response.setHeader('x-content-type-options', 'nosniff');
+      response.setHeader('referrer-policy', 'no-referrer');
+      response.setHeader('content-security-policy', "frame-ancestors 'none'");
+    }
     const rawPath = (request.url ?? '/').split('?')[0] ?? '/';
     if (hasTraversal(rawPath)) {
       json(response, 400, { error: 'bad_path' });
@@ -93,6 +113,10 @@ export function createRouter(options: RouterOptions) {
     }
 
     if (rawPath === '/api/village') {
+      if (options.mode === 'native' && options.localSessions) {
+        const snapshot = await observed();
+        json(response, 200, observedVillage(snapshot.sessions, snapshot.errors)); return;
+      }
       const loaded = loadWorkspace(options.villagePath);
       if (!loaded.ok) {
         json(response, 422, { error: 'invalid_config', errors: loaded.errors });
@@ -121,6 +145,10 @@ export function createRouter(options: RouterOptions) {
       const mappings = loaded.workspace.activity_mapping ?? [];
 
       if ((options.mode ?? 'demo') === 'native') {
+        if (options.localSessions) {
+          const local = await observed();
+          json(response, 200, { status: local.errors.length ? 'degraded' : 'live', fetchedAt, workers: local.sessions }); return;
+        }
         const snapshot = options.nativeActivity
           ? await options.nativeActivity.snapshot(mappings)
           : { status: 'degraded' as const, fetchedAt, workers: [] };

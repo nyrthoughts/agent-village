@@ -20,6 +20,15 @@ function zoneHeight(taskCount: number): number {
 }
 
 export function layoutVillage2d(village: DerivedWorkspace): VillageLayout2d {
+  if (village.observation) {
+    const height = Math.max(44, 12 + Math.ceil(village.projects.length / 3) * 14);
+    const buildings = village.projects.map((project, index) => ({ taskId: project.id, projectId: project.id, x: 6 + index % 3 * 19, y: 7 + Math.floor(index / 3) * 14, variant: index % 3 }));
+    return { width: 64, height, entrance: { x: 31, y: height - 4 }, buildings,
+      zones: village.projects.map((project, index) => ({ projectId: project.id, name: project.name, x: buildings[index]!.x, y: buildings[index]!.y, width: 16, height: 12, signX: buildings[index]!.x + 1, signY: buildings[index]!.y + 9 })),
+      paths: buildings.map((building) => ({ x: building.x + 3, y: building.y + 6, width: 17, height: 3, kind: 'horizontal' as const })),
+      landmarks: [{ kind: 'pond', x: 51, y: height - 9, width: 9, height: 5 }],
+    };
+  }
   const rowCount = Math.max(1, Math.ceil(village.projects.length / ZONE_COLUMNS));
   const rowHeights = Array.from({ length: rowCount }, (_, row) => Math.max(
     ...village.projects.slice(row * ZONE_COLUMNS, row * ZONE_COLUMNS + ZONE_COLUMNS)

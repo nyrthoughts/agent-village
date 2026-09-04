@@ -74,7 +74,7 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker }: Vi
   const worldStyle: CSSProperties = {
     width: layout.width * TILE_SIZE,
     height: layout.height * TILE_SIZE,
-    transform: `translate(calc(-50% - ${camera.x * TILE_SIZE}px), calc(-50% - ${camera.y * TILE_SIZE}px)) scale(1.2)`,
+    transform: `translate(calc(-50% - ${camera.x * TILE_SIZE}px), calc(-50% - ${camera.y * TILE_SIZE}px)) scale(${village.observation ? 0.65 : 1.2})`,
   };
 
   return (

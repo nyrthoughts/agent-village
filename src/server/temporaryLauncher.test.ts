@@ -53,6 +53,7 @@ printf '{"name":"agent-village"}\n' > "$target/package.json"
 printf 'version: 1\nname: My Agent Village\nprojects: []\n' > "$target/fixtures/village.observer.yaml"`);
   executable(join(bin, 'open'), `printf 'OPEN|%s\n' "$*" >> '${log}'`);
   if (options.codex !== false) executable(join(bin, 'codex'), 'exit 0');
+  executable(join(bin, 'sqlite3'), 'exit 0');
 
   executable(join(bin, 'npm'), `
 printf 'NPM|%s|PWD=%s|CACHE=%s|MODE=%s|FILE=%s\n' "$*" "$PWD" "\${npm_config_cache-}" "\${VILLAGE_MODE-}" "\${VILLAGE_FILE-}" >> '${log}'
@@ -99,13 +100,21 @@ async function waitForLog(path: string, text: string): Promise<void> {
 }
 
 describe('temporary Codex observer launcher', () => {
-  it('fails before creating a runtime when Codex is missing', async () => {
+  it('does not require a Codex executable for read-only index discovery', async () => {
     const test = harness({ codex: false });
 
     const result = await runLauncher(test.env).completed;
 
+    expect(result.code).toBe(0);
+    expect(readdirSync(test.runtimeParent)).toEqual([]);
+  });
+
+  it('fails before creating a runtime when sqlite3 is missing', async () => {
+    const test = harness();
+    rmSync(join(test.root, 'bin/sqlite3'));
+    const result = await runLauncher({ ...test.env, PATH: join(test.root, 'bin') }).completed;
     expect(result.code).not.toBe(0);
-    expect(result.stderr).toContain('Missing required command: codex');
+    expect(result.stderr).toContain('Missing required command: sqlite3');
     expect(readdirSync(test.runtimeParent)).toEqual([]);
   });
 

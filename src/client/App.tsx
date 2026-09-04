@@ -9,6 +9,7 @@ import { AttentionList } from './mobile/AttentionList.js';
 import { DegradedBanner } from './scene/DegradedBanner.js';
 import { GameHud } from './hud/GameHud.js';
 import { VillageMap2D } from './scene2d/VillageMap2D.js';
+import { ObservedProjects } from './ObservedProjects.js';
 
 type Selection =
   | { kind: 'task'; task: DerivedTask; project: DerivedProject; trigger: HTMLButtonElement }
@@ -26,6 +27,7 @@ export function App() {
   if (!village.data && village.loading) return <main className="app-shell app-shell--center" aria-label="Agent Village"><p>Preparing the architect table…</p></main>;
   if (!village.data) return <main className="app-shell app-shell--center" aria-label="Agent Village"><section className="config-error" role="alert"><span>Configuration unavailable</span><strong>{village.error?.message ?? 'The village could not be loaded.'}</strong></section></main>;
   const workspace = village.data;
+  if (workspace.observation) return <ObservedProjects village={workspace} activity={activity.data} error={village.error?.message} />;
 
   return (
     <main className="app-shell" aria-label="Agent Village">
