@@ -6,6 +6,40 @@ import { layoutVillage2d } from './scene2d/villageLayout2d.js';
 import { fitVillageScale } from './scene2d/VillageMap2D.js';
 beforeEach(() => localStorage.clear());
 afterEach(cleanup);
+it('switches the entire native interface to English, preserves source text and remembers the choice', () => {
+  const village = observedVillage([{ id: 'codex:en', tool: 'codex', state: 'working', projectKey: 'Product', project: 'Product', title: 'Projet original', history: [{ at: '2026-09-04T12:00:00Z', kind: 'report', text: '## Fait\n- Tests terminés.\n## Suite\n- Déployer.' }], lastActivityAt: '2026-09-04T12:00:00Z', sourceNote: 'Journal Codex local · état du dernier événement, pas une preuve de livraison' }], ['Codex : index local inaccessible']);
+  const view = render(<ObservedProjects village={village} />);
+  fireEvent.change(screen.getByRole('combobox', { name: 'Langue / Language' }), { target: { value: 'en' } });
+  expect(document.documentElement.lang).toBe('en');
+  expect(screen.getByRole('heading', { name: 'My projects, right now' })).toBeTruthy();
+  expect(screen.getByRole('alert').textContent).toContain('Codex: local index unavailable');
+  expect(screen.getByRole('button', { name: /^Product\. 1 sessions · 1 working/ })).toBeTruthy();
+  expect(screen.getByText(/Source conversations stay in their original language/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Open Product' }));
+  expect(screen.getByRole('heading', { name: 'Project brief' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Done — reported by agents' })).toBeTruthy();
+  expect(screen.getByText('Tests terminés.')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Timeline' }));
+  expect(screen.getByRole('heading', { name: 'What changed' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Conversations' }));
+  expect(screen.getByRole('heading', { name: 'Recent history' })).toBeTruthy();
+  expect(screen.getByText(/Local Codex log · latest event state, not proof of delivery/)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Close project' }));
+  view.unmount();
+  render(<ObservedProjects village={village} />);
+  expect(screen.getByRole('heading', { name: 'My projects, right now' })).toBeTruthy();
+  fireEvent.change(screen.getByRole('combobox', { name: 'Langue / Language' }), { target: { value: 'fr' } });
+  expect(screen.getByRole('heading', { name: 'Mes projets, maintenant' })).toBeTruthy();
+  expect(document.documentElement.lang).toBe('fr');
+});
+
+it('falls back to French when the saved language is unsupported', () => {
+  localStorage.setItem('agent-village:language', 'unsupported');
+  render(<ObservedProjects village={observedVillage([], [])} />);
+  expect(screen.getByRole('heading', { name: 'Mes projets, maintenant' })).toBeTruthy();
+  expect(screen.getByRole('combobox', { name: 'Langue / Language' })).toHaveProperty('value', 'fr');
+});
+
 it('fits the whole native map on desktop and mobile without fixed tiny scaling', () => {
   expect(fitVillageScale(1000, 740, 64, 44)).toBeGreaterThan(0.85);
   expect(fitVillageScale(360, 400, 64, 44) * 64 * 16).toBeLessThanOrEqual(320);

@@ -5,8 +5,10 @@ import { PixelBuilding } from './PixelBuilding.js';
 import { PixelTerrain, TILE_SIZE } from './PixelTerrain.js';
 import { PixelWorker } from './PixelWorker.js';
 import { layoutVillage2d } from './villageLayout2d.js';
+import { translate, type Language } from '../language.js';
 
 interface VillageMap2DProps {
+  language?: Language;
   village: DerivedWorkspace;
   activity?: ActivitySnapshot;
   onSelect: (task: DerivedTask, trigger: HTMLButtonElement, project: DerivedProject) => void;
@@ -23,7 +25,7 @@ export function fitVillageScale(width: number, height: number, tilesWide: number
   return Math.max(0.15, Math.min(1.2, (width - 40) / (tilesWide * TILE_SIZE), (height - 100) / (tilesHigh * TILE_SIZE)));
 }
 
-export function VillageMap2D({ village, activity, onSelect, onSelectWorker }: VillageMap2DProps) {
+export function VillageMap2D({ village, activity, onSelect, onSelectWorker, language = 'en' }: VillageMap2DProps) {
   const layout = useMemo(() => layoutVillage2d(village), [village]);
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0 });
   const viewport = useRef<HTMLElement>(null);
@@ -105,7 +107,7 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker }: Vi
       data-world-height={layout.height}
       data-camera-x={Number(camera.x.toFixed(2))}
       data-camera-y={Number(camera.y.toFixed(2))}
-      aria-label={`${village.name} pixel village`}
+      aria-label={translate(language, 'Village pixel {name}', { name: village.name })}
       tabIndex={0}
       onKeyDown={onKeyDown}
       onPointerDown={onPointerDown}
@@ -120,7 +122,7 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker }: Vi
           const record = records.get(placement.taskId);
           if (!record) return null;
           return <span key={placement.taskId} className="pixel-building-plot" style={{ left: placement.x * TILE_SIZE, top: placement.y * TILE_SIZE }}>
-            <PixelBuilding task={record.task} project={record.project} variant={placement.variant} onSelect={onSelect} />
+            <PixelBuilding language={language} task={record.task} project={record.project} variant={placement.variant} onSelect={onSelect} />
           </span>;
         })}
         {workers.map((worker, index) => {
@@ -132,8 +134,8 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker }: Vi
           return <span key={worker.id} className="pixel-worker-plot" style={{ left: x * TILE_SIZE, top: y * TILE_SIZE }}><PixelWorker worker={worker} helperCount={helpersByParent.get(worker.id)} onSelect={onSelectWorker} /></span>;
         })}
       </div>
-      <button type="button" className="map-reset" onClick={() => setCamera({ x: 0, y: 0 })}>Reset village view</button>
-      <span className="map-hint" aria-hidden="true">Drag or use arrow keys to explore</span>
+      <button type="button" className="map-reset" onClick={() => setCamera({ x: 0, y: 0 })}>{translate(language, 'Recentrer le village')}</button>
+      <span className="map-hint" aria-hidden="true">{translate(language, 'Glisser ou utiliser les flèches pour explorer')}</span>
     </section>
   );
 }

@@ -2,6 +2,9 @@
 .observed-header { display:flex; align-items:center; justify-content:space-between; gap:20px; padding: 12px 18px; border:3px solid #38544a; box-shadow:4px 4px #bbc6a5; background:#faf6df; }
 .observed-header h1 { font-size:24px; margin:6px 0; }
 .observed-header p { margin:4px 0; font-size:13px; }
+.observed-language { display:flex; align-items:center; gap:8px; margin-top:8px; font-size:12px; }
+.observed-language select { font:inherit; padding:6px 8px; border:2px solid #708770; border-radius:3px; background:#fffdf2; color:#243e35; }
+.observed-language select:focus-visible { outline:2px solid #3f7860; outline-offset:2px; }
 .observed-layout { display:grid; grid-template-columns:320px minmax(0,1fr); gap:16px; flex:1; min-height:620px; }
 .observed-projects { max-height:74vh; overflow:auto; padding:4px; }
 .observed-projects label { display:block; font-size:13px; margin-bottom:12px; }

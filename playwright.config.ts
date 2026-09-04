@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const port = process.env.PLAYWRIGHT_PORT ?? '4180';
+const baseURL = `http://127.0.0.1:${port}`;
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
@@ -8,7 +11,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: [['list']],
   use: {
-    baseURL: 'http://127.0.0.1:4180',
+    baseURL,
     trace: 'retain-on-failure',
     channel: process.env.PLAYWRIGHT_CHANNEL === 'chrome' ? 'chrome' : undefined,
   },
@@ -17,9 +20,9 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run build && npm start',
-    url: 'http://127.0.0.1:4180/api/health',
+    url: `${baseURL}/api/health`,
     reuseExistingServer: false,
     timeout: 60_000,
-    env: { VILLAGE_MODE: 'demo' },
+    env: { VILLAGE_MODE: 'demo', PORT: port },
   },
 });

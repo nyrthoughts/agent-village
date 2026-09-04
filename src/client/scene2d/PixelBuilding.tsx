@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import type { DerivedProject, DerivedTask } from '../../server/truth/derive.js';
 import { BUILDING_FAMILIES, buildingFamilyFor } from './buildingFamilies.js';
+import { translate, type Language } from '../language.js';
 
 const STATUS_LABELS = {
   planned: 'Planned',
@@ -19,15 +20,16 @@ const VARIANTS = {
 } as const;
 
 interface PixelBuildingProps {
+  language?: Language;
   task: DerivedTask;
   project: DerivedProject;
   variant: number;
   onSelect: (task: DerivedTask, trigger: HTMLButtonElement, project: DerivedProject) => void;
 }
 
-export function PixelBuilding({ task, project, variant, onSelect }: PixelBuildingProps) {
+export function PixelBuilding({ task, project, variant, onSelect, language = 'en' }: PixelBuildingProps) {
   const status = project.observation
-    ? `${project.observation.sessions.length} sessions · ${project.observation.sessions.filter((session) => session.state === 'working').length} en cours`
+    ? `${project.observation.sessions.length} sessions · ${project.observation.sessions.filter((session) => session.state === 'working').length} ${translate(language, 'en cours')}`
     : STATUS_LABELS[task.effectiveStatus];
   const family = project.observation?.buildingFamilyIndex !== undefined
     ? BUILDING_FAMILIES[project.observation.buildingFamilyIndex % BUILDING_FAMILIES.length]!
@@ -55,7 +57,7 @@ export function PixelBuilding({ task, project, variant, onSelect }: PixelBuildin
       data-roof-palette={variant}
       data-sprite-scale="compact"
       style={familyStyle}
-      aria-label={`${task.title}. ${status}. ${task.owner ? `Owner ${task.owner}.` : 'No owner.'}`}
+      aria-label={`${task.title}. ${status}.${project.observation ? '' : ` ${task.owner ? translate(language, 'Responsable {name}.', { name: task.owner }) : translate(language, 'Sans responsable.')}`}`}
       onClick={(event) => onSelect(task, event.currentTarget, project)}
     >
       <span className="pixel-building__shadow" aria-hidden="true" />

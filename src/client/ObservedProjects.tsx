@@ -3,10 +3,10 @@ import type { DerivedWorkspace } from '../server/truth/derive.js';
 import type { ActivitySnapshot } from '../shared/activity.js';
 import { VillageMap2D } from './scene2d/VillageMap2D.js';
 import { projectBrief, type SourcedUpdate } from '../shared/projectBrief.js';
+import { LANGUAGE_KEY, savedLanguage, translate, translateDiagnostic, type Language } from './language.js';
 import './observed-projects.css';
 
-const states = { working: 'En cours', waiting: 'En attente', idle: 'Sans activité récente', unknown: 'État non confirmé' };
-const date = (value: string) => new Date(value).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+const states = { working: 'En cours', waiting: 'En attente', idle: 'Sans activité récente', unknown: 'État non confirmé' } as const;
 function savedRead(): Record<string, string> {
   try {
     const value: unknown = JSON.parse(localStorage.getItem('agent-village:read') ?? '{}');
@@ -15,6 +15,13 @@ function savedRead(): Record<string, string> {
 }
 
 export function ObservedProjects({ village, activity, error }: { village: DerivedWorkspace; activity?: ActivitySnapshot; error?: string }) {
+  const [language, setLanguage] = useState(savedLanguage);
+  const t = (key: Parameters<typeof translate>[1], values?: Record<string, string | number>) => translate(language, key, values);
+  const date = (value: string) => new Date(value).toLocaleString(language === 'en' ? 'en-GB' : 'fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+  useEffect(() => {
+    document.documentElement.lang = language;
+    try { localStorage.setItem(LANGUAGE_KEY, language); } catch { /* Keep the choice in memory if storage is disabled. */ }
+  }, [language]);
   const [selectedId, setSelectedId] = useState<string>();
   const [filter, setFilter] = useState('');
   const [showAll, setShowAll] = useState(false);
@@ -57,55 +64,57 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
     return () => { document.removeEventListener('keydown', keyboard); trigger.current?.focus(); };
   }, [selectedId]);
 
-  return <main className="app-shell observed-shell" aria-label="Agent Village privé">
+  return <main className="app-shell observed-shell" aria-label={t('Agent Village privé')}>
     <header className="observed-header">
-      <div><small>AGENT VILLAGE / LOCAL PRIVÉ</small><h1>Mes projets, maintenant</h1><p>{village.projects.length} projets · {sessions.length} sessions</p></div>
-      <div><strong>{sessions.filter((session) => session.state === 'working').length} agents en cours</strong><p>Lu à {date(village.observation!.fetchedAt)} · actualisation 5 s</p></div>
+      <div><small>{t('AGENT VILLAGE / LOCAL PRIVÉ')}</small><h1>{t('Mes projets, maintenant')}</h1><p>{village.projects.length} {t('projets')} · {sessions.length} sessions</p></div>
+      <div><strong>{sessions.filter((session) => session.state === 'working').length} {t('agents en cours')}</strong><p>{t('Lu à')} {date(village.observation!.fetchedAt)} · {t('actualisation 5 s')}</p>
+        <label className="observed-language">Langue / Language <select value={language} onChange={(event) => setLanguage(event.target.value as Language)}><option value="fr">Français</option><option value="en">English</option></select></label>
+      </div>
     </header>
-    {(error || village.observation?.errors.length !== 0) && <p role="alert" className="observed-warning">{error ?? village.observation?.errors.join(' · ')}. Les données déjà lues restent affichées.</p>}
+    {(error || village.observation?.errors.length !== 0) && <p role="alert" className="observed-warning">{error ? translateDiagnostic(language, error) : village.observation?.errors.map((message) => translateDiagnostic(language, message)).join(' · ')}. {t('Les données déjà lues restent affichées.')}</p>}
     <div className="observed-layout">
-      <nav className="observed-projects" aria-label="Projets connectés">
-        {focusNames.length > 0 && <button type="button" className="observed-scope" onClick={() => setShowAll(!showAll)}>{showAll ? `Revenir aux ${focused.length} projets suivis` : `Voir aussi les ${village.projects.length - focused.length} autres projets`}</button>}
-        <label>Rechercher un projet<input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Projet…" /></label>
+      <nav className="observed-projects" aria-label={t('Projets connectés')}>
+        {focusNames.length > 0 && <button type="button" className="observed-scope" onClick={() => setShowAll(!showAll)}>{showAll ? t('Revenir aux {count} projets suivis', { count: focused.length }) : t('Voir aussi les {count} autres projets', { count: village.projects.length - focused.length })}</button>}
+        <label>{t('Rechercher un projet')}<input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder={t('Projet…')} /></label>
         {visible.map((project) => {
           const entries = project.observation?.sessions ?? [];
           const working = entries.filter((entry) => entry.state === 'working').length;
           const summary = projectBrief(entries, read[project.id]);
-          return <button type="button" key={project.id} aria-label={`Ouvrir ${project.name}`} onClick={(event) => select(project.id, event.currentTarget)}>
-            <strong>{project.name}</strong><small>{entries.length} sessions · {working ? `${working} en cours` : 'Derniers échanges'}</small>
-            {summary.unread > 0 && <b className="observed-new">{summary.unread} nouveaux échanges</b>}
-            <span>{summary.latest?.text.slice(0, 220) ?? entries[0]?.objective?.slice(0, 160) ?? 'Ouvrir les sessions'}</span>
+          return <button type="button" key={project.id} aria-label={t('Ouvrir {name}', { name: project.name })} onClick={(event) => select(project.id, event.currentTarget)}>
+            <strong>{project.name}</strong><small>{entries.length} sessions · {working ? `${working} ${t('en cours')}` : t('Derniers échanges')}</small>
+            {summary.unread > 0 && <b className="observed-new">{summary.unread} {t('nouveaux échanges')}</b>}
+            <span>{summary.latest?.text.slice(0, 220) ?? entries[0]?.objective?.slice(0, 160) ?? t('Ouvrir les sessions')}</span>
             <time>{date(summary.latest?.at ?? project.observation!.lastActivityAt)}</time>
           </button>;
         })}
       </nav>
-      <section className="game-stage observed-map" aria-label="Bâtiments de mes projets">
-        <VillageMap2D village={{ ...village, projects: mapProjects }} activity={mapActivity} onSelect={(_task, element, project) => select(project.id, element)} onSelectWorker={(worker, element) => { if (worker.attachedTaskId) select(worker.attachedTaskId, element); }} />
-        <p className="observed-map-note">{mapProjects.length} projets récents sur la carte · recherche pour les autres. Chantier = activité, pas livraison.</p>
+      <section className="game-stage observed-map" aria-label={t('Bâtiments de mes projets')}>
+        <VillageMap2D language={language} village={{ ...village, projects: mapProjects }} activity={mapActivity} onSelect={(_task, element, project) => select(project.id, element)} onSelectWorker={(worker, element) => { if (worker.attachedTaskId) select(worker.attachedTaskId, element); }} />
+        <p className="observed-map-note">{t('{count} projets récents sur la carte · recherche pour les autres. Chantier = activité, pas livraison.', { count: mapProjects.length })}</p>
       </section>
     </div>
-    <footer className="observed-footer">{village.observation?.historyWindow}. Les résumés sont les déclarations des agents, non des résultats vérifiés. Rien n’est envoyé à GitHub.</footer>
+    <footer className="observed-footer">{translateDiagnostic(language, village.observation?.historyWindow ?? '')}. {t('Les résumés sont les déclarations des agents, non des résultats vérifiés. Rien n’est envoyé à GitHub.')} {t('Les conversations sources restent dans leur langue d’origine.')}</footer>
     {selected && <div className="drawer-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedId(undefined); }}>
       <aside ref={dialog} className="detail-drawer observed-drawer" role="dialog" aria-modal="true" aria-labelledby="observed-project-title">
-        <header className="detail-drawer__header"><div><span>Projet connecté</span><h2 id="observed-project-title">{selected.name}</h2></div><button ref={close} className="drawer-close" type="button" aria-label="Fermer le projet" onClick={() => setSelectedId(undefined)}>×</button></header>
+        <header className="detail-drawer__header"><div><span>{t('Projet connecté')}</span><h2 id="observed-project-title">{selected.name}</h2></div><button ref={close} className="drawer-close" type="button" aria-label={t('Fermer le projet')} onClick={() => setSelectedId(undefined)}>×</button></header>
         <div className="detail-drawer__body">
-          <nav className="observed-tabs" aria-label="Vue du projet"><button type="button" aria-pressed={tab === 'brief'} onClick={() => setTab('brief')}>Bilan</button><button type="button" aria-pressed={tab === 'timeline'} onClick={() => setTab('timeline')}>Évolution</button><button type="button" aria-pressed={tab === 'sessions'} onClick={() => { setTab('sessions'); setSessionId(undefined); }}>Conversations</button><button type="button" onClick={markRead}>Marquer comme lu</button></nav>
-          <p>{brief?.working} en cours · {brief?.waiting} en attente · {brief?.unread ?? 0} nouveaux échanges depuis le dernier point de lecture.</p>
+          <nav className="observed-tabs" aria-label={t('Vue du projet')}><button type="button" aria-pressed={tab === 'brief'} onClick={() => setTab('brief')}>{t('Bilan')}</button><button type="button" aria-pressed={tab === 'timeline'} onClick={() => setTab('timeline')}>{t('Évolution')}</button><button type="button" aria-pressed={tab === 'sessions'} onClick={() => { setTab('sessions'); setSessionId(undefined); }}>{t('Conversations')}</button><button type="button" onClick={markRead}>{t('Marquer comme lu')}</button></nav>
+          <p>{brief?.working} {t('en cours')} · {brief?.waiting} {t('en attente')} · {brief?.unread ?? 0} {t('nouveaux échanges depuis le dernier point de lecture.')}</p>
           {tab === 'brief' && brief && <section className="observed-brief">
-            <h3>Bilan du projet</h3>
-            <p className="observed-explanation">Extraits des derniers comptes rendus par conversation, datés et consultables. Pas de pourcentage déduit de l’activité.</p>
-            {brief.current.length === 0 && <p>Aucun compte rendu textuel dans la fenêtre lue. Les sessions et leur état restent accessibles.</p>}
+            <h3>{t('Bilan du projet')}</h3>
+            <p className="observed-explanation">{t('Extraits des derniers comptes rendus par conversation, datés et consultables. Pas de pourcentage déduit de l’activité.')}</p>
+            {brief.current.length === 0 && <p>{t('Aucun compte rendu textuel dans la fenêtre lue. Les sessions et leur état restent accessibles.')}</p>}
             {brief.current.map((entry) => <article key={entry.sessionId}><h4>{entry.sessionTitle}</h4>{source(entry)}<p>{entry.text.slice(0, 700)}{entry.text.length > 700 ? '…' : ''}</p></article>)}
-            {(['done', 'next', 'blocked'] as const).map((section) => brief.reported[section].length > 0 && <section key={section}><h3>{{ done: 'Fait — déclaré par les agents', next: 'Suite explicitement annoncée', blocked: 'Blocages explicitement signalés' }[section]}</h3><ul>{brief.reported[section].map((entry, index) => <li key={index}><p>{entry.text}</p>{source(entry)}</li>)}</ul></section>)}
+            {(['done', 'next', 'blocked'] as const).map((section) => brief.reported[section].length > 0 && <section key={section}><h3>{t(({ done: 'Fait — déclaré par les agents', next: 'Suite explicitement annoncée', blocked: 'Blocages explicitement signalés' } as const)[section])}</h3><ul>{brief.reported[section].map((entry, index) => <li key={index}><p>{entry.text}</p>{source(entry)}</li>)}</ul></section>)}
           </section>}
-          {tab === 'timeline' && <section className="observed-evolution"><h3>Ce qui a changé</h3><p>Chronologie réunie de toutes les conversations du projet. Les changements d’état seuls ne sont pas comptés comme du travail livré.</p><ol>{brief?.timeline.map((entry, index) => <li key={`${entry.sessionId}:${entry.at}:${index}`}><strong>{entry.kind === 'report' ? 'Compte rendu' : 'Demande'}</strong>{source(entry)}<p>{entry.text}</p></li>)}</ol></section>}
+          {tab === 'timeline' && <section className="observed-evolution"><h3>{t('Ce qui a changé')}</h3><p>{t('Chronologie réunie de toutes les conversations du projet. Les changements d’état seuls ne sont pas comptés comme du travail livré.')}</p><ol>{brief?.timeline.map((entry, index) => <li key={`${entry.sessionId}:${entry.at}:${index}`}><strong>{t(entry.kind === 'report' ? 'Compte rendu' : 'Demande')}</strong>{source(entry)}<p>{entry.text}</p></li>)}</ol></section>}
           {tab === 'sessions' && selected.observation?.sessions.filter((session) => !sessionId || session.id === sessionId).map((session) => <article className="observed-session" key={session.id}>
-            <header><small>{session.tool.toUpperCase()} · {states[session.state]}</small><h3>{session.title}</h3><time>{date(session.lastActivityAt)}</time></header>
-            {session.terminal && <p>Terminal tmux : <code>{session.terminal}</code></p>}
-            {session.objective && <section><h4>Dernière demande</h4><p>{session.objective}</p></section>}
-            {session.summary && <section><h4>Dernier compte rendu de l’agent</h4><p>{session.summary}</p></section>}
-            <section><h4>Historique récent</h4><ol>{session.history.slice().reverse().map((update, index) => <li key={`${update.at}:${index}`}><small>{date(update.at)} · {update.kind === 'report' ? 'Agent' : 'Demande'}</small><p>{update.text}</p></li>)}</ol></section>
-            <small>{session.sourceNote} · {session.id}</small>
+            <header><small>{session.tool.toUpperCase()} · {t(states[session.state])}</small><h3>{session.title}</h3><time>{date(session.lastActivityAt)}</time></header>
+            {session.terminal && <p>{t('Terminal tmux :')} <code>{session.terminal}</code></p>}
+            {session.objective && <section><h4>{t('Dernière demande')}</h4><p>{session.objective}</p></section>}
+            {session.summary && <section><h4>{t('Dernier compte rendu de l’agent')}</h4><p>{session.summary}</p></section>}
+            <section><h4>{t('Historique récent')}</h4><ol>{session.history.slice().reverse().map((update, index) => <li key={`${update.at}:${index}`}><small>{date(update.at)} · {update.kind === 'report' ? 'Agent' : t('Demande')}</small><p>{update.text}</p></li>)}</ol></section>
+            <small>{translateDiagnostic(language, session.sourceNote ?? '')} · {session.id}</small>
           </article>)}
         </div>
       </aside>
