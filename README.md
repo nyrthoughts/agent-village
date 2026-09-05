@@ -4,7 +4,7 @@ Agent Village turns parallel agent work into a small village you can read in sec
 
 ![Six original buildings in the fictional village](docs/traveler-village.png)
 
-The private native village groups actual Codex and Claude Code conversations into project buildings. It shows recent requests, timestamped reports and source history after the owner's passkey check. The public [GitHub Pages demo](https://nyrthoughts.github.io/agent-village/) uses fictional data. Activity and agent reports never prove delivery.
+The private native village groups actual Codex and Claude Code conversations into project districts. Each district has a common house and a construction parcel for every explicitly defined milestone. It shows recent requests, timestamped reports and source history after the owner's passkey check. The public [GitHub Pages demo](https://nyrthoughts.github.io/agent-village/) uses fictional data. Activity and agent reports never prove delivery.
 
 ## Private native quick start
 
@@ -26,6 +26,7 @@ The server binds to `127.0.0.1` but uses `localhost` as the canonical browser or
 ## Read or visit
 
 - Read sourced project updates, a combined timeline and original conversations. Briefs extract explicit sections; they are not model-generated summaries or independently verified results.
+- Choose a **District**, or open a project and choose **Explore this district**. The common house summarizes the plan; each parcel opens its exact milestone, validation note and editor. **All districts** returns to the overview. Every filtered project remains available in the selector, even beyond the nine overview entrances.
 - Click the ground to walk immediately. Click a house to open its brief immediately. No hidden visit mode or travel prerequisite. Three avatar appearances are available.
 - Arrows walk, Shift+arrows pan the camera, and Escape stops walking. A new destination replaces the old one. Keyboard and touch open buildings directly, including tall roofs.
 - Use bounded camera panning, mobile controls and reduced motion. Source refreshes do not reset an unchanged route.
@@ -38,9 +39,13 @@ The village uses six original architectural silhouettes: Japanese workshop, Moro
 
 Open a private project and choose **Define the goal**. Enter a stable objective and up to twelve milestones. Validate a milestone with a note saying what you checked. The house progresses through foundations, frame, walls and roof; reopening a milestone rolls the building back. A project without a plan displays a survey plot, never a completed house.
 
+Inside a district, the common house retains those aggregate phases. Individual milestone parcels are either unvalidated lots or validated buildings: the ledger does not contain intermediate milestone progress, so none is invented. Reopening a milestone changes only its parcel and the common-house rollup. Buildings keep their positions and architectural family across updates. A completed building is not automatically a deployed result.
+
 The panel distinguishes owner validation from a recorded local check. Neither tokens, elapsed time nor chat activity can complete a milestone. Plans live in an owner-only `project-plans.json` beside the private authentication state, outside Git and static output. Revisions prevent concurrent edits from overwriting each other. Planned projects stay visible when their recent conversations age out. Hook-only provisional identities cannot receive a permanent plan until the project is identified.
 
 The UI shows root conversations, detected helpers, recent signals and confirmed process observations separately. A detected parent-child edge is not an active worker. At most five people are drawn per building; badges and project analytics retain the full observed counts. Tokens, worked time and remaining duration are not measured by these native connections.
+
+Native workers gather near the common house because the sources identify their project, not a specific milestone. Only a confirmed working signal no older than two minutes animates work; future, missing or expired evidence does not. Waiting and idle people rest. A separate UI clock expires old work indicators even when source refreshes fail. Animals remain decorative, not agent activity signals.
 
 ## Connect existing work
 

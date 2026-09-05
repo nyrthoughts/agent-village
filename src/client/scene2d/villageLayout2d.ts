@@ -63,7 +63,53 @@ function observedVillage(village: DerivedWorkspace): VillageLayout2d {
   };
 }
 
-export function layoutVillage2d(village: DerivedWorkspace): VillageLayout2d {
+function projectDistrict(village: DerivedWorkspace): VillageLayout2d {
+  const project = village.projects[0]!;
+  const tasks = projectTasks(project).map(({ task }) => task).sort((a, b) => {
+    if (a.id === project.id) return -1;
+    if (b.id === project.id) return 1;
+    return a.id.localeCompare(b.id);
+  });
+  const rows = Math.ceil(Math.max(0, tasks.length - 1) / 3);
+  const height = rows ? 44 + (rows - 1) * 14 : 38;
+  const buildings: PixelBuildingPlacement[] = tasks.map((task, index) => {
+    const x = index === 0 ? 20 : [6, 20, 34][(index - 1) % 3]!;
+    const y = index === 0 ? 7 : 25 + Math.floor((index - 1) / 3) * 14;
+    return { taskId: task.id, projectId: project.id, x, y, variant: index % 3, door: { x: x + 3, y: y + 6 } };
+  });
+  const paths: PixelPath[] = [
+    { x: 14, y: 17, width: 19, height: 7, kind: 'square' },
+    { x: 22, y: 13, width: 3, height: 8, kind: 'spur' },
+    { x: 16, y: 20, width: 3, height: height - 20, kind: 'vertical' },
+    { x: 30, y: 22, width: 3, height: Math.max(3, height - 29), kind: 'vertical' },
+  ];
+  for (let row = 0; row < rows; row++) {
+    paths.push({ x: 8, y: 34 + row * 14, width: 31, height: 3, kind: 'horizontal' });
+  }
+  for (const building of buildings.slice(1)) {
+    paths.push({ x: building.door!.x - 1, y: building.door!.y, width: 3, height: 6, kind: 'spur' });
+  }
+  const landmarks: PixelLandmark[] = [
+    { kind: 'pond', x: 35, y: 7, width: 8, height: 6 },
+    { kind: 'fountain', x: 28, y: 18, width: 3, height: 3 },
+  ];
+  const obstacles: PixelObstacle[] = [
+    { kind: 'forest', x: 0, y: 0, width: 48, height: 4 },
+    { kind: 'forest', x: 0, y: 4, width: 4, height: height - 4 },
+    { kind: 'forest', x: 44, y: 4, width: 4, height: height - 4 },
+    { kind: 'forest', x: 4, y: height - 3, width: 10, height: 3 },
+    { kind: 'forest', x: 21, y: height - 3, width: 23, height: 3 },
+    ...buildings.map(({ x, y }): PixelObstacle => ({ kind: 'building', x, y, width: 7, height: 6 })),
+    ...landmarks.map(({ x, y, width, height, kind }): PixelObstacle => ({ x, y, width, height, kind: kind === 'pond' ? 'water' : 'cliff' })),
+  ];
+  return {
+    width: 48, height, buildings, paths, landmarks, obstacles, entrance: { x: 17, y: height - 4 },
+    zones: [{ projectId: project.id, name: project.name, x: 5, y: 5, width: 38, height: height - 10, signX: 23, signY: 15 }],
+  };
+}
+
+export function layoutVillage2d(village: DerivedWorkspace, district = false): VillageLayout2d {
+  if (district && village.projects.length === 1) return projectDistrict(village);
   if (village.observation) return observedVillage(village);
   const rowCount = Math.max(1, Math.ceil(village.projects.length / ZONE_COLUMNS));
   const rowHeights = Array.from({ length: rowCount }, (_, row) => Math.max(

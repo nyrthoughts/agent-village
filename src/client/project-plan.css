@@ -32,3 +32,7 @@
 .project-plan [role=alert] { padding:12px; background:#f5e2bb; color:#77512d; font-size:13px; }
 .observed-project-plan { color:#3f684b!important; font-weight:600; }
 @media(max-width:600px) { .project-plan { padding:16px; } .project-plan button { min-height:44px; } }
+.project-plan__selected { margin:16px 0; padding:16px; border:2px solid #64814e; background:#e7edcf; }
+.project-plan__selected > small { font-size:13px; }
+.project-plan__selected h4 { margin:8px 0; font-size:18px; }
+.project-plan__milestones li[data-selected] { outline:2px solid #64814e; outline-offset:4px; }

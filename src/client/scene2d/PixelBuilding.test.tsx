@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DerivedProject, DerivedTask } from '../../server/truth/derive.js';
 import { PixelBuilding } from './PixelBuilding.js';
-import { BUILDING_FAMILIES } from './buildingFamilies.js';
+import { BUILDING_FAMILIES, buildingFamilyFor } from './buildingFamilies.js';
 import { CONSTRUCTION_STAGES } from '../../shared/statuses.js';
 
 function task(overrides: Partial<DerivedTask> = {}): DerivedTask {
@@ -16,7 +16,7 @@ const nativeProject: DerivedProject = {
   plan: { objective: 'Map it', revision: 1, updatedAt: '2026-09-04T12:00:00Z', milestones: [{ id: 'map', title: 'Map', validated: false, note: '' }] },
 };
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe('PixelBuilding', () => {
   it('maps task truth to an original pixel construction variant', () => {
@@ -79,7 +79,7 @@ describe('PixelBuilding', () => {
 
   it('draws six different architectural outlines, not six color replacements', () => {
     const outlines = BUILDING_FAMILIES.map((family) => {
-      const { container, unmount } = render(<PixelBuilding task={task({ progress: { stage: 'complete', stageIndex: 5, verified: 1, total: 1, remaining: 0 } })} project={{ ...nativeProject, observation: { ...nativeProject.observation!, buildingFamilyIndex: family.index } }} variant={family.index} onSelect={() => undefined} />);
+      const { container, unmount } = render(<PixelBuilding task={task({ id: nativeProject.id, progress: { stage: 'complete', stageIndex: 5, verified: 1, total: 1, remaining: 0 } })} project={{ ...nativeProject, observation: { ...nativeProject.observation!, buildingFamilyIndex: family.index } }} variant={family.index} onSelect={() => undefined} />);
       expect(container.querySelector('button')?.getAttribute('data-family')).toBe(family.id);
       const outline = container.querySelector('[data-architecture-outline]')?.getAttribute('d');
       expect(outline).toBeTruthy();
@@ -87,6 +87,35 @@ describe('PixelBuilding', () => {
       return outline;
     });
     expect(new Set(outlines).size).toBe(6);
+  });
+
+  it('keeps the common house family but assigns milestone shapes from stable IDs', () => {
+    const { rerender, container } = render(<PixelBuilding task={task({ id: 'atlas' })} project={nativeProject} variant={0} onSelect={() => undefined} />);
+    expect(container.querySelector('button')?.getAttribute('data-family')).toBe(BUILDING_FAMILIES[0]!.id);
+    const families = Array.from({ length: 12 }, (_, index) => {
+      const id = `atlas:milestone-${index}`;
+      rerender(<PixelBuilding task={task({ id })} project={nativeProject} variant={0} onSelect={() => undefined} />);
+      expect(container.querySelector('button')?.getAttribute('data-family')).toBe(buildingFamilyFor(id).id);
+      rerender(<PixelBuilding task={task({ id, progress: { stage: 'complete', stageIndex: 5, verified: 1, total: 1, remaining: 0 } })} project={nativeProject} variant={0} onSelect={() => undefined} />);
+      expect(container.querySelector('button')?.getAttribute('data-family')).toBe(buildingFamilyFor(id).id);
+      return container.querySelector('button')?.getAttribute('data-family');
+    });
+    expect(new Set(families).size).toBeGreaterThan(1);
+  });
+
+  it('shows confirmed fresh work on the common house only, never an unassigned milestone', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-05T12:00:00Z'));
+    const context = { ...nativeProject, observation: { ...nativeProject.observation!, sessions: [{ id: 'codex:parent', tool: 'codex' as const, state: 'working' as const, projectKey: 'atlas', lastActivityAt: '2026-09-05T12:00:00Z', history: [], activityEvidence: { level: 'confirmed' as const, source: 'claude-process' as const, observedAt: '2026-09-05T12:00:00Z' } }] } };
+    const { rerender, container } = render(<PixelBuilding task={task({ id: 'atlas' })} project={context} variant={0} onSelect={() => undefined} />);
+    expect(container.querySelector('[data-working="true"]')).toBeTruthy();
+    rerender(<PixelBuilding task={task({ id: 'atlas:map' })} project={context} variant={0} onSelect={() => undefined} />);
+    expect(container.querySelector('[data-working="true"]')).toBeNull();
+    context.observation.sessions[0]!.activityEvidence.observedAt = '2026-09-05T11:57:59Z';
+    rerender(<PixelBuilding task={task({ id: 'atlas' })} project={context} variant={0} onSelect={() => undefined} />);
+    expect(container.querySelector('[data-working="true"]')).toBeNull();
+    const missingEvidence = { ...context, observation: { ...context.observation, sessions: context.observation.sessions.map((session) => ({ ...session, activityEvidence: undefined })) } };
+    rerender(<PixelBuilding task={task({ id: 'atlas' })} project={missingEvidence} variant={0} onSelect={() => undefined} />);
+    expect(container.querySelector('[data-working="true"]')).toBeNull();
   });
 
   it('opens the existing task context with the semantic button as trigger', () => {

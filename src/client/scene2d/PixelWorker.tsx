@@ -1,4 +1,5 @@
 import type { Worker, WorkerTool } from '../../shared/activity.js';
+import { presentWorkerState } from '../../shared/workerPresentation.js';
 import { translate, type Language } from '../language.js';
 import './worker-activity.css';
 
@@ -13,21 +14,23 @@ const TOOL_MARKS: Record<WorkerTool, string> = { codex: 'C', claude: 'A', opencl
 
 interface PixelWorkerProps {
   worker: Worker;
+  native?: boolean;
+  now?: number;
   helperCount?: number;
   confirmedHelperCount?: number;
   language?: Language;
   onSelect?: (worker: Worker, trigger: HTMLButtonElement) => void;
 }
 
-export function PixelWorker({ worker, helperCount = 0, confirmedHelperCount = 0, language = 'en', onSelect }: PixelWorkerProps) {
+export function PixelWorker({ worker, native = false, now = Date.now(), helperCount = 0, confirmedHelperCount = 0, language = 'en', onSelect }: PixelWorkerProps) {
   const title = worker.title ?? translate(language, 'Conversation sans titre');
   const role = worker.role ?? 'unknown';
   const roleLabel = translate(language, role === 'lead' ? 'Agent principal {tool}' : role === 'helper' ? 'Sous-agent {tool}' : 'Agent {tool}, rôle inconnu', { tool: TOOL_LABELS[worker.tool] });
   const evidence = worker.activityEvidence?.level;
-  const state = evidence && evidence !== 'confirmed' ? 'unknown' : worker.state;
-  const stateLabel = evidence && evidence !== 'confirmed'
-    ? translate(language, evidence === 'recent' ? 'Activité récente' : 'Activité détectée')
-    : translate(language, ({ working: 'en cours', waiting: 'en attente', idle: 'Sans activité récente', unknown: 'État non confirmé' } as const)[state]);
+  const state = presentWorkerState(worker, native, now);
+  const stateLabel = translate(language, ({ working: 'en cours', waiting: 'en attente', idle: 'Sans activité récente', unknown: 'État non confirmé' } as const)[state]);
+  const evidenceLabel = state === 'unknown' && evidence && evidence !== 'confirmed'
+    ? ` · ${translate(language, evidence === 'recent' ? 'Activité récente' : 'Activité détectée')}` : '';
   const helperLabel = helperCount > 0
     ? `, ${translate(language, '{count} sous-agents observés, {confirmed} en cours confirmés', { count: helperCount, confirmed: confirmedHelperCount })}`
     : '';
@@ -38,7 +41,7 @@ export function PixelWorker({ worker, helperCount = 0, confirmedHelperCount = 0,
       data-worker-id={worker.id}
       data-activity-evidence={evidence}
       data-sprite-origin="original"
-      aria-label={`${roleLabel}, ${stateLabel}, ${title}${helperLabel}`}
+      aria-label={`${roleLabel}, ${stateLabel}${evidenceLabel}, ${title}${helperLabel}`}
       onClick={(event) => onSelect?.(worker, event.currentTarget)}
     >
       <i className="pixel-worker__shadow" aria-hidden="true" />

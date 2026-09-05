@@ -1,3 +1,12 @@
 .pixel-worker:not(.pixel-worker--working),
 .pixel-worker[data-activity-evidence]:not([data-activity-evidence=confirmed]){animation:none}
+.pixel-worker.pixel-worker--waiting .pixel-worker__head{top:5px}
+.pixel-worker.pixel-worker--waiting .pixel-worker__body{top:19px}
+.pixel-worker.pixel-worker--waiting .pixel-worker__badge{top:21px}
+.pixel-worker.pixel-worker--waiting .pixel-worker__legs{top:32px;height:4px}
+.pixel-worker.pixel-worker--idle .pixel-worker__head{top:9px}
+.pixel-worker.pixel-worker--idle .pixel-worker__body{top:23px;height:10px}
+.pixel-worker.pixel-worker--idle .pixel-worker__badge{top:25px}
+.pixel-worker.pixel-worker--idle .pixel-worker__legs{left:12px;top:32px;width:8px;height:4px;box-shadow:14px 0 #3c4e45}
+.pixel-worker.pixel-worker--idle .pixel-worker__shadow{width:26px}
 @media(prefers-reduced-motion:reduce){.pixel-worker.pixel-worker{animation:none}}

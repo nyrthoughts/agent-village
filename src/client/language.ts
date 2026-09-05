@@ -3,6 +3,19 @@ export const LANGUAGE_KEY = 'agent-village:language';
 
 // UI copy only. Never translate or send conversation content to a remote service.
 const english = {
+  'Explorer les quartiers': 'Explore districts',
+  'Quartier': 'District',
+  'Vue du village': 'Village overview',
+  'Tous les quartiers': 'All districts',
+  'Explorer ce quartier': 'Explore this district',
+  '{count} entrées de quartiers. Choisis un quartier pour voir ses chantiers.': '{count} district entrances. Choose a district to see its construction sites.',
+  'Une parcelle par jalon. La maison commune résume le plan ; les agents y sont regroupés, sans jalon attribué.': 'One parcel per milestone. The common house summarizes the plan; agents gather there without an assigned milestone.',
+  'Aucun jalon défini : ouvre la maison commune pour préparer le plan.': 'No milestones defined: open the common house to prepare the plan.',
+  'Chantier sélectionné': 'Selected construction site',
+  'Jalon validé': 'Validated milestone',
+  'Jalon non validé': 'Unvalidated milestone',
+  'Modifier ce jalon': 'Edit this milestone',
+  'Cette parcelle reflète une validation explicite, pas un déploiement ni une estimation du travail restant.': 'This parcel reflects explicit validation, not deployment or an estimate of remaining work.',
   'Plan conservé · aucune conversation récente': 'Saved plan · no recent conversation',
   'Signal seul : le projet doit être identifié dans Codex ou Claude avant de définir son objectif.': 'Hook-only signal: the project must be identified in Codex or Claude before defining its goal.',
   '{count} sous-agents détectés': '{count} detected helpers',

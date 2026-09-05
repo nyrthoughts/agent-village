@@ -49,6 +49,7 @@ export function PixelTerrain({ layout }: PixelTerrainProps) {
   const trees = layout.obstacles ? forestGroves(layout.obstacles) : forestFrame(layout.width, layout.height);
   const decorationFits = ([x, rawY]: readonly [number, number]) => {
     const y = Math.min(rawY, layout.height - 4);
+    if (x < 0 || y < 0 || x + 2 > layout.width || y + 2 > layout.height) return false;
     return ![...(layout.obstacles ?? []), ...layout.paths].some((area) => x + 2 > area.x && x < area.x + area.width && y + 2 > area.y && y < area.y + area.height);
   };
   return (

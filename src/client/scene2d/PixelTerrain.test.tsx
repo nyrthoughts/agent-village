@@ -19,6 +19,21 @@ const layout: VillageLayout2d = {
 };
 
 describe('PixelTerrain', () => {
+  it.each([48, 20])('keeps decorative objects inside a narrow %i-tile map', (width) => {
+    const compact = { ...layout, width, zones: [], paths: [], landmarks: [] };
+    const { container } = render(<PixelTerrain layout={compact} />);
+    const decorations = container.querySelectorAll<HTMLElement>('.pixel-flower,.pixel-rock,.pixel-fence,.pixel-lamp');
+    expect(decorations.length).toBeGreaterThan(0);
+    for (const decoration of decorations) {
+      const x = Number.parseFloat(decoration.style.left) / 16;
+      const y = Number.parseFloat(decoration.style.top) / 16;
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(y).toBeGreaterThanOrEqual(0);
+      expect(x + 2).toBeLessThanOrEqual(width);
+      expect(y + 2).toBeLessThanOrEqual(compact.height);
+    }
+  });
+
   it('renders one connected village from original tile families', () => {
     render(<PixelTerrain layout={layout} />);
     expect(screen.getByTestId('pixel-ground')).toBeTruthy();

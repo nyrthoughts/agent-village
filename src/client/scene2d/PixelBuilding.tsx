@@ -1,4 +1,5 @@
 import type { DerivedProject, DerivedTask } from '../../server/truth/derive.js';
+import { isConfirmedWorking } from '../../shared/workerPresentation.js';
 import { BUILDING_FAMILIES, buildingFamilyFor } from './buildingFamilies.js';
 import { BuildingArtwork, type BuildingStage } from './BuildingArtwork.js';
 import { translate, type Language } from '../language.js';
@@ -12,6 +13,7 @@ const VARIANTS = {
 } as const;
 
 interface PixelBuildingProps {
+  now?: number;
   language?: Language;
   task: DerivedTask;
   project: DerivedProject;
@@ -19,14 +21,15 @@ interface PixelBuildingProps {
   onSelect: (task: DerivedTask, trigger: HTMLButtonElement, project: DerivedProject) => void;
 }
 
-export function PixelBuilding({ task, project, variant, onSelect, language = 'en' }: PixelBuildingProps) {
+export function PixelBuilding({ task, project, variant, onSelect, language = 'en', now = Date.now() }: PixelBuildingProps) {
   const unknown = task.progress.total === 0 || Boolean(project.observation && !project.plan);
   const stage: BuildingStage = unknown ? 'survey' : task.progress.stage;
   const status = unknown ? translate(language, 'Plan à définir') : project.observation
     ? translate(language, '{done}/{total} jalons validés', { done: task.progress.verified, total: task.progress.total })
     : STATUS_LABELS[task.effectiveStatus];
-  const working = project.observation?.sessions.some((session) => session.state === 'working');
-  const family = project.observation?.buildingFamilyIndex !== undefined
+  const commonHouse = task.id === project.id;
+  const working = commonHouse && project.observation?.sessions.some((session) => isConfirmedWorking(session, now));
+  const family = commonHouse && project.observation?.buildingFamilyIndex !== undefined
     ? BUILDING_FAMILIES[project.observation.buildingFamilyIndex % BUILDING_FAMILIES.length]!
     : buildingFamilyFor(task.id);
   return <button

@@ -46,6 +46,11 @@
 .observed-briefing__empty { padding:16px 0; color:#6b7963; font-size:13px; line-height:1.6; }
 .game-stage.observed-map { position:relative; display:flex; flex-direction:column; min-height:0; height:100%; padding:0; overflow:hidden; background:transparent; }
 .observed-map .village-map2d { flex:1; min-height:0; border:1px solid #8fa476; outline:0; box-shadow:none; background:#7fa267; }
+.observed-district-nav { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:end; gap:8px; margin-bottom:10px; }
+.observed-district-nav label { display:flex; align-items:center; gap:10px; min-width:0; font-size:14px; }
+.observed-district-nav select { min-width:0; max-width:220px; min-height:40px; padding:6px 10px; border:2px solid #56714e; border-radius:0; background:#f8f6ed; color:var(--journal-ink); font:inherit; }
+.observed-district-nav button,.observed-explore { min-height:40px; padding:8px 12px; border:2px solid #56714e; background:#e7edcf; color:var(--journal-ink); font:inherit; font-size:14px; cursor:pointer; }
+.observed-explore { margin-bottom:14px; }
 .observed-map-note { position:static; z-index:auto; padding:10px 0 0; margin:0; color:#758369; border:0; background:transparent; font-size:10px; line-height:1.4; }
 .pixel-building[data-observed='true'] .pixel-building__status-mark { width:10px; height:12px; top:28px; right:4px; border:2px solid #476449; background:#afc68b; box-shadow:2px 2px #31533a33; }
 .pixel-building[data-observed='true'] .pixel-building__status-mark::before { content:''; }
@@ -94,12 +99,12 @@
   .observed-language select { min-height:38px; font-size:12px; padding:6px; }
   .observed-layout { display:flex; flex-direction:column; gap:20px; }
   .observed-projects { display:contents; }
-  .observed-briefing { order:0; padding:0; }
+  .observed-briefing { order:1; padding:0; }
   .observed-briefing__header { margin-bottom:12px; }
   .observed-briefing__item { padding:14px 16px; }
   .observed-briefing__item > span:not(.observed-briefing__kind) { font-size:13px; }
   .observed-briefing__kind,.observed-projects time,.observed-briefing__item > small { font-size:10px; }
-  .game-stage.observed-map { order:1; height:480px; min-height:420px; }
+  .game-stage.observed-map { order:0; height:540px; min-height:420px; }
   .observed-projects > label { order:2; margin:5px 0 -12px; }
   .observed-projects > button { order:3; margin:-10px 0; min-height:72px; }
   .observed-projects > button.observed-scope { order:4; margin:0; }

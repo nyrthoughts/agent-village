@@ -6,7 +6,7 @@ import { translate, type Language } from './language.js';
 import './project-plan.css';
 
 const emptyMilestone = () => ({ id: crypto.randomUUID(), title: '', validated: false, note: '' });
-export function ProjectPlanPanel({ project, language }: { project: DerivedProject; language: Language }) {
+export function ProjectPlanPanel({ project, language, selectedMilestoneId }: { project: DerivedProject; language: Language; selectedMilestoneId?: string }) {
   const t = (key: Parameters<typeof translate>[1], values?: Record<string, string | number>) => translate(language, key, values);
   const [saved, setSaved] = useState<ProjectPlan>();
   const provisional = Boolean(project.observation?.sessions.length && project.observation.sessions.every((s) => s.projectKey.startsWith('hook:')));
@@ -14,6 +14,7 @@ export function ProjectPlanPanel({ project, language }: { project: DerivedProjec
     if (saved && (project.plan?.revision ?? 0) >= saved.revision) setSaved(undefined);
   }, [project.plan, saved]);
   const plan = saved && saved.revision > (project.plan?.revision ?? 0) ? saved : project.plan;
+  const selectedMilestone = plan?.milestones.find((m) => m.id === selectedMilestoneId);
   const [draft, setDraft] = useState<PlanDraft>();
   const [revision, setRevision] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -37,12 +38,20 @@ export function ProjectPlanPanel({ project, language }: { project: DerivedProjec
   };
   return <section className="project-plan" aria-label={t('Objectif et construction')}>
     <header><small>{t('OBJECTIF → CHANTIER')}</small><h3>{t('Objectif et construction')}</h3></header>
+    {!draft && selectedMilestone && <section className="project-plan__selected" aria-label={t('Chantier sélectionné')}>
+      <small>{t('Chantier sélectionné')}</small><h4>{selectedMilestone.title}</h4>
+      <p>{t(selectedMilestone.validated ? 'Jalon validé' : 'Jalon non validé')}</p>
+      {selectedMilestone.note && <p>{selectedMilestone.note}</p>}
+      {selectedMilestone.validated && <small>{t(selectedMilestone.validatedBy === 'local-check' ? 'Contrôle local' : 'Validé par vous')} · {new Date(selectedMilestone.validatedAt!).toLocaleDateString(language === 'en' ? 'en-GB' : 'fr-FR')}</small>}
+      <p>{t('Cette parcelle reflète une validation explicite, pas un déploiement ni une estimation du travail restant.')}</p>
+      {!provisional && <button type="button" onClick={edit}>{t('Modifier ce jalon')}</button>}
+    </section>}
     {!draft && <>
       {plan ? <>
         <p className="project-plan__goal">{plan.objective}</p>
         <div className="project-plan__progress"><strong>{t('{done}/{total} jalons validés', { done: count, total: plan.milestones.length })}</strong><span>{t('{count} restants', { count: plan.milestones.length - count })}</span></div>
         <progress aria-label={t('Jalons validés')} value={count} max={plan.milestones.length} />
-        <ol className="project-plan__milestones">{plan.milestones.map((m) => <li key={m.id} data-validated={m.validated}>
+        <ol className="project-plan__milestones">{plan.milestones.map((m) => <li key={m.id} data-validated={m.validated} data-selected={m.id === selectedMilestoneId || undefined}>
           <span className="project-plan__check" aria-hidden="true">{m.validated ? '✓' : '·'}</span>
           <div><strong>{m.title}</strong>{m.note && <p>{m.note}</p>}{m.validated && <small>{t(m.validatedBy === 'local-check' ? 'Contrôle local' : 'Validé par vous')} · {new Date(m.validatedAt!).toLocaleDateString(language === 'en' ? 'en-GB' : 'fr-FR')}</small>}</div>
         </li>)}</ol>
@@ -52,9 +61,9 @@ export function ProjectPlanPanel({ project, language }: { project: DerivedProjec
     </>}
     {draft && <form noValidate onSubmit={(event) => { event.preventDefault(); void save(); }}>
       <fieldset disabled={saving}>
-        <label>{t('Objectif final du projet')}<textarea autoFocus maxLength={700} value={draft.objective} onChange={(event) => setDraft({ ...draft, objective: event.target.value })} /></label>
+        <label>{t('Objectif final du projet')}<textarea autoFocus={!selectedMilestone} maxLength={700} value={draft.objective} onChange={(event) => setDraft({ ...draft, objective: event.target.value })} /></label>
         {draft.milestones.map((milestone, index) => <section key={milestone.id} className="project-plan__edit-milestone">
-          <label>{t('Jalon {number}', { number: index + 1 })}<input maxLength={180} value={milestone.title} onChange={(event) => update(index, { title: event.target.value })} /></label>
+          <label>{t('Jalon {number}', { number: index + 1 })}<input autoFocus={milestone.id === selectedMilestoneId} maxLength={180} value={milestone.title} onChange={(event) => update(index, { title: event.target.value })} /></label>
           <label className="project-plan__validate"><input type="checkbox" checked={milestone.validated} onChange={(event) => update(index, { validated: event.target.checked })} />{t('Valider le jalon {number}', { number: index + 1 })}</label>
           <label>{t('Note de validation {number}', { number: index + 1 })}<input maxLength={500} value={milestone.note} required={milestone.validated} placeholder={t('Ce que vous avez vérifié, et où.')} onChange={(event) => update(index, { note: event.target.value })} /></label>
           {draft.milestones.length > 1 && <button type="button" className="project-plan__remove" aria-label={t('Retirer le jalon {number}', { number: index + 1 })} onClick={() => setDraft({ ...draft, milestones: draft.milestones.filter((_, i) => i !== index) })}>{t('Retirer')}</button>}

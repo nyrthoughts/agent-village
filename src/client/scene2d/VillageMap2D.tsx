@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from 'react';
 import type { DerivedProject, DerivedTask, DerivedWorkspace } from '../../server/truth/derive.js';
 import type { ActivitySnapshot, Worker } from '../../shared/activity.js';
+import { isConfirmedWorking } from '../../shared/workerPresentation.js';
 import { PixelBuilding } from './PixelBuilding.js';
 import { PixelTerrain, TILE_SIZE } from './PixelTerrain.js';
 import { PixelWorker } from './PixelWorker.js';
@@ -12,6 +13,8 @@ import { useVillagePlayer } from './useVillagePlayer.js';
 import { VillageAnimals } from './VillageAnimals.js';
 
 interface VillageMap2DProps {
+  district?: boolean;
+  now?: number;
   language?: Language;
   village: DerivedWorkspace;
   activity?: ActivitySnapshot;
@@ -29,8 +32,8 @@ export function fitVillageScale(width: number, height: number, tilesWide: number
   return Math.max(0.15, Math.min(1.2, (width - 40) / (tilesWide * TILE_SIZE), (height - 100) / (tilesHigh * TILE_SIZE)));
 }
 
-export function VillageMap2D({ village, activity, onSelect, onSelectWorker, language = 'en' }: VillageMap2DProps) {
-  const layout = useMemo(() => layoutVillage2d(village), [village]);
+export function VillageMap2D({ village, activity, onSelect, onSelectWorker, language = 'en', district = false, now = Date.now() }: VillageMap2DProps) {
+  const layout = useMemo(() => layoutVillage2d(village, district), [village, district]);
   // Polling creates new workspace objects. Only changed geometry may interrupt a walk.
   const navigationKey = JSON.stringify([layout.width, layout.height, layout.obstacles, layout.buildings.map(({ x, y }) => [x, y]), layout.landmarks]);
   const navigation = useMemo(() => navigationFor(layout), [navigationKey]);
@@ -45,6 +48,9 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker, lang
   onSelectRef.current = onSelect;
   const [scale, setScale] = useState(0.65);
   const observed = Boolean(village.observation);
+  // Native freshness follows the owner's clock even when polling fails. Demo scenery
+  // stays memoized during avatar animation and needs no additional timer.
+  const presentationNow = observed ? now : undefined;
   useEffect(() => {
     if (!observed || !viewport.current || typeof ResizeObserver === 'undefined') return;
     const resize = new ResizeObserver(([entry]) => {
@@ -62,20 +68,24 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker, lang
   ].map((task) => [task.id, { task, project }] as const))), [village]);
   const placements = useMemo(() => new Map(layout.buildings.map((building) => [building.taskId, building])), [layout]);
   const workers = useMemo(() => !activity || activity.status === 'absent' ? [] : [...new Map(activity.workers.map((worker) => [worker.id, worker])).values()], [activity]);
+  const confirmedIds = new Set(workers.filter((worker) => isConfirmedWorking(worker, now)).map((worker) => worker.id));
+  // Invalidate badges and sprite order on confirmation changes, not every demo animation frame.
+  const confirmationKey = JSON.stringify([...confirmedIds]);
+  const confirmedWorking = useCallback((worker: Worker) => confirmedIds.has(worker.id), [confirmationKey]);
   const leadCount = workers.filter((worker) => worker.role === 'lead').length;
   const helperCount = workers.filter((worker) => worker.role === 'helper').length;
-  const confirmedHelperCount = workers.filter((worker) => worker.role === 'helper' && worker.state === 'working' && worker.activityEvidence?.level === 'confirmed').length;
+  const confirmedHelperCount = workers.filter((worker) => worker.role === 'helper' && confirmedWorking(worker)).length;
   const helpersByParent = useMemo(() => {
     const counts = new Map<string, { total: number; confirmed: number }>();
     for (const worker of workers) {
       if (worker.role !== 'helper' || !worker.parentId) continue;
       const count = counts.get(worker.parentId) ?? { total: 0, confirmed: 0 };
       count.total++;
-      if (worker.state === 'working' && worker.activityEvidence?.level === 'confirmed') count.confirmed++;
+      if (confirmedWorking(worker)) count.confirmed++;
       counts.set(worker.parentId, count);
     }
     return counts;
-  }, [workers]);
+  }, [workers, confirmedWorking]);
   const workersById = useMemo(() => new Map(workers.map((worker) => [worker.id, worker])), [workers]);
   const workerPlots = useMemo(() => {
     const groups = new Map<string, Worker[]>();
@@ -89,11 +99,11 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker, lang
     return [...groups].flatMap(([taskId, group]) => {
       // Keep crowds readable. Badges and data counts include every observation, not just these sprites.
       const lead = group.find((worker) => worker.role === 'lead');
-      const helpers = group.filter((worker) => worker.role === 'helper').sort((a, b) => Number(b.activityEvidence?.level === 'confirmed' && b.state === 'working') - Number(a.activityEvidence?.level === 'confirmed' && a.state === 'working'));
+      const helpers = group.filter((worker) => worker.role === 'helper').sort((a, b) => Number(confirmedWorking(b)) - Number(confirmedWorking(a)));
       const visible = [...new Map([...(lead ? [lead] : []), ...helpers, ...group].map((worker) => [worker.id, worker])).values()].slice(0, 5);
       return visible.map((worker, slot) => ({ worker, slot, placement: placements.get(taskId) }));
     });
-  }, [workers, workersById, placements]);
+  }, [workers, workersById, placements, confirmedWorking]);
 
   const requestMove = useCallback((destination: TilePoint) => {
     setTravelStatus('walking');
@@ -170,22 +180,26 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker, lang
       const record = records.get(placement.taskId);
       if (!record) return null;
       return <span key={placement.taskId} className="pixel-building-plot" style={{ left: placement.x * TILE_SIZE, top: placement.y * TILE_SIZE }}>
-        <PixelBuilding language={language} task={record.task} project={record.project} variant={placement.variant} onSelect={selectBuilding} />
+        <PixelBuilding language={language} task={record.task} project={record.project} variant={placement.variant} now={presentationNow} onSelect={selectBuilding} />
+        {district && record.task.id !== record.project.id && <span className="pixel-zone-sign" data-testid="district-parcel-label" aria-hidden="true" style={{ left: 3.5 * TILE_SIZE, top: 7 * TILE_SIZE }}>
+          <strong style={{ width: 112, maxWidth: 112, boxSizing: 'border-box', overflow: 'hidden', textOverflow: 'ellipsis' }}>{record.task.title}</strong>
+        </span>}
       </span>;
     })}
     {workerPlots.map(({ worker, slot, placement }) => {
       const x = placement ? placement.x + 8 + (slot % 2) * 2 : layout.entrance.x + slot * 2;
       const y = placement ? placement.y + 2 + Math.floor(slot / 2) * 2 : layout.entrance.y;
       const counts = helpersByParent.get(worker.id);
-      return <span key={worker.id} className="pixel-worker-plot" style={{ left: x * TILE_SIZE, top: y * TILE_SIZE }}><PixelWorker language={language} worker={worker} helperCount={counts?.total} confirmedHelperCount={counts?.confirmed} onSelect={onSelectWorker} /></span>;
+      return <span key={worker.id} className="pixel-worker-plot" style={{ left: x * TILE_SIZE, top: y * TILE_SIZE }}><PixelWorker language={language} worker={worker} native={observed} now={presentationNow} helperCount={counts?.total} confirmedHelperCount={counts?.confirmed} onSelect={onSelectWorker} /></span>;
     })}
-  </>, [layout, navigation, records, language, selectBuilding, workerPlots, helpersByParent, onSelectWorker]);
+  </>, [layout, navigation, records, language, selectBuilding, workerPlots, helpersByParent, onSelectWorker, observed, district, presentationNow]);
 
   return (
     <section
       ref={viewport}
       className="village-map2d"
       data-testid="village-map-2d"
+      data-district={district ? 'true' : undefined}
       data-building-count={layout.buildings.length}
       data-worker-count={workers.length}
       data-lead-count={leadCount}

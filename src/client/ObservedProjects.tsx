@@ -6,6 +6,8 @@ import { projectBrief, villageBriefing, type SourcedUpdate } from '../shared/pro
 import { LANGUAGE_KEY, savedLanguage, translate, translateDiagnostic, type Language } from './language.js';
 import './observed-projects.css';
 import { ProjectPlanPanel } from './ProjectPlanPanel.js';
+import { milestoneTaskId, projectDistrict } from './observedDistrict.js';
+import { hasRecentActivity, isConfirmedWorking, presentWorkerState } from '../shared/workerPresentation.js';
 
 const states = { working: 'En cours', waiting: 'En attente', idle: 'Sans activité récente', unknown: 'État non confirmé' } as const;
 function savedRead(): Record<string, string> {
@@ -17,6 +19,13 @@ function savedRead(): Record<string, string> {
 
 export function ObservedProjects({ village, activity, error }: { village: DerivedWorkspace; activity?: ActivitySnapshot; error?: string }) {
   const [language, setLanguage] = useState(savedLanguage);
+  const [, refreshClock] = useState(0);
+  const now = Date.now();
+  useEffect(() => {
+    // Fresh activity must expire even when a failed poll leaves the snapshot unchanged.
+    const timer = window.setInterval(() => refreshClock((tick) => tick + 1), 5_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const t = (key: Parameters<typeof translate>[1], values?: Record<string, string | number>) => translate(language, key, values);
   const date = (value: string) => new Date(value).toLocaleString(language === 'en' ? 'en-GB' : 'fr-FR', { dateStyle: 'short', timeStyle: 'short' });
   useEffect(() => {
@@ -25,6 +34,8 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
     try { localStorage.setItem(LANGUAGE_KEY, language); } catch { /* Keep the choice in memory if storage is disabled. */ }
   }, [language]);
   const [selectedId, setSelectedId] = useState<string>();
+  const [districtId, setDistrictId] = useState<string>();
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<string>();
   const [filter, setFilter] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [tab, setTab] = useState<'brief' | 'timeline' | 'sessions'>('brief');
@@ -32,6 +43,7 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
   const [read, setRead] = useState(savedRead);
   const dialog = useRef<HTMLElement>(null);
   const close = useRef<HTMLButtonElement>(null);
+  const districtControl = useRef<HTMLSelectElement>(null);
   const trigger = useRef<HTMLElement>();
   const selected = village.projects.find((project) => project.id === selectedId);
   const sessions = village.projects.flatMap((project) => project.observation?.sessions ?? []);
@@ -45,10 +57,16 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
   const visible = candidates.filter((project) => project.name.toLowerCase().includes(filter.toLowerCase()));
   const briefing = villageBriefing(visible.map((project) => ({ id: project.id, name: project.name, sessions: project.observation?.sessions ?? [] })), read);
   const brief = selected && projectBrief(selected.observation?.sessions ?? [], read[selected.id]);
-  const mapProjects = visible.slice(0, 9).sort((a, b) => a.id.localeCompare(b.id));
-  const parentIds = new Set(activity?.workers.map((worker) => worker.parentId).filter(Boolean));
-  const mapActivity = activity && { ...activity, workers: activity.workers.filter((worker) => (worker.state !== 'idle' || worker.role === 'helper' || parentIds.has(worker.id)) && mapProjects.some((project) => project.id === worker.attachedTaskId)) };
-  const select = (id: string, element: HTMLElement) => { trigger.current = element; setSelectedId(id); setTab('brief'); setSessionId(undefined); };
+  const district = visible.find((project) => project.id === districtId);
+  const mapProjects = district ? [projectDistrict(district)] : visible.slice(0, 9).sort((a, b) => a.id.localeCompare(b.id));
+  const mapActivity = activity && { ...activity, workers: activity.workers.filter((worker) => mapProjects.some((project) => project.id === worker.attachedTaskId)) };
+  const select = (id: string, element: HTMLElement, milestoneId?: string) => { trigger.current = element; setSelectedId(id); setSelectedMilestoneId(milestoneId); setTab('brief'); setSessionId(undefined); };
+  const explore = (id?: string) => {
+    setDistrictId(id);
+    // A district switch replaces the map, including a house that opened the dialog.
+    if (selectedId) { trigger.current = districtControl.current ?? undefined; setSelectedId(undefined); }
+    else districtControl.current?.focus();
+  };
   const markRead = () => {
     if (!selected || !brief?.timeline[0]) return;
     const next = { ...read, [selected.id]: brief.timeline[0].at };
@@ -69,13 +87,13 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
       }
     };
     document.addEventListener('keydown', keyboard);
-    return () => { document.removeEventListener('keydown', keyboard); trigger.current?.focus(); };
+    return () => { document.removeEventListener('keydown', keyboard); (trigger.current?.isConnected ? trigger.current : districtControl.current)?.focus(); };
   }, [selectedId]);
 
   return <main className="app-shell observed-shell" aria-label={t('Agent Village privé')}>
     <header className="observed-header">
       <div><small>{t('AGENT VILLAGE / LOCAL PRIVÉ')}</small><h1>{t('Journal du village')}</h1><p>{village.projects.length} {t('projets')} · {roots.length} sessions</p>{helpers.length > 0 && <p>{t('{count} sous-agents détectés', { count: helpers.length })} · {t('historique ≠ activité')}</p>}</div>
-      <div><strong>{t('{count} signaux de travail récents', { count: sessions.filter((session) => session.state === 'working').length })}</strong><p>{t('Lu à')} {date(village.observation!.fetchedAt)} · {t('actualisation 5 s')}</p>
+      <div><strong>{t('{count} en cours confirmés', { count: sessions.filter((session) => isConfirmedWorking(session, now)).length })}</strong><p>{t('Lu à')} {date(village.observation!.fetchedAt)} · {t('actualisation 5 s')}</p>
         <label className="observed-language">Langue / Language <select value={language} onChange={(event) => setLanguage(event.target.value as Language)}><option value="fr">Français</option><option value="en">English</option></select></label>
       </div>
     </header>
@@ -95,7 +113,7 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
         <label>{t('Rechercher un projet')}<input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder={t('Projet…')} /></label>
         {visible.map((project) => {
           const entries = project.observation?.sessions ?? [];
-          const working = entries.filter((entry) => entry.state === 'working').length;
+          const working = entries.filter((entry) => isConfirmedWorking(entry, now)).length;
           const summary = projectBrief(entries, read[project.id]);
           return <button type="button" key={project.id} aria-label={t('Ouvrir {name}', { name: project.name })} onClick={(event) => select(project.id, event.currentTarget)}>
             <strong>{project.name}</strong><small>{entries.filter((e) => e.role !== 'helper').length} sessions · {entries.length === 0 ? t('Plan conservé · aucune conversation récente') : working ? `${working} ${t('en cours')}` : t('Derniers échanges')}</small>
@@ -107,8 +125,15 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
         })}
       </nav>
       <section className="game-stage observed-map" aria-label={t('Bâtiments de mes projets')}>
-        <VillageMap2D language={language} village={{ ...village, projects: mapProjects }} activity={mapActivity} onSelect={(_task, element, project) => select(project.id, element)} onSelectWorker={(worker, element) => { if (worker.attachedTaskId) { select(worker.attachedTaskId, element); setTab('sessions'); setSessionId(worker.id); } }} />
-        <p className="observed-map-note">{t('{count} projets sur la carte. Bâtiments = jalons validés. Personnages = activité observée.', { count: mapProjects.length })}</p>
+        <nav className="observed-district-nav" aria-label={t('Explorer les quartiers')}>
+          <label>{t('Quartier')}<select ref={districtControl} value={district?.id ?? ''} onChange={(event) => explore(event.target.value || undefined)}>
+            <option value="">{t('Vue du village')}</option>
+            {visible.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+          </select></label>
+          {district && <button type="button" onClick={() => explore()}>{t('Tous les quartiers')}</button>}
+        </nav>
+        <VillageMap2D key={district?.id ?? 'overview'} now={now} district={Boolean(district)} language={language} village={{ ...village, projects: mapProjects }} activity={mapActivity} onSelect={(task, element, project) => select(project.id, element, project.plan?.milestones.find((m) => milestoneTaskId(project.id, m.id) === task.id)?.id)} onSelectWorker={(worker, element) => { if (worker.attachedTaskId) { select(worker.attachedTaskId, element); setTab('sessions'); setSessionId(worker.id); } }} />
+        <p className="observed-map-note">{district ? t(district.plan ? 'Une parcelle par jalon. La maison commune résume le plan ; les agents y sont regroupés, sans jalon attribué.' : 'Aucun jalon défini : ouvre la maison commune pour préparer le plan.') : t('{count} entrées de quartiers. Choisis un quartier pour voir ses chantiers.', { count: mapProjects.length })}</p>
       </section>
     </div>
     <footer className="observed-footer"><details><summary>{t('Sources et confidentialité')}</summary>{translateDiagnostic(language, village.observation?.historyWindow ?? '')}. {t('Les résumés sont les déclarations des agents, non des résultats vérifiés. Rien n’est envoyé à GitHub.')} {t('Les conversations sources restent dans leur langue d’origine.')}{village.observation?.coverage?.map((note) => <p key={note}>{translateDiagnostic(language, note)}</p>)}</details></footer>
@@ -117,15 +142,16 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
         <header className="detail-drawer__header"><div><span>{t('Projet connecté')}</span><h2 id="observed-project-title">{selected.name}</h2></div><button ref={close} className="drawer-close" type="button" aria-label={t('Fermer le projet')} onClick={() => setSelectedId(undefined)}>×</button></header>
         <div className="detail-drawer__body">
           <nav className="observed-tabs" aria-label={t('Vue du projet')}><button type="button" aria-pressed={tab === 'brief'} onClick={() => setTab('brief')}>{t('Bilan')}</button><button type="button" aria-pressed={tab === 'timeline'} onClick={() => setTab('timeline')}>{t('Évolution')}</button><button type="button" aria-pressed={tab === 'sessions'} onClick={() => { setTab('sessions'); setSessionId(undefined); }}>{t('Conversations')}</button><button type="button" onClick={markRead}>{t('Marquer comme lu')}</button></nav>
-          <p>{brief?.working} {t('en cours')} · {brief?.waiting} {t('en attente')} · {brief?.unread ?? 0} {t('nouveaux échanges depuis le dernier point de lecture.')}</p>
+          <p>{t('{count} en cours confirmés', { count: selectedSessions.filter((s) => isConfirmedWorking(s, now)).length })} · {brief?.waiting} {t('en attente')} · {brief?.unread ?? 0} {t('nouveaux échanges depuis le dernier point de lecture.')}</p>
           {tab === 'brief' && brief && <section className="observed-brief">
-            <ProjectPlanPanel key={selected.id} project={selected} language={language} />
+            {selected.id !== district?.id && <button type="button" className="observed-explore" onClick={() => explore(selected.id)}>{t('Explorer ce quartier')}</button>}
+            <ProjectPlanPanel key={selected.id} project={selected} language={language} selectedMilestoneId={selectedMilestoneId} />
             <section className="observed-agent-stats" aria-label={t('Agents et observations')}>
               <h3>{t('Agents et observations')}</h3><dl>
                 <div><dt>{t('Conversations principales')}</dt><dd>{selectedSessions.length - selectedHelpers.length}</dd></div>
                 <div><dt>{t('Sous-agents')}</dt><dd>{t('{count} sous-agents détectés', { count: selectedHelpers.length })}</dd></div>
-                <div><dt>{t('Activité récente')}</dt><dd>{selectedHelpers.filter((s) => s.activityEvidence && s.activityEvidence.level !== 'detected').length}</dd></div>
-                <div><dt>{t('Processus observés')}</dt><dd>{t('{count} en cours confirmés', { count: selectedHelpers.filter((s) => s.state === 'working' && s.activityEvidence?.level === 'confirmed').length })}</dd></div>
+                <div><dt>{t('Activité récente')}</dt><dd>{selectedHelpers.filter((s) => hasRecentActivity(s, now)).length}</dd></div>
+                <div><dt>{t('Processus observés')}</dt><dd>{t('{count} en cours confirmés', { count: selectedHelpers.filter((s) => isConfirmedWorking(s, now)).length })}</dd></div>
               </dl><p>{t('Détecté = présent dans les sources. Récent = signal récent. Confirmé = processus observé avec état récent, pas une garantie de travail continu.')}</p>
               <p>{t('Tokens, temps travaillé et durée restante : non mesurés par cette connexion.')}</p>
             </section>
@@ -137,7 +163,7 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
           </section>}
           {tab === 'timeline' && <section className="observed-evolution"><h3>{t('Ce qui a changé')}</h3><p>{t('Chronologie réunie de toutes les conversations du projet. Les changements d’état seuls ne sont pas comptés comme du travail livré.')}</p><ol>{brief?.timeline.map((entry, index) => <li key={`${entry.sessionId}:${entry.at}:${index}`}><strong>{t(entry.kind === 'report' ? 'Compte rendu' : 'Demande')}</strong>{source(entry)}<p>{entry.text}</p></li>)}</ol></section>}
           {tab === 'sessions' && selected.observation?.sessions.filter((session) => !sessionId || session.id === sessionId).map((session) => <article className="observed-session" key={session.id}>
-            <header><small>{session.tool.toUpperCase()} · {t(session.role === 'helper' ? 'Sous-agent' : 'Conversation principale')} · {t(states[session.state])}</small><h3>{session.title}</h3><time>{date(session.lastActivityAt)}</time></header>
+            <header><small>{session.tool.toUpperCase()} · {t(session.role === 'helper' ? 'Sous-agent' : 'Conversation principale')} · {t(states[presentWorkerState(session, true, now)])}</small><h3>{session.title}</h3><time>{date(session.lastActivityAt)}</time></header>
             {session.activityEvidence && <p>{t(session.activityEvidence.level === 'confirmed' ? 'Activité confirmée' : session.activityEvidence.level === 'recent' ? 'Activité récente' : 'Activité détectée')} · {session.activityEvidence.source} · {date(session.activityEvidence.observedAt)}</p>}
             {session.parentId && <p>{t('Conversation parente')} : {selectedSessions.find((s) => s.id === session.parentId)?.title ?? session.parentId}</p>}
             {session.terminal && <p>{t('Terminal tmux :')} <code>{session.terminal}</code></p>}

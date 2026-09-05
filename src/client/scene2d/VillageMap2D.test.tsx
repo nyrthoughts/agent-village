@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DerivedWorkspace } from '../../server/truth/derive.js';
 import type { ActivitySnapshot } from '../../shared/activity.js';
 import { VillageMap2D } from './VillageMap2D.js';
+import { layoutVillage2d } from './villageLayout2d.js';
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
@@ -32,7 +33,9 @@ function pointer(type: 'pointerDown' | 'pointerMove' | 'pointerUp' | 'pointerCan
 function groundTile(x: number, y: number, pointerType = 'mouse') {
   const map = screen.getByTestId('village-map-2d');
   const world = map.querySelector('.pixel-world')!;
-  vi.spyOn(world, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 1024, bottom: 704, width: 1024, height: 704, toJSON: () => undefined });
+  const width = Number(map.getAttribute('data-world-width')) * 16;
+  const height = Number(map.getAttribute('data-world-height')) * 16;
+  vi.spyOn(world, 'getBoundingClientRect').mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: width, bottom: height, width, height, toJSON: () => undefined });
   pointer('pointerDown', world, (x + 0.5) * 16, (y + 0.5) * 16, pointerType);
   pointer('pointerUp', world, (x + 0.5) * 16, (y + 0.5) * 16, pointerType);
 }
@@ -57,7 +60,74 @@ const activity: ActivitySnapshot = {
   ],
 };
 
+const nativeDistrict: DerivedWorkspace = {
+  ...village,
+  observation: { fetchedAt: '2026-09-05T12:00:00Z', errors: [], historyWindow: '', focusProjects: [] },
+  projects: [{
+    ...village.projects[0]!,
+    observation: { sessions: [], lastActivityAt: '2026-09-05T12:00:00Z', buildingFamilyIndex: 0 },
+    plan: { objective: 'Map it', revision: 1, updatedAt: '2026-09-05T12:00:00Z', milestones: [{ id: 'contours', title: 'Contours', validated: false, note: '' }, { id: 'library', title: 'Library', validated: true, note: 'Reviewed', validatedBy: 'owner', validatedAt: '2026-09-05T12:00:00Z' }] },
+    tasks: [{ ...village.projects[0]!.tasks[0]!, id: 'atlas', title: 'Common house' }, ...village.projects[0]!.tasks.map((task) => ({ ...task, id: `atlas:${task.id}` }))],
+  }],
+};
+
 describe('VillageMap2D', () => {
+  it('shows milestone parcels only in district mode and keeps their exact click context', () => {
+    const onSelect = vi.fn();
+    const { rerender } = render(<VillageMap2D village={nativeDistrict} onSelect={onSelect} />);
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-building-count')).toBe('1');
+    rerender(<VillageMap2D village={nativeDistrict} district onSelect={onSelect} />);
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-building-count')).toBe('3');
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-district')).toBe('true');
+    expect(screen.getAllByTestId('district-parcel-label')).toHaveLength(2);
+    fireEvent.click(screen.getByTestId('pixel-building-atlas:library'));
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'atlas:library' }), expect.any(HTMLButtonElement), expect.objectContaining({ id: 'atlas' }));
+  });
+
+  it('keeps project-level agents at the common house and treats unconfirmed native working as unknown', () => {
+    const workers = activity.workers.map((worker) => ({ ...worker, attachedTaskId: 'atlas' }));
+    render(<VillageMap2D village={nativeDistrict} district activity={{ ...activity, workers }} onSelect={() => undefined} />);
+    const common = layoutVillage2d(nativeDistrict, true).buildings.find((plot) => plot.taskId === 'atlas')!;
+    const lead = screen.getByRole('button', { name: /Codex lead agent/ });
+    expect(lead.className).toContain('pixel-worker--unknown');
+    expect((lead.parentElement as HTMLElement).style.left).toBe(`${(common.x + 8) * 16}px`);
+    expect((lead.parentElement as HTMLElement).style.top).toBe(`${(common.y + 2) * 16}px`);
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-worker-count')).toBe('2');
+  });
+
+  it('preserves district walking through polling and still opens a parcel immediately', () => {
+    const advance = animationClock();
+    const onSelect = vi.fn();
+    const { rerender } = render(<VillageMap2D village={nativeDistrict} district onSelect={onSelect} />);
+    const layout = layoutVillage2d(nativeDistrict, true);
+    groundTile(layout.entrance.x, layout.entrance.y - 7);
+    advance(5);
+    rerender(<VillageMap2D village={structuredClone(nativeDistrict)} district onSelect={onSelect} />);
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-player-walking')).toBe('true');
+    fireEvent.click(screen.getByTestId('pixel-building-atlas:library'));
+    expect(onSelect).toHaveBeenCalledOnce();
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-player-walking')).toBe('false');
+    advance(100);
+    expect(onSelect).toHaveBeenCalledOnce();
+  });
+
+  it('expires native sprites, counts and common-house accent when sources stop refreshing', () => {
+    const now = Date.parse('2026-09-05T12:00:00Z');
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+    const workers = activity.workers.map((worker) => ({ ...worker, state: 'working' as const, attachedTaskId: 'atlas', activityEvidence: { level: 'confirmed' as const, source: 'claude-process' as const, observedAt: new Date(now).toISOString() } }));
+    const source = { ...nativeDistrict, projects: nativeDistrict.projects.map((project) => ({ ...project, observation: { ...project.observation!, sessions: workers.map((worker) => ({ ...worker, history: [], projectKey: 'atlas' })) } })) };
+    const snapshot = { ...activity, workers };
+    const { rerender } = render(<VillageMap2D village={source} district activity={snapshot} now={now} onSelect={() => undefined} />);
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-confirmed-helper-count')).toBe('1');
+    expect(screen.getByTestId('pixel-building-atlas').getAttribute('data-working')).toBe('true');
+    expect(screen.getByRole('button', { name: /Claude helper agent/ }).className).toContain('pixel-worker--working');
+    rerender(<VillageMap2D village={source} district activity={snapshot} now={now + 120_001} onSelect={() => undefined} />);
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-confirmed-helper-count')).toBe('0');
+    expect(screen.getByTestId('pixel-building-atlas').getAttribute('data-working')).toBeNull();
+    expect(screen.getByRole('button', { name: /Claude helper agent/ }).className).toContain('pixel-worker--unknown');
+    expect(screen.getByRole('button', { name: /Codex lead agent/ }).getAttribute('aria-label')).toContain('1 observed helpers, 0 confirmed working');
+  });
+
   it('renders every task and maps live workers into the pixel world', () => {
     render(<VillageMap2D village={village} activity={activity} onSelect={() => undefined} />);
     const map = screen.getByTestId('village-map-2d');
@@ -237,7 +307,7 @@ describe('VillageMap2D', () => {
   });
 
   it('bounds busy house sprites but counts all observed helpers and only confirmed work', () => {
-    const workers = [activity.workers[0]!, ...Array.from({ length: 24 }, (_, index) => ({ ...activity.workers[1]!, id: `helper-${index}`, state: 'working' as const, activityEvidence: { level: index === 0 ? 'confirmed' as const : 'detected' as const, source: 'claude-process' as const, observedAt: '2026-09-04T12:00:00Z' } }))];
+    const workers = [activity.workers[0]!, ...Array.from({ length: 24 }, (_, index) => ({ ...activity.workers[1]!, id: `helper-${index}`, state: 'working' as const, activityEvidence: { level: index === 0 ? 'confirmed' as const : 'detected' as const, source: 'claude-process' as const, observedAt: new Date(Date.now() - 1000).toISOString() } }))];
     render(<VillageMap2D village={village} activity={{ ...activity, status: 'degraded', workers }} onSelect={() => undefined} />);
     const map = screen.getByTestId('village-map-2d');
     expect(map.getAttribute('data-worker-count')).toBe('25');
@@ -245,5 +315,15 @@ describe('VillageMap2D', () => {
     expect(map.getAttribute('data-confirmed-helper-count')).toBe('1');
     expect(map.querySelectorAll('[data-worker-id]')).toHaveLength(5);
     expect(screen.getByRole('button', { name: /Codex lead agent/ }).getAttribute('aria-label')).toContain('24 observed helpers, 1 confirmed working');
+  });
+
+  it('never counts expired demo evidence as confirmed while leaving unproven fictional work animated', () => {
+    const workers = [activity.workers[0]!, { ...activity.workers[1]!, state: 'working' as const, activityEvidence: { level: 'confirmed' as const, source: 'claude-process' as const, observedAt: new Date(Date.now() - 120_001).toISOString() } }];
+    render(<VillageMap2D village={village} activity={{ ...activity, workers }} onSelect={() => undefined} />);
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-confirmed-helper-count')).toBe('0');
+    expect(screen.getByRole('button', { name: /Claude helper agent/ }).className).toContain('pixel-worker--unknown');
+    const lead = screen.getByRole('button', { name: /Codex lead agent/ });
+    expect(lead.className).toContain('pixel-worker--working');
+    expect(lead.getAttribute('aria-label')).toContain('1 observed helpers, 0 confirmed working');
   });
 });
