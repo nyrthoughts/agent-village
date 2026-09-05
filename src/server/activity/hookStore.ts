@@ -4,13 +4,15 @@ import type { Worker, WorkerState } from '../../shared/activity.js';
 import { redactTitle } from './redact.js';
 
 const sessionId = z.string().regex(/^[A-Za-z0-9._:-]{1,120}$/);
+export const CLAUDE_HOOK_EVENTS = ['SessionStart', 'UserPromptSubmit', 'PostToolUse', 'PostToolUseFailure',
+  'Notification', 'Stop', 'SubagentStart', 'SubagentStop', 'SessionEnd'] as const;
 const claudeEvent = z.object({
   session_id: sessionId,
-  hook_event_name: z.string().min(1).max(80),
+  hook_event_name: z.enum(CLAUDE_HOOK_EVENTS),
   cwd: z.string().min(1).max(2_048),
   agent_id: sessionId.optional(),
   agent_type: z.string().min(1).max(120).optional(),
-}).passthrough();
+}); // Claude sends extra fields; Zod strips them rather than retaining prompt/tool contents.
 const openClawEvent = z.object({
   sessionId,
   event: z.enum(['session_start', 'agent_start', 'agent_end', 'session_end']),
@@ -38,7 +40,20 @@ export class HookActivityStore {
   constructor(
     private readonly now: () => Date = () => new Date(),
     private readonly ttlMinutes = 30,
+    private readonly maxRecords = 1_000,
   ) {}
+
+  private prune(): void {
+    const cutoff = this.now().getTime() - this.ttlMinutes * 60_000;
+    for (const [id, record] of this.#records) if (record.seenAt < cutoff) this.#records.delete(id);
+  }
+
+  private reserve(id: string): void {
+    this.prune();
+    if (this.#records.has(id) || this.#records.size < this.maxRecords) return;
+    const oldest = [...this.#records.values()].reduce((a, b) => a.seenAt <= b.seenAt ? a : b);
+    this.#records.delete(oldest.id);
+  }
 
   ingestClaude(payload: unknown): boolean {
     const parsed = claudeEvent.safeParse(payload);
@@ -60,6 +75,7 @@ export class HookActivityStore {
     }
     const id = parsed.data.hook_event_name === 'SubagentStart' ? helperId : leadId;
     const previous = this.#records.get(id);
+    this.reserve(id);
     this.#records.set(id, {
       id,
       tool: 'claude',
@@ -84,6 +100,7 @@ export class HookActivityStore {
     if (!parsed.success) return false;
     const current = this.now();
     const id = `openclaw:${parsed.data.sessionId}`;
+    this.reserve(id);
     const rawTitle = parsed.data.title?.trim()
       || (parsed.data.cwd ? basename(parsed.data.cwd) : '')
       || 'OpenClaw session';
@@ -102,10 +119,7 @@ export class HookActivityStore {
   }
 
   workers(): Worker[] {
-    const cutoff = this.now().getTime() - this.ttlMinutes * 60_000;
-    for (const [id, record] of this.#records) {
-      if (record.seenAt < cutoff) this.#records.delete(id);
-    }
+    this.prune();
     return [...this.#records.values()].map(({ seenAt: _seenAt, ...worker }) => worker);
   }
 }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { DerivedWorkspace } from '../server/truth/derive.js';
 import type { ActivitySnapshot } from '../shared/activity.js';
 import { VillageMap2D } from './scene2d/VillageMap2D.js';
-import { projectBrief, type SourcedUpdate } from '../shared/projectBrief.js';
+import { projectBrief, villageBriefing, type SourcedUpdate } from '../shared/projectBrief.js';
 import { LANGUAGE_KEY, savedLanguage, translate, translateDiagnostic, type Language } from './language.js';
 import './observed-projects.css';
 
@@ -20,6 +20,7 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
   const date = (value: string) => new Date(value).toLocaleString(language === 'en' ? 'en-GB' : 'fr-FR', { dateStyle: 'short', timeStyle: 'short' });
   useEffect(() => {
     document.documentElement.lang = language;
+    window.dispatchEvent(new CustomEvent('agent-village:language', { detail: language }));
     try { localStorage.setItem(LANGUAGE_KEY, language); } catch { /* Keep the choice in memory if storage is disabled. */ }
   }, [language]);
   const [selectedId, setSelectedId] = useState<string>();
@@ -37,6 +38,7 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
   const focused = focusNames.length ? village.projects.filter((project) => focusNames.includes(project.name)) : village.projects;
   const candidates = showAll || filter ? village.projects : focused;
   const visible = candidates.filter((project) => project.name.toLowerCase().includes(filter.toLowerCase()));
+  const briefing = villageBriefing(visible.map((project) => ({ id: project.id, name: project.name, sessions: project.observation?.sessions ?? [] })), read);
   const brief = selected && projectBrief(selected.observation?.sessions ?? [], read[selected.id]);
   const mapProjects = visible.slice(0, 9).sort((a, b) => a.id.localeCompare(b.id));
   const mapActivity = activity && { ...activity, workers: activity.workers.filter((worker) => worker.state !== 'idle' && mapProjects.some((project) => project.id === worker.attachedTaskId)) };
@@ -66,7 +68,7 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
 
   return <main className="app-shell observed-shell" aria-label={t('Agent Village privé')}>
     <header className="observed-header">
-      <div><small>{t('AGENT VILLAGE / LOCAL PRIVÉ')}</small><h1>{t('Mes projets, maintenant')}</h1><p>{village.projects.length} {t('projets')} · {sessions.length} sessions</p></div>
+      <div><small>{t('AGENT VILLAGE / LOCAL PRIVÉ')}</small><h1>{t('Journal du village')}</h1><p>{village.projects.length} {t('projets')} · {sessions.length} sessions</p></div>
       <div><strong>{sessions.filter((session) => session.state === 'working').length} {t('agents en cours')}</strong><p>{t('Lu à')} {date(village.observation!.fetchedAt)} · {t('actualisation 5 s')}</p>
         <label className="observed-language">Langue / Language <select value={language} onChange={(event) => setLanguage(event.target.value as Language)}><option value="fr">Français</option><option value="en">English</option></select></label>
       </div>
@@ -74,7 +76,16 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
     {(error || village.observation?.errors.length !== 0) && <p role="alert" className="observed-warning">{error ? translateDiagnostic(language, error) : village.observation?.errors.map((message) => translateDiagnostic(language, message)).join(' · ')}. {t('Les données déjà lues restent affichées.')}</p>}
     <div className="observed-layout">
       <nav className="observed-projects" aria-label={t('Projets connectés')}>
-        {focusNames.length > 0 && <button type="button" className="observed-scope" onClick={() => setShowAll(!showAll)}>{showAll ? t('Revenir aux {count} projets suivis', { count: focused.length }) : t('Voir aussi les {count} autres projets', { count: village.projects.length - focused.length })}</button>}
+        <section className="observed-briefing" aria-labelledby="village-briefing-title">
+          <header className="observed-briefing__header"><small>{t('Votre point de départ')}</small><h2 id="village-briefing-title">{t('À lire en premier')}</h2><p>{t('Derniers signalements, pas des priorités déduites.')}</p></header>
+          <div className="observed-briefing__items">{briefing.map((point) => <button type="button" className="observed-briefing__item" key={point.projectId} aria-label={t('Lire le point de {name}', { name: point.projectName })} onClick={(event) => select(point.projectId, event.currentTarget)}>
+            <small className="observed-briefing__kind">{t(point.kind === 'blocked' ? 'Blocage déclaré' : point.kind === 'next' ? 'Suite annoncée' : 'Compte rendu récent')}</small>
+            <strong>{point.projectName}</strong><span>{point.entry.text.slice(0, 150)}{point.entry.text.length > 150 ? '…' : ''}</span>
+            <time>{point.entry.tool} · {date(point.entry.at)}</time>
+          </button>)}</div>
+          {briefing.length === 0 && <p className="observed-briefing__empty">{t('Aucun nouveau compte rendu dans les sources lues. Les projets restent consultables.')}</p>}
+        </section>
+        {focusNames.length > 0 && focused.length < village.projects.length && <button type="button" className="observed-scope" onClick={() => setShowAll(!showAll)}>{showAll ? t('Revenir aux {count} projets suivis', { count: focused.length }) : t('Voir aussi les {count} autres projets', { count: village.projects.length - focused.length })}</button>}
         <label>{t('Rechercher un projet')}<input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder={t('Projet…')} /></label>
         {visible.map((project) => {
           const entries = project.observation?.sessions ?? [];
@@ -83,7 +94,7 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
           return <button type="button" key={project.id} aria-label={t('Ouvrir {name}', { name: project.name })} onClick={(event) => select(project.id, event.currentTarget)}>
             <strong>{project.name}</strong><small>{entries.length} sessions · {working ? `${working} ${t('en cours')}` : t('Derniers échanges')}</small>
             {summary.unread > 0 && <b className="observed-new">{summary.unread} {t('nouveaux échanges')}</b>}
-            <span>{summary.latest?.text.slice(0, 220) ?? entries[0]?.objective?.slice(0, 160) ?? t('Ouvrir les sessions')}</span>
+            <span>{summary.latest?.text.slice(0, 90) ?? entries[0]?.objective?.slice(0, 90) ?? t('Ouvrir les sessions')}</span>
             <time>{date(summary.latest?.at ?? project.observation!.lastActivityAt)}</time>
           </button>;
         })}
@@ -93,7 +104,7 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
         <p className="observed-map-note">{t('{count} projets récents sur la carte · recherche pour les autres. Chantier = activité, pas livraison.', { count: mapProjects.length })}</p>
       </section>
     </div>
-    <footer className="observed-footer">{translateDiagnostic(language, village.observation?.historyWindow ?? '')}. {t('Les résumés sont les déclarations des agents, non des résultats vérifiés. Rien n’est envoyé à GitHub.')} {t('Les conversations sources restent dans leur langue d’origine.')}</footer>
+    <footer className="observed-footer"><details><summary>{t('Sources et confidentialité')}</summary>{translateDiagnostic(language, village.observation?.historyWindow ?? '')}. {t('Les résumés sont les déclarations des agents, non des résultats vérifiés. Rien n’est envoyé à GitHub.')} {t('Les conversations sources restent dans leur langue d’origine.')}</details></footer>
     {selected && <div className="drawer-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedId(undefined); }}>
       <aside ref={dialog} className="detail-drawer observed-drawer" role="dialog" aria-modal="true" aria-labelledby="observed-project-title">
         <header className="detail-drawer__header"><div><span>{t('Projet connecté')}</span><h2 id="observed-project-title">{selected.name}</h2></div><button ref={close} className="drawer-close" type="button" aria-label={t('Fermer le projet')} onClick={() => setSelectedId(undefined)}>×</button></header>

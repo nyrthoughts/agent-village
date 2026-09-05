@@ -16,6 +16,7 @@ export interface PixelBuildingPlacement {
   x: number;
   y: number;
   variant: number;
+  door?: { x: number; y: number };
 }
 
 export type PixelPathKind = 'vertical' | 'horizontal' | 'square' | 'spur';
@@ -23,11 +24,19 @@ export type PixelPathKind = 'vertical' | 'horizontal' | 'square' | 'spur';
 export interface PixelPath { x: number; y: number; width: number; height: number; kind: PixelPathKind }
 
 export interface PixelLandmark {
-  kind: 'pond' | 'cliff';
+  kind: 'pond' | 'cliff' | 'fountain';
   x: number;
   y: number;
   width: number;
   height: number;
+}
+
+export interface PixelObstacle {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  kind: 'building' | 'water' | 'forest' | 'cliff';
 }
 
 export interface VillageLayout2d {
@@ -38,4 +47,5 @@ export interface VillageLayout2d {
   paths: PixelPath[];
   landmarks: PixelLandmark[];
   entrance: { x: number; y: number };
+  obstacles?: PixelObstacle[];
 }

@@ -142,3 +142,39 @@
 .pixel-path--square{border-radius:24px 16px 30px 18px;clip-path:polygon(16px 0,calc(100% - 32px) 0,calc(100% - 32px) 6px,calc(100% - 12px) 6px,calc(100% - 12px) 16px,100% 16px,100% calc(100% - 29px),calc(100% - 8px) calc(100% - 29px),calc(100% - 8px) calc(100% - 8px),calc(100% - 26px) calc(100% - 8px),calc(100% - 26px) 100%,22px 100%,22px calc(100% - 7px),7px calc(100% - 7px),7px calc(100% - 23px),0 calc(100% - 23px),0 19px,9px 19px,9px 8px,16px 8px)}
 .pixel-path--horizontal{border-radius:18px 12px 20px 14px}.pixel-path--vertical{border-radius:14px 18px 12px 20px}.pixel-path--spur{border-radius:9px 11px 7px 12px}
 .pixel-forest-frame .pixel-tree i{top:-3px;left:-1px;width:45px;height:46px;border:0;border-radius:0;background:linear-gradient(90deg,#347b3d 0 22%,#4a9b44 22% 50%,#3c8b40 50% 76%,#2d6d38 76%);box-shadow:none;clip-path:polygon(50% 0,68% 20%,61% 20%,82% 43%,72% 43%,94% 70%,80% 70%,100% 94%,0 94%,20% 70%,6% 70%,28% 43%,18% 43%,39% 20%,32% 20%);filter:drop-shadow(2px 3px 0 #205b36)}.pixel-forest-frame .pixel-tree i::before,.pixel-forest-frame .pixel-tree i::after{display:none}.pixel-forest-frame .pixel-tree--1 i{background:linear-gradient(90deg,#3b8040 0 25%,#58a448 25% 52%,#448f40 52% 77%,#326f38 77%)}.pixel-forest-frame .pixel-tree--2 i{background:linear-gradient(90deg,#2f733b 0 22%,#438f41 22% 52%,#397e3b 52% 78%,#286334 78%)}
+
+/* The journal's world: original pixel sprites, sunlit clearing and quiet paths. */
+.pixel-tree__sprite { display:block; width:48px; height:56px; overflow:visible; }
+.pixel-forest-frame .pixel-tree { width:48px; height:56px; transform:none; filter:drop-shadow(3px 4px #254d3333); }
+.pixel-building__sprite { display:block; position:absolute; inset:0; width:112px; height:104px; overflow:visible; transition:transform 120ms steps(3); }
+.pixel-building:hover .pixel-building__sprite,.pixel-building:focus-visible .pixel-building__sprite { transform:translateY(-3px); }
+.pixel-fountain { position:absolute; z-index:3; border:4px solid #6f7e75; background:#76b8bd; box-shadow:inset 0 0 0 4px #b3d7cb,4px 6px #31523840; clip-path:polygon(8px 0,calc(100% - 8px) 0,calc(100% - 8px) 4px,100% 4px,100% calc(100% - 8px),calc(100% - 8px) calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,8px calc(100% - 8px),0 calc(100% - 8px),0 4px,8px 4px); }
+.pixel-fountain i { position:absolute; left:16px; top:6px; width:8px; height:23px; border:2px solid #7a8f85; background:#d4d8b9; box-shadow:2px 3px #5c8688; }
+.pixel-fountain b { position:absolute; left:11px; top:4px; width:18px; height:7px; border:2px solid #6b8077; background:#d4d8b9; }
+.pixel-meadow { position:absolute; z-index:0; opacity:.4; pointer-events:none; }
+.pixel-meadow--west { left:6%; top:20%; width:34%; height:57%; background:#adc782; clip-path:polygon(10% 0,70% 0,70% 10%,90% 10%,90% 35%,100% 35%,100% 80%,72% 80%,72% 100%,20% 100%,20% 90%,0 90%,0 20%,10% 20%); }
+.pixel-meadow--east { right:6%; top:14%; width:37%; height:74%; background:#9dbb6e; clip-path:polygon(0 20%,25% 20%,25% 0,80% 0,80% 20%,100% 20%,100% 100%,40% 100%,40% 85%,0 85%); }
+.observed-map .pixel-ground { background-color:#98b979; background-image:radial-gradient(ellipse at 4px 6px,#b8cf9255 0 1px,transparent 1.5px),radial-gradient(ellipse at 16px 18px,#789d5c44 0 1px,transparent 1.5px); background-size:23px 29px,37px 41px; box-shadow:inset 0 0 0 4px #47724d; }
+.observed-map .pixel-zone { background:none; }
+.observed-map .pixel-path { border:0; border-radius:0; background-color:#d9c28f; background-image:radial-gradient(ellipse at 8px 12px,#b89c6d88 0 1px,transparent 1.5px),radial-gradient(ellipse at 19px 6px,#f6e0b166 0 2px,transparent 2.5px); background-size:29px 37px,47px 41px; box-shadow:inset 0 3px #edd7a5,inset 0 -3px #bca16f; }
+.observed-map .pixel-path::after { background-image:none; }
+.observed-map .pixel-path--square { border-radius:0; background-color:#c5b78d; background-image:linear-gradient(90deg,#e6d8b233 2px,transparent 2px),linear-gradient(#8a8f7133 2px,transparent 2px); background-size:16px 16px; box-shadow:inset 0 0 0 5px #a9aa7a,inset 0 0 0 8px #d8caa4; }
+.observed-map .pixel-pond { background:#4d9eaa; outline:0; box-shadow:inset 0 0 0 5px #b5bf7d,inset 0 0 0 10px #7da98a,inset 0 0 0 15px #79b6b1; clip-path:polygon(20% 0,80% 0,80% 7%,94% 7%,94% 20%,100% 20%,100% 72%,94% 72%,94% 85%,80% 85%,80% 100%,20% 100%,20% 92%,6% 92%,6% 78%,0 78%,0 22%,8% 22%,8% 9%,20% 9%); }
+.observed-map .pixel-pond::before,.observed-map .pixel-pond::after { height:3px; opacity:.65; background:repeating-linear-gradient(90deg,transparent 0 18px,#c2e0cf 18px 31px,transparent 31px 60px); animation-duration:5s; }
+.observed-map .pixel-pond i { background:#c3cf95; border:0; width:9px; height:6px; box-shadow:3px 0 #659c78; }
+.observed-map .pixel-cliff { border-top:9px solid #8b9a62; border-right:5px solid #716e51; background:#9d9572; box-shadow:inset 0 7px #c3ba91,inset -6px 0 #7c7b5b,6px 5px #3b5e3438; }
+.observed-map .pixel-cliff::before { background:repeating-linear-gradient(0deg,transparent 0 11px,#6f715333 11px 14px,transparent 14px 22px); }
+.observed-map .pixel-zone-sign { width:1px; height:1px; border:0; background:none; box-shadow:none; pointer-events:none; }
+.observed-map .pixel-zone-sign i { display:none; }
+.observed-map .pixel-zone-sign strong { top:0; left:0; max-width:160px; padding:5px 8px; transform:translateX(-50%); border:1px solid #768861; outline:0; background:#f0edcddd; box-shadow:2px 3px #3e60392b; color:#304c35; font:600 11px/1.2 'Avenir Next','Trebuchet MS',sans-serif; letter-spacing:0; text-transform:none; }
+.observed-map .pixel-building__label { min-width:170px; bottom:-39px; border-width:1px; outline:0; padding:8px 10px; background:#fbf8e9; box-shadow:3px 4px #365a3b33; }
+.observed-map .pixel-building__label strong { font:600 12px/1.25 'Avenir Next','Trebuchet MS',sans-serif; }
+.observed-map .pixel-building__label small { font:500 10px/1.4 'Avenir Next','Trebuchet MS',sans-serif; text-transform:none; }
+.observed-map .map-reset { right:16px; bottom:16px; min-height:32px; padding:8px 11px; border:1px solid #728668; outline:0; background:#f7f4dfeb; color:#47603e; box-shadow:2px 3px #47603e22; font:600 10px/1.2 'Avenir Next','Trebuchet MS',sans-serif; text-transform:none; }
+.observed-map .map-hint { display:none; }
+.observed-map .map-visit-controls { top:16px; left:16px; right:16px; }
+.observed-map .map-visit-controls button,.observed-map .map-visit-controls label { min-height:38px; border:1px solid #789066; border-radius:0; background:#f7f4dfeb; color:#35513c; box-shadow:2px 3px #37553922; font:600 12px/1.3 'Avenir Next','Trebuchet MS',sans-serif; }
+.observed-map .map-visit-controls button[aria-pressed='true'] { background:#355743; color:#faf6e5; }
+.observed-map .map-visit-status { bottom:17px; left:16px; max-width:calc(100% - 190px); border:0; border-radius:0; background:#f7f4dfdb; color:#47603e; font:500 11px/1.4 'Avenir Next','Trebuchet MS',sans-serif; }
+@media (max-width:800px) { .observed-map .map-hint { display:none; } .observed-map .map-reset { right:10px; bottom:10px; min-height:36px; } .observed-map .pixel-zone-sign strong { font-size:13px; padding:5px 6px; } .observed-map .map-visit-controls { top:12px; left:12px; right:12px; gap:6px; } .observed-map .map-visit-controls button,.observed-map .map-visit-controls label { min-height:42px; padding:6px 9px; font-size:11px; } .observed-map .map-visit-status { left:10px; bottom:54px; max-width:calc(100% - 20px); font-size:11px; } }
+@media (prefers-reduced-motion:reduce) { .pixel-building__sprite { transition:none; } }

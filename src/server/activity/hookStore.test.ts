@@ -55,5 +55,20 @@ describe('HookActivityStore', () => {
     const store = new HookActivityStore();
     expect(store.ingestClaude({ session_id: '../bad', hook_event_name: 'Stop', cwd: '/tmp' })).toBe(false);
     expect(store.ingestOpenClaw({ sessionId: '', event: 'agent_end' })).toBe(false);
+    expect(store.ingestClaude({ session_id: 'fake', hook_event_name: 'ExecuteAnything', cwd: '/tmp' })).toBe(false);
+    expect(store.workers()).toEqual([]);
+  });
+
+  it('evicts the least recent observation and expires entries on ingestion', () => {
+    let now = new Date('2026-09-01T12:00:00Z');
+    const store = new HookActivityStore(() => now, 30, 2);
+    for (const sessionId of ['one', 'two', 'three']) {
+      store.ingestOpenClaw({ sessionId, event: 'session_start' });
+      now = new Date(now.getTime() + 1000);
+    }
+    expect(store.workers().map((worker) => worker.id)).toEqual(['openclaw:two', 'openclaw:three']);
+    now = new Date('2026-09-01T12:31:00Z');
+    store.ingestOpenClaw({ sessionId: 'four', event: 'session_start' });
+    expect(store.workers().map((worker) => worker.id)).toEqual(['openclaw:four']);
   });
 });

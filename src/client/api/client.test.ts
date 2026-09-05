@@ -1,5 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchActivity, fetchVillage } from './client.js';
+import { clearSession, getSession, setSession } from './session.js';
+
+afterEach(() => clearSession());
 
 function response(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -9,6 +12,14 @@ function response(status: number, body: unknown): Response {
 }
 
 describe('static demo fallback', () => {
+  it('sends the memory-only bearer to the native API and locks on 401 without loading a demo', async () => {
+    setSession({ token: 'a'.repeat(43), expiresAt: new Date(Date.now() + 60_000).toISOString() });
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(response(401, { error: 'unauthorized' }));
+    await expect(fetchVillage(fetchImpl)).rejects.toMatchObject({ status: 401 });
+    expect(fetchImpl).toHaveBeenCalledWith('/api/village', { headers: { accept: 'application/json', authorization: `Bearer ${'a'.repeat(43)}` } });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(getSession()).toBeNull();
+  });
   it('loads the exported village when the local API is absent', async () => {
     const demo = { name: 'Verdant Labs', projects: [] };
     const fetchImpl = vi.fn<typeof fetch>()

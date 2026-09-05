@@ -30,6 +30,13 @@ function harness(options: { codex?: boolean; failInstall?: boolean; longRunning?
     : `printf 'STARTED\n' >> '${log}'\nexit 0`;
   executable(join(bin, 'node'), `
 if [ "\${1-}" = '--version' ]; then echo v20.19.0; exit 0; fi
+if [ "\${2-}" = 'scripts/auth-setup.ts' ]; then
+  mkdir -p "$VILLAGE_AUTH_DIR"
+  printf 'test-bootstrap-do-not-print\\n' > "$VILLAGE_AUTH_DIR/bootstrap.txt"
+  printf 'AUTH_SETUP|DIR=%s\\n' "$VILLAGE_AUTH_DIR" >> '${log}'
+  printf 'Owner enrollment code saved privately to %s/bootstrap.txt\\n' "$VILLAGE_AUTH_DIR"
+  exit 0
+fi
 printf 'NODE_SERVER|PWD=%s|CACHE=%s|MODE=%s|FILE=%s\n' "$PWD" "\${npm_config_cache-}" "\${VILLAGE_MODE-}" "\${VILLAGE_FILE-}" >> '${log}'
 ${startBody}`);
   executable(join(bin, 'curl'), `
@@ -130,7 +137,23 @@ describe('temporary Codex observer launcher', () => {
     expect(log).not.toContain('NPM|start');
     expect(log).toMatch(/FILE=.*\/source\/fixtures\/village\.observer\.yaml/);
     expect(log).toMatch(/CACHE=.*\/npm-cache/);
+    expect(log).toMatch(/AUTH_SETUP\|DIR=.*\/agent-village\.[^/]+\/private-auth/);
+    expect(log.indexOf('AUTH_SETUP')).toBeLessThan(log.indexOf('NODE_SERVER'));
+    expect(result.stdout).toContain('/private-auth/bootstrap.txt');
+    expect(result.stdout).not.toContain('test-bootstrap-do-not-print');
     expect(log).toContain('OPEN|http://127.0.0.1:4180');
+    expect(readdirSync(test.runtimeParent)).toEqual([]);
+  });
+
+  it('keeps temporary auth inside its own runtime even when another auth directory is configured', async () => {
+    const test = harness();
+    const externalAuth = join(test.root, 'persistent-auth');
+    mkdirSync(externalAuth);
+    writeFileSync(join(externalAuth, 'retained.txt'), 'retained', 'utf8');
+    const result = await runLauncher({ ...test.env, VILLAGE_AUTH_DIR: externalAuth }).completed;
+    expect(result.code).toBe(0);
+    expect(readFileSync(test.log, 'utf8')).not.toContain(externalAuth);
+    expect(readdirSync(externalAuth)).toEqual(['retained.txt']);
     expect(readdirSync(test.runtimeParent)).toEqual([]);
   });
 

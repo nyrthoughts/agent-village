@@ -3,8 +3,9 @@ import { request } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { AddressInfo } from 'node:net';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createVillageServer, listenLocal } from './index.js';
+import type { LocalSessions } from './activity/localSessions.js';
 
 const fixturePath = resolve('fixtures/village.demo.yaml');
 const cleanups: Array<() => Promise<void> | void> = [];
@@ -44,6 +45,17 @@ async function rawStatus(origin: string, path: string, headers?: Record<string, 
 }
 
 describe('local village server', () => {
+  it('fails closed before reading private sessions when native auth is not configured', async () => {
+    const snapshot = vi.fn(async () => ({ sessions: [], errors: [] }));
+    const server = createVillageServer({ villagePath: fixturePath, distDir: '/tmp', mode: 'native',
+      localSessions: { snapshot } as unknown as LocalSessions });
+    await listenLocal(server, 0);
+    cleanups.push(() => new Promise<void>((done) => server.close(() => done())));
+    const origin = `http://localhost:${(server.address() as AddressInfo).port}`;
+    expect((await fetch(`${origin}/api/village`)).status).toBe(503);
+    expect((await fetch(`${origin}/api/activity`)).status).toBe(503);
+    expect(snapshot).not.toHaveBeenCalled();
+  });
   it('rejects foreign origins and hosts before exposing private native data', async () => {
     const server = createVillageServer({ villagePath: fixturePath, distDir: '/tmp', mode: 'native' });
     await listenLocal(server, 0);

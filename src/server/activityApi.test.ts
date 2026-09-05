@@ -1,13 +1,15 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { AddressInfo } from 'node:net';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createVillageServer, listenLocal } from './index.js';
 import { HookActivityStore } from './activity/hookStore.js';
 import { NativeActivityHub } from './activity/nativeActivity.js';
 import type { RouterOptions } from './router.js';
+import { OwnerAuth } from './auth/ownerAuth.js';
+import { prepareOwnerSetup } from './auth/privateState.js';
 
 const servers: Server[] = [];
 const directories: string[] = [];
@@ -31,6 +33,17 @@ async function start(overrides: Partial<RouterOptions> = {}) {
   await listenLocal(server, 0);
   const address = server.address() as AddressInfo;
   return `http://127.0.0.1:${address.port}`;
+}
+
+function hookAuth() {
+  const directory = mkdtempSync(join(tmpdir(), 'village-hook-auth-test-'));
+  directories.push(directory);
+  const paths = prepareOwnerSetup(directory);
+  const ownerAuth = new OwnerAuth(directory);
+  // This suite covers activity formatting; the separate auth suites exercise owner verification.
+  vi.spyOn(ownerAuth, 'authorize').mockImplementation(() => undefined);
+  const authorization = readFileSync(paths.hookHeaderPath, 'utf8').trim().replace(/^Authorization: /, '');
+  return { ownerAuth, authorization };
 }
 
 describe('/api/activity modes', () => {
@@ -67,11 +80,12 @@ describe('/api/activity modes', () => {
     const nativeActivity = new NativeActivityHub([
       { read: async () => hooks.workers() },
     ], now, hooks);
-    const origin = await start({ mode: 'native', nativeActivity });
+    const auth = hookAuth();
+    const origin = await start({ mode: 'native', nativeActivity, ownerAuth: auth.ownerAuth });
 
     const hook = await fetch(`${origin}/api/hooks/claude`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', authorization: auth.authorization },
       body: JSON.stringify({
         session_id: 'claude-live',
         hook_event_name: 'UserPromptSubmit',
@@ -81,7 +95,7 @@ describe('/api/activity modes', () => {
     });
     expect(hook.status).toBe(202);
 
-    const snapshot = await fetch(`${origin}/api/activity`).then((response) => response.json()) as { workers: Array<{ id: string; title?: string }> };
+    const snapshot = await fetch(`${origin.replace('127.0.0.1', 'localhost')}/api/activity`).then((response) => response.json()) as { workers: Array<{ id: string; title?: string }> };
     expect(snapshot.workers).toEqual([
       expect.objectContaining({ id: 'claude:claude-live', title: 'atlas' }),
     ]);
@@ -91,18 +105,19 @@ describe('/api/activity modes', () => {
   it('rejects malformed and oversized native hook requests', async () => {
     const hooks = new HookActivityStore();
     const nativeActivity = new NativeActivityHub([], undefined, hooks);
-    const origin = await start({ mode: 'native', nativeActivity });
+    const auth = hookAuth();
+    const origin = await start({ mode: 'native', nativeActivity, ownerAuth: auth.ownerAuth });
 
     const malformed = await fetch(`${origin}/api/hooks/openclaw`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', authorization: auth.authorization },
       body: '{bad json',
     });
     expect(malformed.status).toBe(400);
 
     const oversized = await fetch(`${origin}/api/hooks/claude`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', authorization: auth.authorization },
       body: JSON.stringify({ payload: 'x'.repeat(70_000) }),
     });
     expect(oversized.status).toBe(413);

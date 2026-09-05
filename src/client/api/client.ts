@@ -1,5 +1,6 @@
 import type { ActivitySnapshot } from '../../shared/activity.js';
 import type { DerivedWorkspace } from '../../server/truth/derive.js';
+import { clearSession, sessionHeaders } from './session.js';
 
 export class ApiError extends Error {
   constructor(public readonly status: number, message: string) {
@@ -16,8 +17,10 @@ class JsonEndpointUnavailableError extends Error {
 }
 
 async function request<T>(path: string, fetchImpl: typeof fetch): Promise<T> {
-  const response = await fetchImpl(path, { headers: { accept: 'application/json' } });
+  const authorization = sessionHeaders(path);
+  const response = await fetchImpl(path, { headers: { accept: 'application/json', ...authorization } });
   if (!response.ok) {
+    if (response.status === 401 && authorization.authorization) clearSession(authorization.authorization.slice(7));
     let message = `Request failed with ${response.status}`;
     try {
       const body = await response.json() as { error?: string };

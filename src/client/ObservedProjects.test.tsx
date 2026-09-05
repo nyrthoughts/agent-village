@@ -6,12 +6,26 @@ import { layoutVillage2d } from './scene2d/villageLayout2d.js';
 import { fitVillageScale } from './scene2d/VillageMap2D.js';
 beforeEach(() => localStorage.clear());
 afterEach(cleanup);
+it('does not offer a zero-project scope expansion', () => {
+  const village = observedVillage([{ id: 'codex:a', tool: 'codex', state: 'idle', projectKey: 'One', project: 'One', title: 'Source', history: [], lastActivityAt: '2026-09-04T12:00:00Z' }], [], ['One']);
+  render(<ObservedProjects village={village} />);
+  expect(screen.queryByRole('button', { name: 'Voir aussi les 0 autres projets' })).toBeNull();
+});
+it('offers a concise sourced journal point that opens the project directly', () => {
+  const village = observedVillage([{ id: 'codex:a', tool: 'codex', state: 'waiting', projectKey: 'One', project: 'One', title: 'Source', history: [{ at: '2026-09-04T12:00:00Z', kind: 'report', text: '## Suite\n- Vérifier le déploiement.' }], lastActivityAt: '2026-09-04T12:00:00Z' }], []);
+  render(<ObservedProjects village={village} />);
+  expect(screen.getByRole('heading', { name: 'À lire en premier' })).toBeTruthy();
+  expect(screen.getByText('Suite annoncée')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Lire le point de One' }));
+  expect(screen.getByRole('dialog')).toBeTruthy();
+  expect(screen.queryByText('Décision requise')).toBeNull();
+});
 it('switches the entire native interface to English, preserves source text and remembers the choice', () => {
   const village = observedVillage([{ id: 'codex:en', tool: 'codex', state: 'working', projectKey: 'Product', project: 'Product', title: 'Projet original', history: [{ at: '2026-09-04T12:00:00Z', kind: 'report', text: '## Fait\n- Tests terminés.\n## Suite\n- Déployer.' }], lastActivityAt: '2026-09-04T12:00:00Z', sourceNote: 'Journal Codex local · état du dernier événement, pas une preuve de livraison' }], ['Codex : index local inaccessible']);
   const view = render(<ObservedProjects village={village} />);
   fireEvent.change(screen.getByRole('combobox', { name: 'Langue / Language' }), { target: { value: 'en' } });
   expect(document.documentElement.lang).toBe('en');
-  expect(screen.getByRole('heading', { name: 'My projects, right now' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Village journal' })).toBeTruthy();
   expect(screen.getByRole('alert').textContent).toContain('Codex: local index unavailable');
   expect(screen.getByRole('button', { name: /^Product\. 1 sessions · 1 working/ })).toBeTruthy();
   expect(screen.getByText(/Source conversations stay in their original language/)).toBeTruthy();
@@ -27,16 +41,16 @@ it('switches the entire native interface to English, preserves source text and r
   fireEvent.click(screen.getByRole('button', { name: 'Close project' }));
   view.unmount();
   render(<ObservedProjects village={village} />);
-  expect(screen.getByRole('heading', { name: 'My projects, right now' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Village journal' })).toBeTruthy();
   fireEvent.change(screen.getByRole('combobox', { name: 'Langue / Language' }), { target: { value: 'fr' } });
-  expect(screen.getByRole('heading', { name: 'Mes projets, maintenant' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Journal du village' })).toBeTruthy();
   expect(document.documentElement.lang).toBe('fr');
 });
 
 it('falls back to French when the saved language is unsupported', () => {
   localStorage.setItem('agent-village:language', 'unsupported');
   render(<ObservedProjects village={observedVillage([], [])} />);
-  expect(screen.getByRole('heading', { name: 'Mes projets, maintenant' })).toBeTruthy();
+  expect(screen.getByRole('heading', { name: 'Journal du village' })).toBeTruthy();
   expect(screen.getByRole('combobox', { name: 'Langue / Language' })).toHaveProperty('value', 'fr');
 });
 

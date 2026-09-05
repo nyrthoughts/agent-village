@@ -1,5 +1,5 @@
 import type { DerivedWorkspace } from '../../server/truth/derive.js';
-import type { PixelBuildingPlacement, PixelLandmark, PixelPath, PixelZone, VillageLayout2d } from './types.js';
+import type { PixelBuildingPlacement, PixelLandmark, PixelObstacle, PixelPath, PixelZone, VillageLayout2d } from './types.js';
 
 const WORLD_WIDTH = 64;
 const ZONE_WIDTH = 28;
@@ -19,16 +19,52 @@ function zoneHeight(taskCount: number): number {
   return 24 + Math.max(0, rows - 2) * 7;
 }
 
-export function layoutVillage2d(village: DerivedWorkspace): VillageLayout2d {
-  if (village.observation) {
-    const height = Math.max(44, 12 + Math.ceil(village.projects.length / 3) * 14);
-    const buildings = village.projects.map((project, index) => ({ taskId: project.id, projectId: project.id, x: 6 + index % 3 * 19, y: 7 + Math.floor(index / 3) * 14, variant: index % 3 }));
-    return { width: 64, height, entrance: { x: 31, y: height - 4 }, buildings,
-      zones: village.projects.map((project, index) => ({ projectId: project.id, name: project.name, x: buildings[index]!.x, y: buildings[index]!.y, width: 16, height: 12, signX: buildings[index]!.x + 1, signY: buildings[index]!.y + 9 })),
-      paths: buildings.map((building) => ({ x: building.x + 3, y: building.y + 6, width: 17, height: 3, kind: 'horizontal' as const })),
-      landmarks: [{ kind: 'pond', x: 51, y: height - 9, width: 9, height: 5 }],
-    };
+function observedVillage(village: DerivedWorkspace): VillageLayout2d {
+  const positions = [[11, 9], [29, 6], [45, 12], [9, 27], [22, 30], [46, 28]] as const;
+  const height = 48 + Math.ceil(Math.max(0, village.projects.length - 6) / 3) * 12;
+  const buildings: PixelBuildingPlacement[] = village.projects.map((project, index) => {
+    const [x, y] = positions[index] ?? [[9, 22, 47][(index - 6) % 3]!, 43 + Math.floor((index - 6) / 3) * 12 + (index % 2) * 2];
+    return { taskId: project.id, projectId: project.id, x, y, variant: index % 3, door: { x: x + 3, y: y + 6 } };
+  });
+  const paths: PixelPath[] = [
+    { x: 27, y: 20, width: 12, height: 8, kind: 'square' },
+    { x: 12, y: 21, width: 39, height: 3, kind: 'horizontal' },
+    { x: 30, y: 25, width: 4, height: height - 25, kind: 'vertical' },
+  ];
+  for (const building of buildings) {
+    const door = building.door!;
+    const laneY = building.y < 20 ? 22 : building.y < 40 ? (building.x > 40 ? 36 : 38) : door.y + 2;
+    paths.push(
+      { x: door.x - 1, y: Math.min(door.y, laneY), width: 3, height: Math.abs(door.y - laneY) + 2, kind: 'spur' },
+      { x: Math.min(door.x, 31), y: laneY, width: Math.abs(door.x - 31) + 3, height: 3, kind: 'horizontal' },
+    );
   }
+  const landmarks: PixelLandmark[] = [
+    { kind: 'pond', x: 45, y: buildings.length > 6 ? 5 : height - 9, width: 14, height: 6 },
+    { kind: 'cliff', x: 3, y: 17, width: 7, height: 7 },
+    { kind: 'fountain', x: 35, y: 22, width: 3, height: 3 },
+  ];
+  const obstacles: PixelObstacle[] = [
+    { kind: 'forest', x: 0, y: 0, width: 64, height: 5 },
+    { kind: 'forest', x: 0, y: 5, width: 5, height: 12 },
+    { kind: 'forest', x: 0, y: 24, width: 4, height: height - 24 },
+    { kind: 'forest', x: 60, y: 5, width: 4, height: height - 5 },
+    { kind: 'forest', x: 4, y: height - 3, width: 24, height: 3 },
+    { kind: 'forest', x: 36, y: height - 3, width: 24, height: 3 },
+    ...buildings.map(({ x, y }): PixelObstacle => ({ kind: 'building', x, y, width: 7, height: 6 })),
+    ...landmarks.map(({ x, y, width, height, kind }): PixelObstacle => ({ x, y, width, height, kind: kind === 'pond' ? 'water' : 'cliff' })),
+  ];
+  return {
+    width: 64, height, buildings, paths, landmarks, obstacles, entrance: { x: 31, y: height - 4 },
+    zones: village.projects.map((project, index) => {
+      const building = buildings[index]!;
+      return { projectId: project.id, name: project.name, x: building.x - 2, y: building.y - 1, width: 11, height: 10, signX: building.x + 3, signY: building.y + 7 };
+    }),
+  };
+}
+
+export function layoutVillage2d(village: DerivedWorkspace): VillageLayout2d {
+  if (village.observation) return observedVillage(village);
   const rowCount = Math.max(1, Math.ceil(village.projects.length / ZONE_COLUMNS));
   const rowHeights = Array.from({ length: rowCount }, (_, row) => Math.max(
     ...village.projects.slice(row * ZONE_COLUMNS, row * ZONE_COLUMNS + ZONE_COLUMNS)

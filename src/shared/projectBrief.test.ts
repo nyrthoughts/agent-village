@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { projectBrief } from './projectBrief.js';
+import { projectBrief, villageBriefing } from './projectBrief.js';
 import type { ObservedSession } from './observation.js';
 
 const session = (id: string, history: ObservedSession['history']): ObservedSession => ({ id, tool: 'codex', title: id, state: 'idle', projectKey: 'repo', lastActivityAt: '2026-09-04T15:00:00Z', history });
+it('selects at most three fresh project reports with sources, not waiting-state guesses', () => {
+  const projects = Array.from({ length: 5 }, (_, i) => ({ id: `p${i}`, name: `Project ${i}`, sessions: [session(`s${i}`, [{ at: `2026-09-04T12:0${i}:00Z`, kind: 'report', text: i === 4 ? '## Blocage\n- Accès manquant.' : 'Dernier résultat.' }])] }));
+  const brief = villageBriefing(projects, {});
+  expect(brief).toHaveLength(3);
+  expect(brief[0]).toMatchObject({ projectId: 'p4', kind: 'blocked', entry: { sessionId: 's4', text: 'Accès manquant.' } });
+  expect(villageBriefing([{ id: 'no-text', name: 'No text', sessions: [{ ...session('idle', []), state: 'waiting' }] }], {})).toEqual([]);
+  expect(villageBriefing([projects[4]!], { p4: '2026-09-04T12:04:00Z' })).toEqual([]);
+});
 describe('project catch-up', () => {
   it('merges real reports chronologically across sessions rather than following hook recency', () => {
     const brief = projectBrief([

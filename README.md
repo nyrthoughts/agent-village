@@ -1,160 +1,89 @@
 # Agent Village
 
-Agent Village turns parallel agent work into a small construction village you can read in seconds.
+Agent Village turns parallel agent work into a small village you can read in seconds.
 
 ![Agent Village desktop preview](docs/preview-desktop.png)
 
-In private native mode, each project has a building containing its actual Codex and Claude Code conversations, recent requests and timestamped reports. The public demo retains the evidence-backed task-building model. Activity never proves delivery.
+The private native village groups actual Codex and Claude Code conversations into project buildings. It shows recent requests, timestamped reports and source history after the owner's passkey check. The public [GitHub Pages demo](https://nyrthoughts.github.io/agent-village/) uses fictional data. Activity and agent reports never prove delivery.
 
-## What V1 does
+## Private native quick start
 
-- Renders `workspace → project → feature → task → subtask` as an original top-down pixel village.
-- Advances every building through lot, foundation, frame, walls, roof, and complete stages from verified work only.
-- Assigns one of eight stable architectural families to each task without imported game assets.
-- Keeps blocked and review markers independent from how much of a building is already constructed.
-- Shows lead agents as full-sized people and helper agents as smaller people with a count above their lead.
-- Opens buildings and people independently for recovery context and honest analytics.
-- Shows sourced reports and history in native mode, hiding unsupported token/time estimates. The fictional demo demonstrates evidence-backed progress.
-- Supports bounded panning, keyboard navigation, reduced motion, and a mobile attention list.
-- Reads existing Codex Desktop/CLI and Claude Code sessions locally, including Claude tmux metadata. Optional hooks observe new lifecycle events.
-- Optionally accepts redacted sessions from another local AMC-compatible endpoint.
-- Keeps the last known truth visible when activity disappears.
-- Publishes a safe static demo without exposing local agent data.
-
-## Quick start
-
-Requirements: Node.js 20.19+ and npm.
-
-### Temporary observer launcher
-
-Requirements: Node.js 20.19+, npm, sqlite3, curl, and tar.
+Requirements: Node.js 20.19+, npm and sqlite3. Run from a trusted source checkout:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/nyrthoughts/agent-village/main/scripts/run-temporary.sh | sh
+npm ci
+npm run build
+npm run auth:setup
+VILLAGE_MODE=native npm start
 ```
 
-The launcher downloads and builds Agent Village below `mktemp`, keeps its npm cache there, binds only to `127.0.0.1`, and removes the runtime when you stop it with `Ctrl-C`. It uses temporary disk and RAM while running; it does not install Agent Village, a daemon, hooks, or a database.
+Open `http://localhost:4180`. Setup prints the location of a private `bootstrap.txt` file, never its code. Open it locally, enter the code in the locked page within 15 minutes, then register your passkey. User verification is required. Enrollment consumes the code; setup cannot replace an enrolled owner.
 
-The local page reads private conversations on this computer, never from GitHub. Each detected project gets a building automatically. For explicit project grouping, set `VILLAGE_PROJECT_ALIASES` to a JSON object of absolute directory paths (or `session:codex:ID`, `session:claude:ID`, `title:PREFIX`) mapped to display names. Matching aliases share a building. For example:
+Conversations do not load before authentication. The browser keeps its bearer token only in memory for 30 minutes. Reloading requires another login. **Lock** removes private content immediately; successful logout revokes the server session. Each login rotates the previous session.
+
+The server binds to `127.0.0.1` but uses `localhost` as the canonical browser origin. The IP URL redirects to localhost on the same port. Remote devices, Tailscale proxies and public tunnels are unsupported. See [owner access](docs/owner-access.md) and [deployment](docs/deployment.md) for private storage, restarts and the disposable launcher.
+
+## Read or visit
+
+- Read sourced project updates, a combined timeline and original conversations. Briefs extract explicit sections; they are not model-generated summaries or independently verified results.
+- Open any project directly from the list or a building. Optional **Visit the village** mode adds three avatar appearances and click-to-walk paths around houses, forest and water.
+- Click a house in visit mode to reach its door and open its brief. A new destination replaces the old one; Escape stops walking. Keyboard activation opens details immediately.
+- Use bounded camera panning, mobile controls and reduced motion. Source refreshes do not reset an unchanged route.
+- Choose **Français / English** before login or in the village. Interface labels and dates change; source conversations keep their original language. No translation API is used.
+- Mark a project as read to identify later exchanges. Reading points and language stay in browser storage; bearer tokens and conversation text do not.
+
+The village uses original pixel art and eight building families, with no copied game assets or added game engine. Agents and helpers are separate observations, not completion indicators.
+
+## Connect existing work
+
+Codex requires no API key. Native mode uses `sqlite3 -readonly` against its existing local index, then reads bounded transcript tails. Claude sessions come from existing journals and process metadata, including tmux when present. Nothing starts or instructs an agent.
+
+The view refreshes every five seconds while visible. It selects up to 60 sessions per source with a seven-day recency window; running Claude sessions may be older. Each transcript read is capped at 4 MiB and displayed history at 24 exchanges per session. Reasoning and tool payloads are excluded. Original journals remain the history source; no new conversation database is created.
+
+Projects are grouped automatically. `VILLAGE_PROJECT_ALIASES` maps directory paths, session IDs or title prefixes to display names. `VILLAGE_FOCUS_PROJECTS` selects initially displayed project names; search still exposes the rest after login. Keep real path mappings outside the repository.
+
+Claude and OpenClaw hooks are optional. After first-time `auth:setup`:
 
 ```sh
-VILLAGE_MODE=native VILLAGE_PROJECT_ALIASES='{"title:CLI":"CLI project"}' npm start
+npm run connect:claude
+# Remove only Agent Village hooks:
+npm run disconnect:claude
 ```
 
-The public [GitHub Pages preview](https://nyrthoughts.github.io/agent-village/) always remains fictional. Inspect the [launcher source](scripts/run-temporary.sh) before running the one-line command if you prefer not to pipe remote code directly into a shell.
+The installer preserves unrelated Claude settings. Hook requests load a separate authorization header from the private `ingestion.header` file. It permits observation submissions, never project reads or owner authentication. The bundled OpenClaw plugin uses the same private header and reports lifecycle metadata only. See [connections](docs/connections.md) for installation and custom ports.
 
-### Develop from source
+## Demo and YAML modes
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173`. The default fixture is fictional and safe to publish.
-
-To run the production build locally:
+Open `http://127.0.0.1:5173` for the fictional development fixture. To serve its production build:
 
 ```sh
 npm run build
 npm start
 ```
 
-Open `http://127.0.0.1:4180`.
+Open `http://127.0.0.1:4180`. These demo commands do not enable native observation.
 
-Drag the map or use the arrow keys to explore it. Select a house or person to open its field record.
-
-## Connect your work
-
-Copy `fixtures/village.demo.yaml`, replace the fictional content, and point the server at it:
-
-```sh
-VILLAGE_FILE=/absolute/path/to/village.yaml VILLAGE_MODE=truth-only npm start
-```
-
-The hierarchy is intentionally small:
-
-```yaml
-version: 1
-name: My workspace
-projects:
-  - id: product
-    name: Product
-    objective: Ship the first useful release
-    features:
-      - id: onboarding
-        title: Onboarding
-        tasks:
-          - id: signup
-            title: Signup flow
-            owner: codex
-            status: in_progress
-            nextAction: Verify the happy path
-            resumeHint: codex resume signup
-            subtasks: []
-            evidence: []
-    tasks: []
-```
-
-Every ID must be unique. Supported states are `planned`, `in_progress`, `blocked`, `awaiting_review`, and `verified`.
-
-## Evidence, not vibes
-
-V1 inspects two proof types:
-
-- `commit`: verifies that a 7–40 character lowercase SHA exists inside a repository below the YAML directory.
-- `human_review`: `approved` proves completion; `pending` moves the item to review.
-
-`test`, `pr_merged`, `deployed`, and `observed` are represented but return `not_checked_v1`. They cannot prove completion yet. A declared `verified` item without verified evidence is downgraded to `in_progress` with `unproven_claim`.
-
-## Activity modes
-
-| Mode | Behavior |
+| Mode | Data and access |
 | --- | --- |
-| `demo` | Uses the fictional activity fixture. This is the default. |
-| `truth-only` | Shows no workers. Progress still works completely. |
-| `native` | Reads local Codex/Claude transcripts and shows project buildings, reports and history. |
-| `live` | Reads a local AMC-compatible JSON endpoint with an 800 ms timeout. |
+| `demo` | Fictional YAML and activity fixture; default, no owner gate. |
+| `truth-only` | YAML evidence without workers; no owner gate. |
+| `native` | Owner passkey required; local observed projects and conversations. |
+| `live` | YAML plus an AMC-compatible loopback activity endpoint; no owner gate. |
 
-### Native Codex + Claude Code
+Use fictional or non-sensitive inputs outside native mode. Copy `fixtures/village.demo.yaml` to define a YAML workspace and set `VILLAGE_FILE` to its location. All IDs must be unique. Supported states are `planned`, `in_progress`, `blocked`, `awaiting_review` and `verified`.
 
-Codex needs no API key. The observer uses `sqlite3 -readonly` against `~/.codex/state_5.sqlite`, then reads bounded transcript tails. Claude sessions are discovered from `~/.claude/projects` and running-process metadata in `~/.claude/sessions`. Existing tmux sessions appear without restarting their agents. Sources are limited to this computer; a remote CLI is not implicitly connected.
+YAML modes map `workspace → project → feature → task → subtask` into evidence-based construction stages. V1 verifies repository commit existence and approved human review. Other represented proof types (`test`, `pr_merged`, `deployed`, `observed`) remain `not_checked_v1`; they cannot prove completion. Native buildings instead organize observations and omit unsupported progress percentages, token counts and time estimates.
 
-The private view includes user requests and assistant reports, but excludes reasoning and tool payloads. It refreshes every five seconds while visible. History survives dashboard restarts by rereading the original journals, not by creating another conversation database. Limits: 60 recent sessions per source, seven days, a 4 MiB transcript tail and 24 exchanges per session. Unsupported metrics are omitted. Reports are agent claims, not independently verified outcomes. Native requests reject foreign hosts/origins; the server binds to loopback only. Do not expose it through a public tunnel.
+## Privacy boundary
 
-Choose **Français / English** in the native view header. The browser remembers the choice. Interface labels, dates and known system messages switch language; project names and original conversation excerpts remain unchanged. No translation API is used.
+The public repository and demo contain fictional data and cannot read this computer's sessions. Native source conversations stay local; authentication files must remain outside the repository and build output.
 
-**Local-only is not user authentication.** There is no login in native mode. Other software or accounts on the same computer, or someone using your browser session, may access the local endpoint. The public GitHub repository and GitHub Pages demo are accessible to everyone; they contain fictional data, not your native conversations. An Internet-hosted personal dashboard would require a separate authenticated deployment.
-
-Each project opens a sourced **brief**, a combined **evolution timeline**, and its **conversations**. Explicit done/next/blocker sections are extracted verbatim from the latest reports, not inferred by a model. Mark a project as read to see new exchanges on your next visit; this reading point stays in browser storage. Set `VILLAGE_FOCUS_PROJECTS='["Product","Data"]'` to show a focused set of project buildings by default; search and “other projects” still expose the rest. Focused projects retain distinct architectural styles when filtered.
-
-Start the dashboard; hooks are optional for additional lifecycle events:
-
-```sh
-npm run build
-VILLAGE_MODE=native npm start
-# Optional: npm run connect:claude
-```
-
-The installer preserves existing Claude settings and is idempotent. It observes `SubagentStart` and `SubagentStop` so helpers remain attached to their lead. Remove only Agent Village's hooks with `npm run disconnect:claude`.
-
-### OpenClaw
-
-Install the bundled local plugin on a machine with OpenClaw:
-
-```sh
-openclaw plugins install ./integrations/openclaw
-VILLAGE_MODE=native npm start
-```
-
-The plugin sends lifecycle metadata only. OpenClaw is optional and is not a runtime dependency of Agent Village.
-
-For live mode:
-
-```sh
-VILLAGE_MODE=live AMC_ENDPOINT=http://127.0.0.1:PORT/api/dashboard npm start
-```
-
-The adapter accepts only loopback HTTP endpoints, allowlists fields, normalizes tools/states, redacts likely paths, emails, and secrets, and never mutates progress. Map session titles to tasks with `activity_mapping` in the YAML fixture.
+Passkeys do not protect journals against software running as the owner's OS account, root/administrator access or malware. Anyone using an unlocked browser session can read it. Do not share the OS account, passkey or active session. See [security](SECURITY.md) for the full boundary.
 
 ## Quality gates
 
@@ -167,10 +96,6 @@ node scripts/check-clean.mjs
 npm audit
 ```
 
-See [connections](docs/connections.md), [architecture](docs/architecture.md), [private deployment](docs/deployment.md), [contributing](CONTRIBUTING.md), and [security](SECURITY.md).
-
-## V1 boundaries
-
-No database, game engine, copied game asset, WebSocket layer, authentication system, or agent control plane. Public hosting serves the fictional demo only; real agent activity stays on the local machine. React, CSS pixel art, and YAML are enough for the first release. See [the backlog](docs/backlog.md) for deliberately deferred work.
+See [architecture](docs/architecture.md), [contributing](CONTRIBUTING.md) and [the backlog](docs/backlog.md). Agent Village has no agent control plane, remote transcript bridge or model inference service.
 
 Apache-2.0. See `LICENSE` and `NOTICE`.

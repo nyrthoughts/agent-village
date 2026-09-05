@@ -1,0 +1,21 @@
+.owner-gate { min-height: 100dvh; display: grid; place-items: center; padding: 72px 24px; background: radial-gradient(ellipse at 50% 24%,#dce4cb 0%,#ececdc 52%,#e6e0cc 100%); color: #263d34; }
+.owner-gate__language { position: absolute; right: 24px; top: 24px; font-size: 12px; }
+.owner-gate select { margin-left: 8px; padding: 7px; background: #faf6e8; border: 1px solid #9caa95; border-radius: 5px; }
+.owner-gate__card { max-width: 450px; padding: 36px; border: 1px solid #bdc7aa; background: #fbf7e9; border-radius: 16px; box-shadow: 0 20px 80px #344d3220; }
+.owner-gate h1 { font: 500 clamp(28px,4vw,38px)/1.12 Georgia,serif; margin: 14px 0; letter-spacing: -.8px; }
+.owner-gate p { font-size: 14px; line-height: 1.65; }
+.owner-gate small { font: 600 10px/1.5 ui-monospace,monospace; letter-spacing: 2px; }
+.owner-gate form { margin-top: 28px; }
+.owner-gate label { font-size: 12px; }
+.owner-gate input { display: block; width: 100%; padding: 12px; margin: 8px 0; background: #fffdf6; border: 1px solid #9baa92; border-radius: 6px; }
+.owner-gate button { width: 100%; min-height: 46px; border: 0; border-radius: 7px; background: #294d3d; color: #fff8e5; font-weight: 600; cursor: pointer; }
+.owner-gate button:disabled { opacity: .55; cursor: default; }
+.owner-gate button:focus-visible,.owner-gate input:focus-visible,.owner-lock:focus-visible { outline: 3px solid #a96d2e; outline-offset: 3px; }
+.owner-gate .owner-gate__hint { font-size: 11px; color: #596958; }
+.owner-gate__error { padding: 10px; border-left: 3px solid #a35439; background: #f5e4d6; }
+.owner-gate footer { border-top: 1px solid #d9dcc8; padding-top: 18px; margin-top: 24px; font-size: 11px; line-height: 1.6; color: #596958; }
+.owner-gate__house { position: relative; width: 66px; height: 46px; margin: 18px auto 35px; background: #e1ca91; box-shadow: 6px 6px 0 #526f5030; border: 4px solid #446052; }
+.owner-gate__house::before { content: ''; position: absolute; left: -12px; top: -23px; width: 82px; height: 28px; background: #467f68; clip-path: polygon(20% 0,80% 0,100% 100%,0 100%); border-bottom: 5px solid #2e5848; }
+.owner-gate__house span { position: absolute; bottom: 0; left: 25px; width: 14px; height: 22px; background: #815c39; box-shadow: -19px -4px 0 -3px #97b9b2,18px -4px 0 -3px #97b9b2; }
+.owner-lock { position: fixed; right: 16px; bottom: 16px; z-index: 100; border: 1px solid #9baa92; background: #fbf7e9; color: #294d3d; padding: 9px 14px; border-radius: 20px; box-shadow: 0 3px 12px #203b2820; cursor: pointer; font-size: 11px; }
+@media(max-width: 500px) { .owner-gate { padding: 70px 16px 24px; } .owner-gate__card { padding: 25px; } }

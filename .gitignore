@@ -9,3 +9,8 @@ test-results/
 logs/
 *.log
 .DS_Store
+output/
+# Local owner credentials must never enter the public repository.
+bootstrap.txt
+ingestion.header
+owner.json

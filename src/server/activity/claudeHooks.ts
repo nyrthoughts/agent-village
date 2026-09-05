@@ -1,15 +1,7 @@
+import { isAbsolute } from 'node:path';
+import { CLAUDE_HOOK_EVENTS } from './hookStore.js';
+
 const MARKER = 'agent-village-hook';
-const EVENTS = [
-  'SessionStart',
-  'UserPromptSubmit',
-  'PostToolUse',
-  'PostToolUseFailure',
-  'Notification',
-  'Stop',
-  'SubagentStart',
-  'SubagentStop',
-  'SessionEnd',
-] as const;
 
 interface ClaudeHookHandler {
   type: string;
@@ -33,10 +25,16 @@ function assertLoopback(endpoint: string): void {
   if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)) {
     throw new Error('Claude hook endpoint must use loopback HTTP');
   }
+  if (url.username || url.password || url.search || url.hash || url.pathname !== '/api/hooks/claude') {
+    throw new Error('Claude hook endpoint must be the local ingestion route');
+  }
 }
 
-function hookCommand(endpoint: string): string {
-  return `curl --silent --max-time 0.25 --request POST --header 'content-type: application/json' --data-binary @- '${endpoint}' >/dev/null 2>&1 || true # ${MARKER}`;
+function shellQuote(value: string): string { return `'${value.replace(/'/g, "'\\''")}'`; }
+
+function hookCommand(endpoint: string, headerPath: string): string {
+  // curl loads Authorization from a private file; neither argv nor settings contain its value.
+  return `curl -q --noproxy '*' --proto '=http' --max-redirs 0 --silent --max-time 0.25 --request POST --header 'content-type: application/json' --header ${shellQuote(`@${headerPath}`)} --data-binary @- ${shellQuote(endpoint)} >/dev/null 2>&1 || true # ${MARKER}`;
 }
 
 function asSettings(value: unknown): ClaudeSettings {
@@ -48,12 +46,13 @@ function asSettings(value: unknown): ClaudeSettings {
   return { ...source, hooks } as ClaudeSettings;
 }
 
-export function mergeClaudeHooks(value: unknown, endpoint: string): ClaudeSettings {
+export function mergeClaudeHooks(value: unknown, endpoint: string, headerPath: string): ClaudeSettings {
   assertLoopback(endpoint);
-  const settings = asSettings(value);
-  const command = hookCommand(endpoint);
+  if (!isAbsolute(headerPath) || /[\r\n\0]/.test(headerPath)) throw new Error('Private hook header path must be absolute');
+  const settings = removeClaudeHooks(value); // Upgrade existing marked commands, preserving unrelated handlers.
+  const command = hookCommand(endpoint, headerPath);
   const hooks = { ...settings.hooks };
-  for (const event of EVENTS) {
+  for (const event of CLAUDE_HOOK_EVENTS) {
     const groups = Array.isArray(hooks[event]) ? [...hooks[event]!] : [];
     const present = groups.some((group) =>
       Array.isArray(group.hooks)

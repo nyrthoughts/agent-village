@@ -96,6 +96,7 @@ SOURCE_DIR="$RUNTIME_DIR/source"
 ARCHIVE_PATH="$RUNTIME_DIR/source.tar.gz"
 NPM_CACHE_DIR="$RUNTIME_DIR/npm-cache"
 VILLAGE_URL="http://127.0.0.1:$PORT"
+VILLAGE_AUTH_DIR="$RUNTIME_DIR/private-auth"
 
 trap cleanup EXIT
 trap 'handle_signal 130' INT
@@ -125,6 +126,11 @@ fi
 export VILLAGE_FILE
 export VILLAGE_MODE=native
 export PORT
+export VILLAGE_AUTH_DIR
+
+# This launcher promises no persistent state. Owner enrollment belongs to this
+# temporary runtime and is removed by the existing validated cleanup trap.
+node node_modules/tsx/dist/cli.mjs scripts/auth-setup.ts
 
 node node_modules/tsx/dist/cli.mjs src/server/index.ts &
 SERVER_PID=$!

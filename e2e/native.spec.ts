@@ -30,7 +30,7 @@ test('private project cockpit keeps six buildings, sourced history and increment
   await page.reload();
   await expect(page.getByText('1 nouveaux échanges', { exact: true })).toBeVisible();
   await page.getByRole('combobox', { name: 'Langue / Language' }).selectOption('en');
-  await expect(page.getByRole('heading', { name: 'My projects, right now' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Village journal' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.reload();
   await expect(page.getByRole('combobox', { name: 'Langue / Language' })).toHaveValue('en');
@@ -44,5 +44,5 @@ test('private project cockpit keeps six buildings, sourced history and increment
   await expect(page.getByRole('heading', { name: 'Recent history' })).toBeVisible();
   await page.getByRole('button', { name: 'Close project' }).click();
   await page.getByRole('combobox', { name: 'Langue / Language' }).selectOption('fr');
-  await expect(page.getByRole('heading', { name: 'Mes projets, maintenant' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Journal du village' })).toBeVisible();
 });

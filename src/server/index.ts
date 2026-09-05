@@ -6,12 +6,14 @@ import { createRouter, type RouterOptions } from './router.js';
 import { HookActivityStore } from './activity/hookStore.js';
 import { NativeActivityHub } from './activity/nativeActivity.js';
 import { LocalSessions } from './activity/localSessions.js';
+import { OwnerAuth } from './auth/ownerAuth.js';
+import { DEFAULT_AUTH_DIRECTORY } from './auth/privateState.js';
 
 export const LOCAL_HOST = '127.0.0.1';
 
 export function createVillageServer(options: RouterOptions): Server {
   const route = createRouter(options);
-  return createServer((request, response) => {
+  const server = createServer((request, response) => {
     void route(request, response).catch(() => {
       if (!response.headersSent) {
         response.statusCode = 500;
@@ -20,6 +22,10 @@ export function createVillageServer(options: RouterOptions): Server {
       response.end('{"error":"internal_error"}');
     });
   });
+  server.requestTimeout = 10_000;
+  server.headersTimeout = 10_000;
+  server.maxHeadersCount = 50;
+  return server;
 }
 
 export function listenLocal(server: Server, port: number): Promise<void> {
@@ -44,6 +50,7 @@ async function main(): Promise<void> {
     villagePath: resolve(process.env.VILLAGE_FILE ?? 'fixtures/village.demo.yaml'),
     distDir: resolve(process.env.DIST_DIR ?? 'dist'),
     mode,
+    ownerAuth: mode === 'native' ? new OwnerAuth(process.env.VILLAGE_AUTH_DIR ?? DEFAULT_AUTH_DIRECTORY) : undefined,
     amcEndpoint: process.env.AMC_ENDPOINT,
     demoActivityPath: resolve(process.env.AMC_FIXTURE ?? 'fixtures/amc/dashboard.nominal.json'),
     nativeActivity: mode === 'native' ? nativeActivity : undefined,
@@ -51,7 +58,8 @@ async function main(): Promise<void> {
     focusProjects: JSON.parse(process.env.VILLAGE_FOCUS_PROJECTS ?? '[]'),
   });
   await listenLocal(server, port);
-  console.log(`Agent Village listening on http://${LOCAL_HOST}:${port}`);
+  const actualPort = (server.address() as { port: number }).port;
+  console.log(`Agent Village listening on http://${mode === 'native' ? 'localhost' : LOCAL_HOST}:${actualPort}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

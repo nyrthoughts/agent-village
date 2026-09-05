@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { dirname, resolve } from 'node:path';
 import type { ActivitySnapshot } from '../shared/activity.js';
@@ -11,6 +11,7 @@ import { verifyWorkspaceEvidence } from './truth/evidence/verify.js';
 import { hasTraversal, readStatic } from './static.js';
 import type { LocalSessions } from './activity/localSessions.js';
 import { observedVillage, mergeLiveSessions } from './activity/projectObserver.js';
+import { AuthError, OwnerAuth } from './auth/ownerAuth.js';
 
 export interface RouterOptions {
   villagePath: string;
@@ -22,6 +23,7 @@ export interface RouterOptions {
   localSessions?: LocalSessions;
   focusProjects?: string[];
   now?: () => Date;
+  ownerAuth?: OwnerAuth;
 }
 
 function json(response: ServerResponse, status: number, value: unknown): void {
@@ -32,58 +34,126 @@ function json(response: ServerResponse, status: number, value: unknown): void {
 
 const MAX_HOOK_BYTES = 64 * 1024;
 
-async function readJsonBody(request: IncomingMessage): Promise<
+export async function readJsonBody(request: IncomingMessage, timeoutMs = 5_000): Promise<
   | { ok: true; value: unknown }
-  | { ok: false; status: 400 | 413 }
+  | { ok: false; status: 400 | 408 | 413 }
 > {
   const declaredLength = Number(request.headers['content-length'] ?? 0);
   if (declaredLength > MAX_HOOK_BYTES) {
-    request.resume();
+    request.pause();
     return { ok: false, status: 413 };
   }
-  const chunks: Buffer[] = [];
-  let size = 0;
-  let oversized = false;
-  for await (const chunk of request) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    size += buffer.length;
-    if (size > MAX_HOOK_BYTES) {
-      oversized = true;
-      continue;
-    }
-    chunks.push(buffer);
-  }
-  if (oversized) return { ok: false, status: 413 };
-  try {
-    return { ok: true, value: JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown };
-  } catch {
-    return { ok: false, status: 400 };
-  }
+  return new Promise((done) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    let settled = false;
+    const finish = (value: Awaited<ReturnType<typeof readJsonBody>>) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      request.off('data', onData); request.off('end', onEnd); request.off('aborted', onAbort);
+      if (!value.ok) request.pause();
+      done(value);
+    };
+    const onData = (chunk: Buffer | string) => {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      size += buffer.length;
+      if (size > MAX_HOOK_BYTES) finish({ ok: false, status: 413 });
+      else chunks.push(buffer);
+    };
+    const onEnd = () => {
+      try { finish({ ok: true, value: JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown }); }
+      catch { finish({ ok: false, status: 400 }); }
+    };
+    const onAbort = () => finish({ ok: false, status: 400 });
+    const timer = setTimeout(() => finish({ ok: false, status: 408 }), timeoutMs);
+    request.on('data', onData); request.once('end', onEnd); request.once('aborted', onAbort);
+    // Keep an error listener for a late socket error after an abort/oversize rejection.
+    request.once('error', onAbort);
+    if (request.aborted) onAbort();
+  });
 }
 
 export function createRouter(options: RouterOptions) {
+  if (options.mode === 'native' && options.ownerAuth) {
+    const staticPath = existsSync(options.distDir) ? realpathSync(options.distDir) : resolve(options.distDir);
+    const authPath = options.ownerAuth.directory;
+    if (authPath === staticPath || authPath.startsWith(`${staticPath}/`)) {
+      throw new Error('Native auth directory must stay outside the static directory');
+    }
+  }
   const observed = async () => {
     const local = await options.localSessions!.snapshot();
     const hooks = options.nativeActivity ? await options.nativeActivity.snapshot([]) : undefined;
     return { ...local, sessions: mergeLiveSessions(local.sessions, hooks?.workers ?? []) };
   };
   return async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
+    const rawPath = (request.url ?? '/').split('?')[0] ?? '/';
+    const canonicalOrigin = `http://localhost:${request.socket.localPort}`;
     if (options.mode === 'native') {
       const host = request.headers.host ?? '';
-      if (!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(host)
+      const expectedHosts = [`localhost:${request.socket.localPort}`, `127.0.0.1:${request.socket.localPort}`];
+      if (!expectedHosts.includes(host)
         || (request.headers.origin && request.headers.origin !== `http://${host}`)
-        || request.headers['sec-fetch-site'] === 'cross-site') {
+        || (request.headers['sec-fetch-site'] && !['same-origin', 'none'].includes(String(request.headers['sec-fetch-site'])))) {
         json(response, 403, { error: 'local_access_only' }); return;
       }
       response.setHeader('cache-control', 'no-store');
       response.setHeader('x-content-type-options', 'nosniff');
       response.setHeader('referrer-policy', 'no-referrer');
-      response.setHeader('content-security-policy', "frame-ancestors 'none'");
+      // Inline styles position the existing React/SVG scene; scripts remain same-origin only.
+      response.setHeader('content-security-policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+      response.setHeader('x-frame-options', 'DENY');
     }
-    const rawPath = (request.url ?? '/').split('?')[0] ?? '/';
     if (hasTraversal(rawPath)) {
       json(response, 400, { error: 'bad_path' });
       return;
+    }
+
+    if (request.method === 'GET' && rawPath === '/api/health') { json(response, 200, { ok: true }); return; }
+    if (request.method === 'GET' && rawPath === '/api/auth/status') {
+      if (options.mode !== 'native') { json(response, 200, { native: false }); return; }
+      try {
+        if (!options.ownerAuth) throw new Error('Missing native auth');
+        json(response, 200, { native: true, canonicalOrigin, ...options.ownerAuth.status() });
+      } catch { json(response, 503, { error: 'auth_unavailable' }); }
+      return;
+    }
+
+    const isHook = rawPath === '/api/hooks/claude' || rawPath === '/api/hooks/openclaw';
+    if (options.mode === 'native' && rawPath.startsWith('/api/')) {
+      try {
+        if (!options.ownerAuth) { json(response, 503, { error: 'auth_unavailable' }); return; }
+        if (!isHook && `http://${request.headers.host}` !== canonicalOrigin) throw new AuthError(403, 'local_access_only');
+        if (rawPath.startsWith('/api/auth/')) {
+          if (request.method !== 'POST') { json(response, 405, { error: 'method_not_allowed' }); return; }
+          if (request.headers.origin !== canonicalOrigin) throw new AuthError(403, 'local_access_only');
+          options.ownerAuth.limit('auth');
+          if (rawPath === '/api/auth/logout') { json(response, 200, options.ownerAuth.logout(request.headers.authorization)); return; }
+          if (!['/api/auth/enroll/options', '/api/auth/enroll/verify', '/api/auth/login/options', '/api/auth/login/verify'].includes(rawPath)) {
+            json(response, 404, { error: 'not_found' }); return;
+          }
+          if (!request.headers['content-type']?.startsWith('application/json')) throw new AuthError(400, 'invalid_json');
+          const body = await readJsonBody(request);
+          if (!body.ok) {
+            response.setHeader('connection', 'close');
+            response.once('finish', () => request.destroy());
+            throw new AuthError(body.status, body.status === 413 ? 'payload_too_large' : body.status === 408 ? 'request_timeout' : 'invalid_json');
+          }
+          if (!body.value || typeof body.value !== 'object' || Array.isArray(body.value)) throw new AuthError(400, 'invalid_json');
+          const input = body.value as Record<string, unknown>;
+          const result = rawPath === '/api/auth/enroll/options' ? await options.ownerAuth.enrollOptions(input.bootstrapToken, canonicalOrigin)
+            : rawPath === '/api/auth/enroll/verify' ? await options.ownerAuth.enrollVerify(input, canonicalOrigin)
+              : rawPath === '/api/auth/login/options' ? await options.ownerAuth.loginOptions(canonicalOrigin)
+                : await options.ownerAuth.loginVerify(input, canonicalOrigin);
+          json(response, 200, result); return;
+        }
+        if (isHook) { options.ownerAuth.authorizeHook(request.headers.authorization); options.ownerAuth.limit('hook'); }
+        else options.ownerAuth.authorize(request.headers.authorization);
+      } catch (error) {
+        json(response, error instanceof AuthError ? error.status : 503, { error: error instanceof AuthError ? error.code : 'auth_unavailable' });
+        return;
+      }
     }
 
     if (request.method === 'POST' && (rawPath === '/api/hooks/claude' || rawPath === '/api/hooks/openclaw')) {
@@ -91,9 +161,12 @@ export function createRouter(options: RouterOptions) {
         json(response, 404, { error: 'not_found' });
         return;
       }
+      if (!request.headers['content-type']?.startsWith('application/json')) { json(response, 400, { error: 'invalid_json' }); return; }
       const body = await readJsonBody(request);
       if (!body.ok) {
-        json(response, body.status, { error: body.status === 413 ? 'payload_too_large' : 'invalid_json' });
+        response.setHeader('connection', 'close');
+        response.once('finish', () => request.destroy());
+        json(response, body.status, { error: body.status === 413 ? 'payload_too_large' : body.status === 408 ? 'request_timeout' : 'invalid_json' });
         return;
       }
       const accepted = rawPath.endsWith('/claude')

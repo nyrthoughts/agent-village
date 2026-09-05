@@ -6,6 +6,24 @@ export interface SourcedUpdate extends ObservedUpdate {
   tool: ObservedSession['tool'];
 }
 type Section = 'done' | 'next' | 'blocked';
+export interface BriefingPoint {
+  projectId: string;
+  projectName: string;
+  kind: 'blocked' | 'next' | 'report';
+  entry: SourcedUpdate;
+}
+
+/** Recent source-backed points, not inferred priorities or a generated synthesis. */
+export function villageBriefing(projects: { id: string; name: string; sessions: ObservedSession[] }[], read: Record<string, string>): BriefingPoint[] {
+  return projects.flatMap((project): BriefingPoint[] => {
+    const brief = projectBrief(project.sessions, read[project.id]);
+    const latest = brief.latest;
+    if (!latest || (read[project.id] && Date.parse(latest.at) <= Date.parse(read[project.id]!))) return [];
+    const declared = declaredSections(latest);
+    const kind = declared.blocked.length ? 'blocked' : declared.next.length ? 'next' : 'report';
+    return [{ projectId: project.id, projectName: project.name, kind, entry: kind === 'report' ? latest : declared[kind][0]! }];
+  }).sort((a, b) => Date.parse(b.entry.at) - Date.parse(a.entry.at) || a.projectId.localeCompare(b.projectId)).slice(0, 3);
+}
 const sections: Record<string, Section> = {
   fait: 'done', fini: 'done', termine: 'done', livre: 'done', realise: 'done', completed: 'done', done: 'done',
   suite: 'next', 'prochaine action': 'next', 'prochaines etapes': 'next', 'reste a faire': 'next', 'a faire': 'next', 'next steps': 'next',

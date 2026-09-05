@@ -1,63 +1,78 @@
 # Connections
 
-Agent Village observes lifecycle state. It does not start, stop, approve, or send instructions to agents, and activity never changes a building's progress.
+Agent Village observes existing work. It never starts, stops, approves or instructs agents. Native reports are source claims, not verified delivery metrics.
 
-## Codex
+## Prepare private access
 
-Run `VILLAGE_MODE=native npm start`. No installation step is required when the `codex` CLI is available. The server starts `codex app-server --stdio`, calls the read-only `thread/list` method, then closes the process. Results are cached for ten seconds and inactive conversations expire from the view after 30 minutes by default. Codex `subAgent*` sources are helpers; known non-subagent sources are leads; missing source metadata stays unknown.
-
-Set `VILLAGE_IDLE_MINUTES` to change that window.
-
-For a temporary run that leaves no Agent Village installation or npm cache after exit:
+Build and prepare the first owner before starting native mode:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/nyrthoughts/agent-village/design/emerald-village-v4/scripts/run-temporary.sh | sh
-```
-
-This default uses `fixtures/village.observer.yaml`, which contains no fictional tasks. Real Codex conversations appear at the entrance. An optional private `VILLAGE_FILE` can supply evidence-backed buildings and `activity_mapping`; it is read locally and never uploaded.
-
-## Claude Code
-
-```sh
-npm run connect:claude
+npm ci
+npm run build
+npm run auth:setup
 VILLAGE_MODE=native npm start
 ```
 
-The installer updates `~/.claude/settings.json` atomically, preserves existing hooks, and adds short loopback POST hooks. It is safe to run again. To reverse it:
+Open `http://localhost:4180` and enroll using the private bootstrap file reported by setup. The code lasts 15 minutes; registration requires user verification and consumes it. Setup cannot overwrite an enrolled owner. Sessions stay in page memory for 30 minutes; reloading requires another login. See [owner access](owner-access.md).
+
+Setup also creates `ingestion.header`, a separate observation-only authorization header. It cannot read projects or authenticate a person. The default private directory is `~/.local/share/agent-village`; use the same `VILLAGE_AUTH_DIR` for setup, server and connectors if overriding it. Do not paste secrets into shared commands, repository files or messages.
+
+## Codex
+
+Native mode uses `sqlite3 -readonly` against the existing `~/.codex/state_5.sqlite`, then reads selected local JSONL transcript tails. It does not start `codex app-server` or require an API key or running Codex CLI.
+
+It selects up to 60 non-archived root tasks updated in the last seven days. Journal reads are capped at 4 MiB and displayed history at 24 user requests/assistant reports per session. Reasoning and tool payloads are excluded. Old activity becomes idle rather than implying an agent still runs.
+
+Snapshots are cached for five seconds; unchanged transcript tails are reused in memory. Restarts reread original sources. No additional conversation database exists, and remote Codex sessions are not connected implicitly.
+
+## Claude Code
+
+Existing conversations need no hooks. Native mode reads recent journals below `~/.claude/projects` and allowlisted process metadata below `~/.claude/sessions`. It selects up to 60 sessions, preferring running processes; those may be older than seven days. Existing tmux metadata appears when available. Agents need not restart.
+
+After first-time `auth:setup`, optional lifecycle hooks can be installed with:
+
+```sh
+npm run connect:claude
+```
+
+The installer atomically updates Claude settings, preserves unrelated hooks and upgrades only Agent Village's marked commands. Curl loads authorization from the private header file; the secret value is not placed in settings or command arguments. Unknown events and missing/incorrect authorization are rejected. Only allowlisted lifecycle metadata is retained in a bounded in-memory store.
+
+`SubagentStart` attaches a helper beside its lead; `SubagentStop` removes it. Short hook timeouts keep observation failures from interrupting Claude.
+
+For a custom port, set `AGENT_VILLAGE_HOOK_URL` to the loopback URL with the exact `/api/hooks/claude` path. Pass the server's `VILLAGE_AUTH_DIR` when changing its location. These variables must be present when installing or updating hooks.
+
+Remove only Agent Village hooks with:
 
 ```sh
 npm run disconnect:claude
 ```
 
-The server stores only session ID, helper ID/type, project folder name, normalized role/state, and timestamps in memory. `SubagentStart` creates a helper beside its lead; `SubagentStop` removes it. It does not persist hook payloads.
-
-The temporary Codex command does not install these hooks. Claude Code remains an explicit, reversible setup because its lifecycle events require a configuration change.
+The disposable launcher installs no hooks and deletes its temporary ingestion header on exit. Use the installed runtime for a lasting connector configuration.
 
 ## OpenClaw
 
+After preparing private access, install the bundled plugin on the same computer as the server and OpenClaw Gateway:
+
 ```sh
 openclaw plugins install ./integrations/openclaw
-VILLAGE_MODE=native npm start
 ```
 
-The bundled plugin uses the typed `session_start`, `before_agent_run`, `agent_end`, and `session_end` hooks. It reports the session key, agent ID, workspace folder, and lifecycle state to loopback. It never reads messages, prompts, tool calls, or outputs.
+The plugin reads the private ingestion header and observes `session_start`, `before_agent_run`, `agent_end` and `session_end`. It reports lifecycle metadata only, never messages, prompts, tool calls or outputs. It refuses non-loopback destinations and redirects. OpenClaw is optional and is not installed by Agent Village.
 
-OpenClaw is not bundled. Installation must happen on the machine where its Gateway runs.
+Set `AGENT_VILLAGE_URL` to the server's loopback base URL for a custom port. The Gateway process must receive the matching `VILLAGE_AUTH_DIR` if overriding its location. A remote Gateway cannot access this local-only server; do not add a tunnel to connect one.
 
-The temporary Codex command does not install this plugin.
+## Group projects and inspect sources
 
-## Map a conversation to a building
+Native mode groups conversations by local directory and common Git repository. `VILLAGE_PROJECT_ALIASES` can map directories, `session:codex:ID`, `session:claude:ID` or `title:PREFIX` to a shared display name. Keep real path mappings outside the repository. `VILLAGE_FOCUS_PROJECTS` selects displayed project names; authenticated search still exposes others.
 
-People appear at the village entrance even without a mapping. To place one beside a building, add a case-insensitive title substring to the YAML:
+Each native project opens a brief, timeline and source conversations. Briefs extract explicit done/next/blocker sections without calling a model or independently verifying claims. Unsupported token counts, duration estimates and delivery percentages are omitted. Browser storage retains reading-point IDs/timestamps and language, not conversation text or owner tokens.
+
+In YAML/demo/live modes, `activity_mapping` places a worker beside an evidence-based task using a case-insensitive title substring:
 
 ```yaml
 activity_mapping:
-  - match: agent village
-    taskId: publish-v1
+  - match: example project
+    taskId: example-release
 ```
 
-Mapping changes position only. Building status still comes exclusively from the truth plane and its evidence.
-
-## Analytics contract
-
-Selecting a building shows verified/total leaves, remaining work, owner, blocker, next action, evidence, and connected people. Selecting a person shows tool, state, role, project, task mapping, and observed timestamps. Token usage and active duration remain `Unavailable` until a provider exposes trustworthy values; Agent Village does not estimate either metric.
+Mapping changes position only. These task stages come from evidence verification; native houses organize observed conversations instead. The GitHub demo is fictional and never reads local sessions. See [security](../SECURITY.md) for same-account malware, shared-session and other limits.
