@@ -18,7 +18,8 @@ describe('HookActivityStore', () => {
       prompt: 'secret customer data that must not be stored',
     });
     expect(store.workers()).toEqual([
-      expect.objectContaining({ id: 'claude:claude-1', tool: 'claude', role: 'lead', state: 'working', project: 'atlas', title: 'atlas' }),
+      expect.objectContaining({ id: 'claude:claude-1', tool: 'claude', role: 'lead', state: 'working', project: 'atlas', title: 'atlas',
+        activityEvidence: { level: 'recent', source: 'claude-hook', observedAt: '2026-09-01T12:00:00.000Z' } }),
     ]);
 
     now = new Date('2026-09-01T12:01:00.000Z');
@@ -70,5 +71,20 @@ describe('HookActivityStore', () => {
     now = new Date('2026-09-01T12:31:00Z');
     store.ingestOpenClaw({ sessionId: 'four', event: 'session_start' });
     expect(store.workers().map((worker) => worker.id)).toEqual(['openclaw:four']);
+  });
+
+  it('does not keep stale lifecycle events looking like confirmed ongoing work', () => {
+    let now = new Date('2026-09-01T12:00:00Z');
+    const store = new HookActivityStore(() => now);
+    store.ingestClaude({ session_id: 'lead', hook_event_name: 'SubagentStart', agent_id: 'helper', cwd: '/repo' });
+    store.ingestOpenClaw({ sessionId: 'claw', event: 'agent_start' });
+    expect(store.workers().every((worker) => worker.activityEvidence?.level === 'recent')).toBe(true);
+    now = new Date('2026-09-01T12:02:01Z');
+    expect(store.workers()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'claude:lead:helper:helper', state: 'unknown',
+        activityEvidence: { level: 'detected', source: 'claude-hook', observedAt: '2026-09-01T12:00:00.000Z' } }),
+      expect.objectContaining({ id: 'openclaw:claw', state: 'unknown',
+        activityEvidence: { level: 'detected', source: 'openclaw-hook', observedAt: '2026-09-01T12:00:00.000Z' } }),
+    ]));
   });
 });

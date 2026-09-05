@@ -2,16 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { BUILDING_FAMILIES, buildingFamilyFor } from './buildingFamilies.js';
 
 describe('building families', () => {
-  it('offers eight distinct extensible architectural families', () => {
+  it('offers six culturally inspired original architectural families', () => {
     expect(BUILDING_FAMILIES.map(({ id }) => id)).toEqual([
-      'timber_north',
-      'courtyard_sun',
-      'townhouse_brick',
-      'earth_courtyard',
-      'mountain_adobe',
-      'tropical_stilt',
-      'woodland_tile',
-      'civic_modern',
+      'japanese_workshop',
+      'moroccan_courtyard',
+      'dutch_gable',
+      'brazilian_sobrado',
+      'greek_terraces',
+      'norwegian_storehouse',
     ]);
     expect(new Set(BUILDING_FAMILIES.map(({ roof }) => roof)).size).toBeGreaterThan(3);
   });

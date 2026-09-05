@@ -12,6 +12,7 @@ import { HookActivityStore } from '../activity/hookStore.js';
 import { NativeActivityHub } from '../activity/nativeActivity.js';
 import { OwnerAuth } from './ownerAuth.js';
 import { prepareOwnerSetup } from './privateState.js';
+import { projectId } from '../activity/projectObserver.js';
 
 vi.mock('@simplewebauthn/server', async (original) => ({
   ...await original<typeof import('@simplewebauthn/server')>(),
@@ -53,6 +54,30 @@ async function start() {
 }
 
 describe('native owner HTTP boundary', () => {
+  it('writes plans only for the owner and exact origin, persists progress, and rejects stale or unknown projects', async () => {
+    const test = await start();
+    const body = { projectId: projectId('sample'), revision: 0, plan: { objective: 'An explicit stable goal',
+      milestones: [{ id: 'first', title: 'First delivery', validated: true, note: 'Owner checked locally' }] } };
+    expect((await test.post('/api/plan', body)).status).toBe(401);
+    expect((await test.post('/api/plan', body, { authorization: test.ingestion })).status).toBe(401);
+    expect(test.snapshot).not.toHaveBeenCalled();
+    const token = await test.enroll(); const authorization = `Bearer ${token}`;
+    expect((await fetch(`${test.origin}/api/plan`, { method: 'POST', headers: { authorization, 'content-type': 'application/json' }, body: JSON.stringify(body) })).status).toBe(403);
+    expect((await test.post('/api/plan', body, { authorization, origin: 'https://evil.example' })).status).toBe(403);
+    expect((await test.post('/api/plan', body, { authorization })).status).toBe(404);
+    test.snapshot.mockResolvedValue({ errors: [], sessions: [{ id: 'hook', tool: 'claude', projectKey: 'hook:claude:only', project: 'repo', state: 'unknown', lastActivityAt: new Date().toISOString(), history: [] }] } as never);
+    expect((await test.post('/api/plan', { ...body, projectId: projectId('hook:claude:only') }, { authorization })).status).toBe(409);
+    test.snapshot.mockResolvedValue({ errors: [], sessions: [{ id: 'one', tool: 'codex', projectKey: 'sample', project: 'Sample', state: 'idle', lastActivityAt: new Date().toISOString(), history: [] }] } as never);
+    const response = await test.post('/api/plan', body, { authorization });
+    expect(response.status).toBe(200); expect(await response.json()).toMatchObject({ revision: 1 });
+    expect((await test.post('/api/plan', body, { authorization })).status).toBe(409);
+    const village = await fetch(`${test.origin}/api/village`, { headers: { authorization } }).then(r => r.json()) as import('../truth/derive.js').DerivedWorkspace;
+    expect(village.projects[0]?.objective).toBe(body.plan.objective);
+    expect(village.projects[0]?.tasks[0]?.progress.stage).toBe('complete');
+    test.snapshot.mockResolvedValue({ errors: [], sessions: [] });
+    expect((await test.post('/api/plan', { ...body, revision: 1 }, { authorization })).status).toBe(200);
+    expect((await test.post('/api/plan', { ...body, revision: 1, plan: { ...body.plan, token: 'invalid' } }, { authorization })).status).toBe(422);
+  });
   it('refuses to serve private credential files through the static directory', () => {
     const directory = mkdtempSync(join(tmpdir(), 'village-auth-placement-test-')); dirs.push(directory);
     const ownerAuth = new OwnerAuth(directory);

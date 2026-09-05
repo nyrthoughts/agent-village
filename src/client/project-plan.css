@@ -1,0 +1,34 @@
+.project-plan { margin:18px 0 28px; padding:22px; border:1px solid #b8c5a7; background:#eef1df; color:#294838; }
+.project-plan header small { font:700 10px/1.4 'Avenir Next',sans-serif; letter-spacing:.14em; color:#687a53; }
+.project-plan h3 { margin:6px 0 16px; font-size:21px; letter-spacing:-.03em; }
+.project-plan p { line-height:1.55; overflow-wrap:anywhere; }
+.project-plan__goal { font-size:18px; font-weight:600; white-space:pre-wrap; }
+.project-plan__progress { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:13px; }
+.project-plan__progress span { color:#647656; }
+.project-plan progress { display:block; width:100%; height:10px; margin:12px 0 20px; border:0; accent-color:#497958; background:#d9e0c6; }
+.project-plan progress::-webkit-progress-bar { background:#d9e0c6; }
+.project-plan progress::-webkit-progress-value { background:#497958; }
+.project-plan__milestones { list-style:none; padding:0; margin:0 0 20px; }
+.project-plan__milestones li { display:flex; gap:12px; border-top:1px solid #d1dbc0; padding:12px 0; font-size:13px; }
+.project-plan__milestones li p { margin:5px 0; color:#5f7054; font-size:12px; }
+.project-plan__milestones li small { font-size:10px; color:#657557; }
+.project-plan__check { flex-shrink:0; display:grid; place-items:center; width:22px; height:22px; border:1px solid #b4c39d; color:#74845e; }
+.project-plan [data-validated='true'] .project-plan__check { background:#497958; border-color:#497958; color:#fffce9; }
+.project-plan button { min-height:38px; padding:8px 12px; border:1px solid #8da07b; background:#f9f9ef; color:#294838; font:600 12px/1.4 'Avenir Next',sans-serif; cursor:pointer; }
+.project-plan button:hover { background:#dce6c8; }
+.project-plan button:disabled { opacity:.5; cursor:wait; }
+.project-plan fieldset { border:0; padding:0; margin:0; min-width:0; }
+.project-plan label { display:block; margin:12px 0; font-size:12px; }
+.project-plan input:not([type=checkbox]),.project-plan textarea { display:block; width:100%; padding:9px; margin-top:6px; border:1px solid #9faf8e; border-radius:0; color:#294838; background:#fcfcf4; font:14px/1.5 'Avenir Next',sans-serif; }
+.project-plan textarea { min-height:90px; resize:vertical; }
+.project-plan input:focus-visible,.project-plan textarea:focus-visible,.project-plan button:focus-visible { outline:3px solid #a46632; outline-offset:2px; }
+.project-plan__edit-milestone { padding:0 0 14px; margin-bottom:14px; border-bottom:1px solid #bac9a9; }
+.project-plan label.project-plan__validate { display:flex; align-items:center; gap:8px; min-height:32px; }
+.project-plan__validate input { width:18px; height:18px; accent-color:#497958; }
+.project-plan button.project-plan__remove { min-height:28px; padding:4px 8px; color:#80583d; border-color:#c1b38f; }
+.project-plan .project-plan__disclaimer { font-size:11px; color:#637455; margin:14px 0 0; }
+.project-plan__actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+.project-plan__actions button:first-child { background:#365e43; color:#fffce8; }
+.project-plan [role=alert] { padding:12px; background:#f5e2bb; color:#77512d; font-size:13px; }
+.observed-project-plan { color:#3f684b!important; font-weight:600; }
+@media(max-width:600px) { .project-plan { padding:16px; } .project-plan button { min-height:44px; } }

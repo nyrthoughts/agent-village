@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { DerivedWorkspace } from '../../server/truth/derive.js';
 import type { ActivitySnapshot } from '../../shared/activity.js';
 import { VillageMap2D } from './VillageMap2D.js';
-import { layoutVillage2d } from './villageLayout2d.js';
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
@@ -96,10 +95,10 @@ describe('VillageMap2D', () => {
     expect(screen.getAllByRole('button', { name: /studio|library/i })).toHaveLength(2);
   });
 
-  it('supports bounded keyboard navigation and reset', () => {
+  it('supports bounded Shift-arrow camera navigation and reset', () => {
     render(<VillageMap2D village={village} activity={activity} onSelect={() => undefined} />);
     const map = screen.getByTestId('village-map-2d');
-    fireEvent.keyDown(map, { key: 'ArrowRight' });
+    fireEvent.keyDown(map, { key: 'ArrowRight', shiftKey: true });
     expect(Number(map.getAttribute('data-camera-x'))).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: 'Reset village view' }));
     expect(map.getAttribute('data-camera-x')).toBe('0');
@@ -117,22 +116,24 @@ describe('VillageMap2D', () => {
     );
   });
 
-  it('makes walking optional and keeps keyboard activation immediate in visit mode', () => {
+  it('walks on the first ground click without a mode switch', () => {
+    const advance = animationClock();
     const onSelect = vi.fn();
     render(<VillageMap2D village={village} onSelect={onSelect} />);
-    expect(screen.getByTestId('village-map-2d').getAttribute('data-visit-mode')).toBe('false');
-    fireEvent.click(screen.getByRole('button', { name: 'Visit the village' }));
-    fireEvent.click(screen.getByRole('button', { name: /Contour studio/ }), { detail: 0 });
-    expect(onSelect).toHaveBeenCalledOnce();
+    groundTile(31, 38);
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-player-walking')).toBe('true');
+    advance(40);
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-player-y')).toBe('38');
+    expect(screen.queryByRole('button', { name: 'Visit the village' })).toBeNull();
+    expect(onSelect).not.toHaveBeenCalled();
     expect(screen.getByTestId('village-map-2d').getAttribute('data-player-walking')).toBe('false');
   });
 
-  it('walks to a house before opening it and preserves its route through polling', () => {
+  it('preserves a ground route through polling', () => {
     const advance = animationClock();
     const onSelect = vi.fn();
     const { rerender } = render(<VillageMap2D village={village} onSelect={onSelect} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Visit the village' }));
-    fireEvent.click(screen.getByRole('button', { name: /Contour studio/ }), { detail: 1 });
+    groundTile(31, 8);
     expect(onSelect).not.toHaveBeenCalled();
     advance(8);
     const before = screen.getByTestId('village-map-2d').getAttribute('data-player-y');
@@ -140,25 +141,23 @@ describe('VillageMap2D', () => {
     expect(screen.getByTestId('village-map-2d').getAttribute('data-player-y')).toBe(before);
     expect(screen.getByTestId('village-map-2d').getAttribute('data-player-walking')).toBe('true');
     advance(400);
-    expect(onSelect).toHaveBeenCalledOnce();
-    const placement = layoutVillage2d(village).buildings[0]!;
-    expect(screen.getByTestId('village-map-2d').getAttribute('data-player-x')).toBe(String(placement.door?.x ?? placement.x + 3));
-    expect(screen.getByTestId('village-map-2d').getAttribute('data-player-y')).toBe(String(placement.door?.y ?? placement.y + 6));
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-player-x')).toBe('31');
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-player-y')).toBe('8');
   });
 
-  it('replaces a destination, stops with Escape and never opens the abandoned house', () => {
+  it('replaces a destination and stops with Escape', () => {
     const advance = animationClock();
     const onSelect = vi.fn();
     render(<VillageMap2D village={village} onSelect={onSelect} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Visit the village' }));
-    fireEvent.click(screen.getByRole('button', { name: /Contour studio/ }), { detail: 1 });
+    groundTile(31, 8);
     advance(8);
     groundTile(31, 38);
     advance(40);
     expect(screen.getByTestId('village-map-2d').getAttribute('data-player-x')).toBe('31');
     expect(screen.getByTestId('village-map-2d').getAttribute('data-player-y')).toBe('38');
     expect(onSelect).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: /Field library/ }), { detail: 1 });
+    groundTile(31, 8);
     advance(6);
     fireEvent.keyDown(screen.getByTestId('village-map-2d'), { key: 'Escape' });
     const stopped = screen.getByTestId('village-map-2d').getAttribute('data-player-y');
@@ -170,7 +169,6 @@ describe('VillageMap2D', () => {
   it('refuses water and supports touch without treating camera dragging as a destination', () => {
     const advance = animationClock();
     render(<VillageMap2D village={village} onSelect={() => undefined} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Visit the village' }));
     groundTile(48, 30, 'touch');
     expect(screen.getByRole('status').textContent).toBe('Destination is not reachable.');
     const map = screen.getByTestId('village-map-2d');
@@ -190,12 +188,62 @@ describe('VillageMap2D', () => {
     vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
     const onSelect = vi.fn();
     render(<VillageMap2D village={village} onSelect={onSelect} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Visit the village' }));
     fireEvent.change(screen.getByRole('combobox', { name: 'Your avatar appearance' }), { target: { value: 'iris' } });
     expect(screen.getByTestId('village-avatar').className).toContain('pixel-avatar--iris');
-    fireEvent.click(screen.getByRole('button', { name: /Contour studio/ }), { detail: 1 });
-    expect(onSelect).toHaveBeenCalledOnce();
+    groundTile(31, 38);
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-player-y')).toBe('38');
     expect(screen.getByTestId('village-map-2d').getAttribute('data-player-walking')).toBe('false');
     expect(screen.getByRole('status').textContent).toBe('You have arrived.');
+  });
+
+  it.each([0, 1])('opens a house immediately and cancels walking for activation detail %i', (detail) => {
+    const advance = animationClock();
+    const onSelect = vi.fn();
+    render(<VillageMap2D village={village} onSelect={onSelect} />);
+    groundTile(31, 8);
+    advance(8);
+    fireEvent.click(screen.getByRole('button', { name: /Contour studio/ }), { detail });
+    expect(onSelect).toHaveBeenCalledOnce();
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-player-walking')).toBe('false');
+    advance(400);
+    expect(onSelect).toHaveBeenCalledOnce();
+  });
+
+  it('moves with arrows after a map control and does not consume select navigation', () => {
+    const advance = animationClock();
+    render(<VillageMap2D village={village} onSelect={() => undefined} />);
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Reset village view' }), { key: 'ArrowUp' });
+    advance(20);
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-player-y')).toBe('39');
+    const appearance = screen.getByRole('combobox', { name: 'Your avatar appearance' });
+    fireEvent.keyDown(appearance, { key: 'ArrowUp' });
+    advance(20);
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-player-y')).toBe('39');
+  });
+
+  it('retains available workers and distinct helper counts during partial observation', () => {
+    render(<VillageMap2D village={village} activity={{ ...activity, status: 'degraded', workers: [...activity.workers, activity.workers[1]!] }} onSelect={() => undefined} />);
+    const map = screen.getByTestId('village-map-2d');
+    expect(map.getAttribute('data-worker-count')).toBe('2');
+    expect(map.getAttribute('data-helper-count')).toBe('1');
+    expect(screen.getByRole('button', { name: /Codex lead agent/ }).textContent).toContain('1');
+  });
+
+  it('includes two decorative animals without adding workers', () => {
+    render(<VillageMap2D village={village} onSelect={() => undefined} />);
+    expect(screen.getByTestId('animal-moss-capybara')).toBeTruthy();
+    expect(screen.getByTestId('animal-copper-otter')).toBeTruthy();
+    expect(screen.getByTestId('village-map-2d').getAttribute('data-worker-count')).toBe('0');
+  });
+
+  it('bounds busy house sprites but counts all observed helpers and only confirmed work', () => {
+    const workers = [activity.workers[0]!, ...Array.from({ length: 24 }, (_, index) => ({ ...activity.workers[1]!, id: `helper-${index}`, state: 'working' as const, activityEvidence: { level: index === 0 ? 'confirmed' as const : 'detected' as const, source: 'claude-process' as const, observedAt: '2026-09-04T12:00:00Z' } }))];
+    render(<VillageMap2D village={village} activity={{ ...activity, status: 'degraded', workers }} onSelect={() => undefined} />);
+    const map = screen.getByTestId('village-map-2d');
+    expect(map.getAttribute('data-worker-count')).toBe('25');
+    expect(map.getAttribute('data-helper-count')).toBe('24');
+    expect(map.getAttribute('data-confirmed-helper-count')).toBe('1');
+    expect(map.querySelectorAll('[data-worker-id]')).toHaveLength(5);
+    expect(screen.getByRole('button', { name: /Codex lead agent/ }).getAttribute('aria-label')).toContain('24 observed helpers, 1 confirmed working');
   });
 });

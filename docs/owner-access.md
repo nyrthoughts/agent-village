@@ -17,6 +17,8 @@ Sessions expire after 30 minutes. The token lives only in page memory; reloading
 
 Only minimal health and enrollment status are public. Private API reads require the owner session before collecting source data. A hook credential cannot read those APIs or administer the owner. Missing/corrupt private configuration fails closed. No endpoint can start, stop or instruct an agent.
 
+`POST /api/plan` is the only project-metadata write. It requires the owner session, exact canonical Origin and JSON. The server validates the known project identity, bounded goal/milestones and expected revision before an atomic private ledger update. Validation requires an explicit note. The ledger is limited to 64 KiB and one hundred projects. Corrupt or broadly readable files are not overwritten. This metadata API does not edit agent goals, execute commands or instruct agents.
+
 Auth challenges last two minutes and are consumed on a verification attempt. Auth requests are limited to 30 per minute; hook requests to 240 per minute. JSON uploads are limited to 64 KiB and five seconds. The observation store retains at most 1,000 records and expires them after 30 minutes.
 
 This protects against an anonymous visitor, another ordinary local account and cross-origin requests. A process already running with the owner's OS permissions can read the owner's source files; this web gate cannot protect those files from that process. Passkey storage/synchronization follows the authenticator the owner chooses. No transcript data or model requests leave the machine through this feature.

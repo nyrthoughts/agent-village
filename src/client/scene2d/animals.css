@@ -1,0 +1,9 @@
+.village-animal{position:absolute;z-index:4;width:80px;height:32px;pointer-events:none;--animal-cycle:24s;--animal-delay:0s;image-rendering:pixelated}
+.village-animal--copper-otter{--animal-cycle:29s;--animal-delay:-11s}
+.village-animal__stroll{display:block;width:48px;height:32px;animation:animal-stroll var(--animal-cycle) linear var(--animal-delay) infinite}
+.village-animal__body{display:block;width:48px;height:32px;transform-origin:center;animation:animal-turn var(--animal-cycle) steps(1,end) var(--animal-delay) infinite}
+.village-animal svg{display:block;width:48px;height:30px;filter:drop-shadow(0 1px #31583d22)}
+.village-animal[data-motion=paused] .village-animal__stroll,.village-animal[data-motion=paused] .village-animal__body{animation-play-state:paused}
+@keyframes animal-stroll{0%,24%,100%{transform:translateX(0)}36%,66%{transform:translateX(var(--animal-distance))}78%{transform:translateX(0)}}
+@keyframes animal-turn{0%,64%,99%{transform:scaleX(1)}65%,98%{transform:scaleX(-1)}}
+@media(prefers-reduced-motion:reduce){.village-animal__stroll,.village-animal__body{animation:none}}

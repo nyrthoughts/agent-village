@@ -34,8 +34,15 @@ describe('PixelWorker', () => {
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'worker' }), person);
   });
 
-  it('includes the helper count in the lead button accessible name', () => {
-    render(<PixelWorker worker={worker()} helperCount={3} />);
-    expect(screen.getByRole('button', { name: 'Codex lead agent, working, Build contours, 3 helper agents' })).toBeTruthy();
+  it('distinguishes observed helpers from confirmed working helpers', () => {
+    render(<PixelWorker worker={worker()} helperCount={3} confirmedHelperCount={1} />);
+    expect(screen.getByRole('button', { name: 'Codex lead agent, working, Build contours, 3 observed helpers, 1 confirmed working' })).toBeTruthy();
+  });
+
+  it('never labels recent evidence as confirmed work and translates worker copy', () => {
+    render(<PixelWorker language="fr" worker={worker({ state: 'working', activityEvidence: { level: 'recent', source: 'codex-index', observedAt: '2026-09-04T12:00:00Z' } })} />);
+    const person = screen.getByRole('button', { name: 'Agent principal Codex, Activité récente, Build contours' });
+    expect(person.className).toContain('pixel-worker--unknown');
+    expect(person.getAttribute('data-activity-evidence')).toBe('recent');
   });
 });

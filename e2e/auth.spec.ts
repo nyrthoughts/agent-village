@@ -9,6 +9,7 @@ import { prepareOwnerSetup } from '../src/server/auth/privateState.js';
 import type { LocalSessions } from '../src/server/activity/localSessions.js';
 
 test('real passkey verifier protects native data, rejects replay and clears the village on logout and expiry', async ({ browser }) => {
+  test.setTimeout(90_000);
   const directory = mkdtempSync(join(tmpdir(), 'agent-village-auth-e2e-'));
   const { bootstrapPath } = prepareOwnerSetup(directory);
   const bootstrap = readFileSync(bootstrapPath, 'utf8').trim();
@@ -51,6 +52,31 @@ test('real passkey verifier protects native data, rejects replay and clears the 
     expect(replay.status).toBe(409);
     await page.getByRole('combobox', { name: 'Langue / Language' }).selectOption('en');
     await expect(page.getByRole('heading', { name: 'Village journal' })).toBeVisible();
+    // The same native owner flow must drive actual construction, not a fixture-only overlay.
+    await page.getByRole('button', { name: 'Open Orchard', exact: true }).click();
+    await page.getByRole('button', { name: 'Define the goal' }).click();
+    await page.getByLabel('Final project goal').fill('Ship a private orchard journal');
+    await page.getByLabel('Milestone 1', { exact: true }).fill('Private access');
+    await page.getByRole('button', { name: 'Add a milestone' }).click();
+    await page.getByLabel('Milestone 2', { exact: true }).fill('Browser acceptance');
+    await page.getByRole('button', { name: 'Save the plan' }).click();
+    await expect(page.getByText('0/2 milestones validated', { exact: true }).first()).toBeVisible();
+    await expect(page.locator('[data-task-id]').first()).toHaveAttribute('data-stage', 'foundation');
+    await page.getByRole('button', { name: 'Edit milestones' }).click();
+    await page.getByLabel('Validate milestone 1', { exact: true }).check();
+    await page.getByLabel('Validation note 1', { exact: true }).fill('Verified sign-in and anonymous denial');
+    await page.getByRole('button', { name: 'Save the plan' }).click();
+    await expect(page.locator('[data-task-id]').first()).toHaveAttribute('data-stage', 'walls');
+    await page.getByRole('button', { name: 'Edit milestones' }).click();
+    await page.getByLabel('Validate milestone 2', { exact: true }).check();
+    await page.getByLabel('Validation note 2', { exact: true }).fill('Checked the live owner interface');
+    await page.getByRole('button', { name: 'Save the plan' }).click();
+    await expect(page.locator('[data-task-id]').first()).toHaveAttribute('data-stage', 'complete');
+    await page.getByRole('button', { name: 'Edit milestones' }).click();
+    await page.getByLabel('Validate milestone 2', { exact: true }).uncheck();
+    await page.getByRole('button', { name: 'Save the plan' }).click();
+    await expect(page.locator('[data-task-id]').first()).toHaveAttribute('data-stage', 'walls');
+    await page.getByRole('button', { name: 'Close project' }).click();
     await page.getByRole('button', { name: 'Lock', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Open my village' })).toBeVisible();
     await expect(page.locator('[data-task-id]')).toHaveCount(0);
@@ -60,6 +86,10 @@ test('real passkey verifier protects native data, rejects replay and clears the 
     const loggedIn = await login;
     expect(loggedIn.status()).toBe(200);
     await expect(page.getByRole('heading', { name: 'Village journal' })).toBeVisible();
+    await page.getByRole('button', { name: 'Open Orchard', exact: true }).click();
+    await expect(page.getByText('Ship a private orchard journal', { exact: true })).toBeVisible();
+    await expect(page.getByText('1/2 milestones validated', { exact: true }).last()).toBeVisible();
+    await page.getByRole('button', { name: 'Close project' }).click();
     const loginReplay = await fetch(`${origin}/api/auth/login/verify`, { method: 'POST',
       headers: { origin, 'content-type': 'application/json' }, body: loggedIn.request().postData() });
     expect(loginReplay.status).toBe(400);

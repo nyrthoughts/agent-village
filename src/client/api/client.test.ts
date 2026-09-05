@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchActivity, fetchVillage } from './client.js';
+import { fetchActivity, fetchVillage, saveProjectPlan } from './client.js';
 import { clearSession, getSession, setSession } from './session.js';
 
 afterEach(() => clearSession());
@@ -12,6 +12,15 @@ function response(status: number, body: unknown): Response {
 }
 
 describe('static demo fallback', () => {
+  it('writes only to the same-origin plan endpoint and preserves conflicts without static fallback', async () => {
+    setSession({ token: 'a'.repeat(43), expiresAt: new Date(Date.now() + 60_000).toISOString() });
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(response(409, { error: 'plan_conflict' }));
+    const plan = { objective: 'Ship', milestones: [{ id: 'one', title: 'Review', validated: false, note: '' }] };
+    await expect(saveProjectPlan('project-aaaaaaaaaaaa', plan, 2, fetchImpl)).rejects.toMatchObject({ status: 409 });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(fetchImpl).toHaveBeenCalledWith('/api/plan', expect.objectContaining({ method: 'POST', headers: expect.objectContaining({ authorization: `Bearer ${'a'.repeat(43)}`, 'content-type': 'application/json' }), body: JSON.stringify({ projectId: 'project-aaaaaaaaaaaa', plan, revision: 2 }) }));
+    expect(getSession()).not.toBeNull();
+  });
   it('sends the memory-only bearer to the native API and locks on 401 without loading a demo', async () => {
     setSession({ token: 'a'.repeat(43), expiresAt: new Date(Date.now() + 60_000).toISOString() });
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(response(401, { error: 'unauthorized' }));

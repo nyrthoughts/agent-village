@@ -90,6 +90,7 @@ export class HookActivityStore {
       ).slice(0, 120),
       firstSeenAt: previous?.firstSeenAt ?? current.toISOString(),
       lastActivityAt: current.toISOString(),
+      activityEvidence: { level: 'recent', source: 'claude-hook', observedAt: current.toISOString() },
       seenAt: current.getTime(),
     });
     return true;
@@ -113,6 +114,7 @@ export class HookActivityStore {
       title: redactTitle(rawTitle).slice(0, 120),
       firstSeenAt: this.#records.get(id)?.firstSeenAt ?? current.toISOString(),
       lastActivityAt: current.toISOString(),
+      activityEvidence: { level: 'recent', source: 'openclaw-hook', observedAt: current.toISOString() },
       seenAt: current.getTime(),
     });
     return true;
@@ -120,6 +122,13 @@ export class HookActivityStore {
 
   workers(): Worker[] {
     this.prune();
-    return [...this.#records.values()].map(({ seenAt: _seenAt, ...worker }) => worker);
+    return [...this.#records.values()].map(({ seenAt, ...worker }) => {
+      const age = this.now().getTime() - seenAt;
+      const recent = age >= 0 && age <= 120_000;
+      return { ...worker,
+        state: !recent && worker.state === 'working' ? 'unknown' : worker.state,
+        activityEvidence: { ...worker.activityEvidence!, level: recent ? 'recent' : 'detected' },
+      };
+    });
   }
 }

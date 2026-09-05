@@ -1,0 +1,3 @@
+.pixel-worker:not(.pixel-worker--working),
+.pixel-worker[data-activity-evidence]:not([data-activity-evidence=confirmed]){animation:none}
+@media(prefers-reduced-motion:reduce){.pixel-worker.pixel-worker{animation:none}}

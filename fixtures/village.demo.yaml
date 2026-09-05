@@ -73,7 +73,7 @@ projects:
                 evidence: []
             evidence: []
     tasks:
-      - id: atlas-library
+      - id: atlas-library-hall
         title: Field library
         owner: Nori
         status: verified
@@ -129,7 +129,7 @@ projects:
                 reviewer: Rowan
                 state: approved
     tasks:
-      - id: beacon-notes
+      - id: beacon-garden-journal
         title: Approach notes
         owner: Vale
         status: in_progress

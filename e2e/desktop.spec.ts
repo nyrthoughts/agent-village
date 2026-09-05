@@ -19,14 +19,14 @@ test('desktop pixel village exposes construction, navigation and one-click conte
   const stages = await scene.locator('[data-stage]').evaluateAll((elements) => [...new Set(elements.map((element) => element.getAttribute('data-stage')))]);
   expect(new Set(stages)).toEqual(new Set(['lot', 'foundation', 'frame', 'walls', 'roof', 'complete']));
   const families = await scene.locator('[data-family]').evaluateAll((elements) => [...new Set(elements.map((element) => element.getAttribute('data-family')))]);
-  expect(families).toHaveLength(8);
+  expect(families).toHaveLength(6);
   await expect(scene.locator('.pixel-zone-sign', { hasText: 'Atlas' })).toBeVisible();
   await expect(scene.locator('.pixel-zone-sign', { hasText: 'Beacon' })).toBeVisible();
   await expect(page.locator('[data-layout="location-plaque"]')).toBeVisible();
   await expect(page.locator('[data-layout="sprite-strip"]')).toBeVisible();
 
   await scene.focus();
-  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Shift+ArrowRight');
   await expect(scene).toHaveAttribute('data-camera-x', '3');
   await scene.getByRole('button', { name: 'Reset village view' }).click();
   await expect(scene).toHaveAttribute('data-camera-x', '0');

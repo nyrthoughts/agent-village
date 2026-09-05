@@ -1,6 +1,11 @@
 import type { ActivitySnapshot } from '../../shared/activity.js';
 import type { DerivedWorkspace } from '../../server/truth/derive.js';
 import { clearSession, sessionHeaders } from './session.js';
+import type { PlanDraft, ProjectPlan } from '../../shared/projectPlan.js';
+
+export async function saveProjectPlan(projectId: string, plan: PlanDraft, revision: number, fetchImpl: typeof fetch = fetch): Promise<ProjectPlan> {
+  return request<ProjectPlan>('/api/plan', fetchImpl, { method: 'POST', body: JSON.stringify({ projectId, plan, revision }), headers: { 'content-type': 'application/json' } });
+}
 
 export class ApiError extends Error {
   constructor(public readonly status: number, message: string) {
@@ -16,9 +21,9 @@ class JsonEndpointUnavailableError extends Error {
   }
 }
 
-async function request<T>(path: string, fetchImpl: typeof fetch): Promise<T> {
+async function request<T>(path: string, fetchImpl: typeof fetch, init?: RequestInit): Promise<T> {
   const authorization = sessionHeaders(path);
-  const response = await fetchImpl(path, { headers: { accept: 'application/json', ...authorization } });
+  const response = await fetchImpl(path, { ...init, headers: { accept: 'application/json', ...init?.headers, ...authorization } });
   if (!response.ok) {
     if (response.status === 401 && authorization.authorization) clearSession(authorization.authorization.slice(7));
     let message = `Request failed with ${response.status}`;

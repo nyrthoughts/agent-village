@@ -6,6 +6,16 @@ import { layoutVillage2d } from './scene2d/villageLayout2d.js';
 import { fitVillageScale } from './scene2d/VillageMap2D.js';
 beforeEach(() => localStorage.clear());
 afterEach(cleanup);
+it('separates root conversations from detected helpers and exposes explicit project goals', () => {
+  const base = { tool: 'codex' as const, state: 'unknown' as const, projectKey: 'One', project: 'One', title: 'Source', history: [], lastActivityAt: '2026-09-04T12:00:00Z' };
+  const village = observedVillage([{ ...base, id: 'lead', role: 'lead' }, { ...base, id: 'child', role: 'helper', parentId: 'lead', activityEvidence: { source: 'codex-index', level: 'recent', observedAt: base.lastActivityAt } }], []);
+  render(<ObservedProjects village={village} />);
+  expect(screen.getByText('1 projets · 1 sessions')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Ouvrir One' }));
+  expect(screen.getByRole('region', { name: 'Agents et observations' }).textContent).toContain('1 sous-agents détectés');
+  expect(screen.getByRole('region', { name: 'Agents et observations' }).textContent).toContain('0 en cours confirmés');
+  expect(screen.getByRole('button', { name: 'Définir l’objectif' })).toBeTruthy();
+});
 it('does not offer a zero-project scope expansion', () => {
   const village = observedVillage([{ id: 'codex:a', tool: 'codex', state: 'idle', projectKey: 'One', project: 'One', title: 'Source', history: [], lastActivityAt: '2026-09-04T12:00:00Z' }], [], ['One']);
   render(<ObservedProjects village={village} />);
@@ -27,7 +37,7 @@ it('switches the entire native interface to English, preserves source text and r
   expect(document.documentElement.lang).toBe('en');
   expect(screen.getByRole('heading', { name: 'Village journal' })).toBeTruthy();
   expect(screen.getByRole('alert').textContent).toContain('Codex: local index unavailable');
-  expect(screen.getByRole('button', { name: /^Product\. 1 sessions · 1 working/ })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /^Product\..*Plan not defined/ })).toBeTruthy();
   expect(screen.getByText(/Source conversations stay in their original language/)).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Open Product' }));
   expect(screen.getByRole('heading', { name: 'Project brief' })).toBeTruthy();

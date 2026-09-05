@@ -9,6 +9,7 @@ import { translate, type Language } from '../language.js';
 import { PixelAvatar, type AvatarAppearance } from './PixelAvatar.js';
 import { navigationFor, type TilePoint } from './villagePathfinding.js';
 import { useVillagePlayer } from './useVillagePlayer.js';
+import { VillageAnimals } from './VillageAnimals.js';
 
 interface VillageMap2DProps {
   language?: Language;
@@ -34,14 +35,12 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker, lang
   const navigationKey = JSON.stringify([layout.width, layout.height, layout.obstacles, layout.buildings.map(({ x, y }) => [x, y]), layout.landmarks]);
   const navigation = useMemo(() => navigationFor(layout), [navigationKey]);
   const player = useVillagePlayer(navigation, layout.entrance);
-  const [visitMode, setVisitMode] = useState(false);
   const [appearance, setAppearance] = useState<AvatarAppearance>('fern');
   const [travelStatus, setTravelStatus] = useState<'idle' | 'walking' | 'arrived' | 'stopped' | 'blocked'>('idle');
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const viewport = useRef<HTMLElement>(null);
   const world = useRef<HTMLDivElement>(null);
-  const pointerActivation = useRef(false);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
   const [scale, setScale] = useState(0.65);
@@ -62,43 +61,58 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker, lang
     ...project.tasks,
   ].map((task) => [task.id, { task, project }] as const))), [village]);
   const placements = useMemo(() => new Map(layout.buildings.map((building) => [building.taskId, building])), [layout]);
-  const recordsRef = useRef(records);
-  recordsRef.current = records;
-  const workers = useMemo(() => activity?.status === 'live' || activity?.status === 'demo' ? activity.workers : [], [activity]);
+  const workers = useMemo(() => !activity || activity.status === 'absent' ? [] : [...new Map(activity.workers.map((worker) => [worker.id, worker])).values()], [activity]);
   const leadCount = workers.filter((worker) => worker.role === 'lead').length;
   const helperCount = workers.filter((worker) => worker.role === 'helper').length;
+  const confirmedHelperCount = workers.filter((worker) => worker.role === 'helper' && worker.state === 'working' && worker.activityEvidence?.level === 'confirmed').length;
   const helpersByParent = useMemo(() => {
-    const counts = new Map<string, number>();
+    const counts = new Map<string, { total: number; confirmed: number }>();
     for (const worker of workers) {
-      if (worker.role === 'helper' && worker.parentId) counts.set(worker.parentId, (counts.get(worker.parentId) ?? 0) + 1);
+      if (worker.role !== 'helper' || !worker.parentId) continue;
+      const count = counts.get(worker.parentId) ?? { total: 0, confirmed: 0 };
+      count.total++;
+      if (worker.state === 'working' && worker.activityEvidence?.level === 'confirmed') count.confirmed++;
+      counts.set(worker.parentId, count);
     }
     return counts;
   }, [workers]);
   const workersById = useMemo(() => new Map(workers.map((worker) => [worker.id, worker])), [workers]);
+  const workerPlots = useMemo(() => {
+    const groups = new Map<string, Worker[]>();
+    for (const worker of workers) {
+      const parent = worker.role === 'helper' && worker.parentId ? workersById.get(worker.parentId) : undefined;
+      const taskId = parent?.attachedTaskId ?? worker.attachedTaskId ?? '';
+      const group = groups.get(taskId) ?? [];
+      group.push(worker);
+      groups.set(taskId, group);
+    }
+    return [...groups].flatMap(([taskId, group]) => {
+      // Keep crowds readable. Badges and data counts include every observation, not just these sprites.
+      const lead = group.find((worker) => worker.role === 'lead');
+      const helpers = group.filter((worker) => worker.role === 'helper').sort((a, b) => Number(b.activityEvidence?.level === 'confirmed' && b.state === 'working') - Number(a.activityEvidence?.level === 'confirmed' && a.state === 'working'));
+      const visible = [...new Map([...(lead ? [lead] : []), ...helpers, ...group].map((worker) => [worker.id, worker])).values()].slice(0, 5);
+      return visible.map((worker, slot) => ({ worker, slot, placement: placements.get(taskId) }));
+    });
+  }, [workers, workersById, placements]);
 
-  const requestMove = useCallback((destination: TilePoint, afterArrival?: () => void) => {
+  const requestMove = useCallback((destination: TilePoint) => {
     setTravelStatus('walking');
-    const accepted = player.move(destination, () => { setTravelStatus('arrived'); afterArrival?.(); });
+    const accepted = player.move(destination, () => setTravelStatus('arrived'));
     if (!accepted) setTravelStatus('blocked');
   }, [player.move]);
   const selectBuilding = useCallback((task: DerivedTask, trigger: HTMLButtonElement, project: DerivedProject) => {
-    // Native keyboard and assistive activations have click detail 0. They open immediately.
-    if (!visitMode || !pointerActivation.current) { player.stop(); onSelectRef.current(task, trigger, project); return; }
-    const placement = placements.get(task.id);
-    if (!placement) return;
-    requestMove(placement.door ?? { x: placement.x + 3, y: placement.y + 6 }, () => {
-      const current = recordsRef.current.get(task.id);
-      if (current && trigger.isConnected) onSelectRef.current(current.task, trigger, current.project);
-    });
-  }, [visitMode, placements, requestMove, player.stop]);
+    player.stop();
+    setTravelStatus('idle');
+    onSelectRef.current(task, trigger, project);
+  }, [player.stop]);
   const stopTravel = () => { player.stop(); setTravelStatus('stopped'); };
 
   const moveCamera = (x: number, y: number) => setCamera({ x: clamp(x, maxX), y: clamp(y, maxY) });
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if (event.key === 'Escape' && visitMode) { stopTravel(); event.preventDefault(); return; }
-    if (event.target !== event.currentTarget) return;
+    if ((event.target as HTMLElement).closest('select, input, textarea, [contenteditable="true"]')) return;
+    if (event.key === 'Escape') { stopTravel(); event.preventDefault(); return; }
     const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
-    if (visitMode && direction) {
+    if (!event.shiftKey && direction) {
       requestMove({ x: Math.round(player.positionRef.current.x) + direction[0]!, y: Math.round(player.positionRef.current.y) + direction[1]! });
       event.preventDefault();
       return;
@@ -115,6 +129,7 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker, lang
     if ((event.target as HTMLElement).closest('button, select, label, input')) return;
     if (!event.isPrimary && event.isPrimary !== undefined) return;
     if (event.button !== undefined && event.button !== 0) return;
+    event.currentTarget.focus({ preventScroll: true });
     dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, camera, moved: false };
     event.currentTarget.setPointerCapture?.(event.pointerId);
   };
@@ -134,7 +149,7 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker, lang
     if (!drag || drag.pointerId !== event.pointerId) return;
     dragRef.current = undefined;
     setDragging(false);
-    if (event.type === 'pointercancel' || drag.moved || !visitMode || !world.current) return;
+    if (event.type === 'pointercancel' || drag.moved || !world.current) return;
     const bounds = world.current.getBoundingClientRect();
     if (bounds.width === 0 || bounds.height === 0) return;
     requestMove({ x: Math.floor((event.clientX - bounds.left) / bounds.width * layout.width), y: Math.floor((event.clientY - bounds.top) / bounds.height * layout.height) });
@@ -150,6 +165,7 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker, lang
   // Animation updates only the avatar. Reuse the full terrain and building tree between frames.
   const scenery = useMemo(() => <>
     <PixelTerrain layout={layout} />
+    <VillageAnimals layout={layout} navigation={navigation} language={language} />
     {layout.buildings.map((placement) => {
       const record = records.get(placement.taskId);
       if (!record) return null;
@@ -157,15 +173,13 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker, lang
         <PixelBuilding language={language} task={record.task} project={record.project} variant={placement.variant} onSelect={selectBuilding} />
       </span>;
     })}
-    {workers.map((worker, index) => {
-      const parent = worker.role === 'helper' && worker.parentId ? workersById.get(worker.parentId) : undefined;
-      const attachedTaskId = parent?.attachedTaskId ?? worker.attachedTaskId;
-      const placement = attachedTaskId ? placements.get(attachedTaskId) : undefined;
-      const x = placement ? placement.x + 8 + (index % 2) * 2 : layout.entrance.x + index * 2;
-      const y = placement ? placement.y + 2 + (index % 3) * 2 : layout.entrance.y;
-      return <span key={worker.id} className="pixel-worker-plot" style={{ left: x * TILE_SIZE, top: y * TILE_SIZE }}><PixelWorker worker={worker} helperCount={helpersByParent.get(worker.id)} onSelect={onSelectWorker} /></span>;
+    {workerPlots.map(({ worker, slot, placement }) => {
+      const x = placement ? placement.x + 8 + (slot % 2) * 2 : layout.entrance.x + slot * 2;
+      const y = placement ? placement.y + 2 + Math.floor(slot / 2) * 2 : layout.entrance.y;
+      const counts = helpersByParent.get(worker.id);
+      return <span key={worker.id} className="pixel-worker-plot" style={{ left: x * TILE_SIZE, top: y * TILE_SIZE }}><PixelWorker language={language} worker={worker} helperCount={counts?.total} confirmedHelperCount={counts?.confirmed} onSelect={onSelectWorker} /></span>;
     })}
-  </>, [layout, records, language, selectBuilding, workers, workersById, placements, helpersByParent, onSelectWorker]);
+  </>, [layout, navigation, records, language, selectBuilding, workerPlots, helpersByParent, onSelectWorker]);
 
   return (
     <section
@@ -176,11 +190,13 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker, lang
       data-worker-count={workers.length}
       data-lead-count={leadCount}
       data-helper-count={helperCount}
+      data-confirmed-helper-count={confirmedHelperCount}
+      data-worker-sprite-count={workerPlots.length}
       data-world-width={layout.width}
       data-world-height={layout.height}
       data-camera-x={Number(camera.x.toFixed(2))}
       data-camera-y={Number(camera.y.toFixed(2))}
-      data-visit-mode={visitMode}
+      data-navigation="direct"
       data-dragging={dragging}
       data-player-x={Number(player.position.x.toFixed(2))}
       data-player-y={Number(player.position.y.toFixed(2))}
@@ -193,24 +209,20 @@ export function VillageMap2D({ village, activity, onSelect, onSelectWorker, lang
       onPointerUp={stopDrag}
       onPointerCancel={stopDrag}
       onWheel={onWheel}
-      onClickCapture={(event) => { pointerActivation.current = event.detail > 0; }}
     >
       <div ref={world} className="pixel-world" style={worldStyle}>
         {scenery}
         <PixelAvatar position={player.position} direction={player.direction} appearance={appearance} walking={player.walking} label={translate(language, 'Vous')} />
       </div>
       <div className="map-visit-controls">
-        <button type="button" aria-pressed={visitMode} onClick={() => { player.stop(); setVisitMode(!visitMode); setTravelStatus('idle'); }}>{translate(language, visitMode ? 'Quitter la visite' : 'Visiter le village')}</button>
-        {visitMode && <>
           <label>{translate(language, 'Apparence')}<select aria-label={translate(language, 'Apparence de votre avatar')} value={appearance} onChange={(event) => setAppearance(event.target.value as AvatarAppearance)}>
             <option value="fern">{translate(language, 'Fougère')}</option><option value="sun">{translate(language, 'Soleil')}</option><option value="iris">{translate(language, 'Iris')}</option>
           </select></label>
           {player.walking && <button type="button" onClick={stopTravel}>{translate(language, 'Arrêter')}</button>}
-        </>}
       </div>
-      <p className="map-visit-status" role="status" aria-live="polite">{visitMode ? translate(language, travelStatus === 'blocked' ? 'Destination inaccessible.' : travelStatus === 'stopped' ? 'Déplacement arrêté.' : travelStatus === 'arrived' ? 'Vous êtes arrivé.' : 'Cliquer au sol pour marcher, sur une maison pour la visiter.') : translate(language, 'Cliquer sur une maison pour ouvrir son bilan.')}</p>
+      <p className="map-visit-status" role="status" aria-live="polite">{translate(language, travelStatus === 'blocked' ? 'Destination inaccessible.' : travelStatus === 'stopped' ? 'Déplacement arrêté.' : travelStatus === 'arrived' ? 'Vous êtes arrivé.' : 'Cliquer au sol pour marcher, sur une maison pour ouvrir son bilan.')}</p>
       <button type="button" className="map-reset" onClick={() => setCamera({ x: 0, y: 0 })}>{translate(language, 'Recentrer le village')}</button>
-      <span className="map-hint" aria-hidden="true">{translate(language, visitMode ? 'Flèches : marcher · Échap : arrêter · Glisser : caméra' : 'Glisser ou utiliser les flèches pour explorer')}</span>
+      <span className="map-hint" aria-hidden="true">{translate(language, 'Flèches : marcher · Maj+flèches : caméra · Échap : arrêter')}</span>
     </section>
   );
 }

@@ -1,66 +1,37 @@
 # Architecture
 
-Agent Village has two independent data planes so activity can never masquerade as progress.
+Agent Village separates construction from activity. A busy agent cannot silently complete a milestone.
 
-```text
-village.yaml ── schema ── evidence verifiers ── status derivation ── /api/village
-                                                                     │
-Codex app-server ─┐
-Claude hooks ─────┼── allowlist/redaction/mapping ────── /api/activity
-OpenClaw plugin ──┤
-local AMC endpoint┘
-                                                                     │
-                                      React scene polls both every 5 seconds
-```
+## Native construction
 
-## Truth plane
+The owner defines a stable goal and up to twelve milestones in each project. `/api/plan` requires the owner's passkey session and exact canonical Origin. A bounded JSON ledger in the private auth directory stores goals, validation notes, timestamps and revisions. Writes are synchronous and atomic in the single server process. Revision conflicts fail instead of overwriting another edit.
 
-`village.yaml` owns the work hierarchy and recovery context:
+No plan means an undefined survey plot. A plan with no validated milestone means foundations. Partial validated milestones create frame, walls and roof stages. All explicitly validated milestones complete the house; reopening one removes completion. Owner checks and agent-recorded local checks remain labelled by provenance. Neither is an automatic test/deployment verification service.
 
-```text
-workspace
-└── project       → district
-    ├── feature   → compound
-    │   └── task  → building
-    │       └── subtask → verified construction leaf
-    └── task      → standalone building
-```
+The project set is the union of recent conversations and saved goals. A project keeps its construction when it has no recent activity. Hook-only temporary identities are excluded from plan creation until a native project is identified.
 
-The server validates the complete file with Zod before deriving anything. Evidence verifiers return `verified`, `pending`, `invalid`, or `not_checked_v1`. Derivation is pure and rolls the most attention-demanding child status upward. An empty container is planned, never verified.
+## YAML construction
 
-Construction and attention are separate deterministic signals:
+YAML modes retain `workspace → project → feature → task → subtask`. A task is a building and subtasks are its construction leaves. Zod validates input before deterministic derivation. Empty containers are planned, never verified. The most attention-demanding child status rolls upward; blocked/review states are distinct from physical construction.
 
-| Verified construction | Building stage |
-| --- | --- |
-| no verified leaf, planned | lot |
-| no verified leaf, started | foundation |
-| early verified leaves | frame |
-| partial verified leaves | walls |
-| every leaf verified, parent not proven | roof |
-| task and every leaf proven | complete |
+V1 verifies commit existence and approved human review. Other represented evidence types remain `not_checked_v1`. A commit's existence alone does not prove a deployed or working result.
 
-`blocked`, `awaiting_review`, and other effective states remain overlays. A blocked task can therefore retain a frame or walls already proven by its subtasks.
+## Activity
 
-Only `commit` and `human_review` evidence are inspected in V1. A verified claim without verified evidence is downgraded.
+Native mode uses Codex's read-only SQLite index and bounded root journal tails, not an app-server process. It adds helper metadata from parent-child edges, with a 200-record/depth-eight cap. Child journals are not read. Claude uses journals, process metadata and optional authenticated lifecycle hooks. OpenClaw has an optional metadata-only hook plugin.
 
-## Activity plane
+Detected records, recent events and observed processes have different provenance. An open edge never establishes active work. Recent means within two minutes. Claude process confirmation combines PID presence and a recent declared status; later lifecycle events win. Hook coverage starts at server startup and expires after thirty minutes. Errors and caps are visible; available workers remain visible during partial source failures.
 
-Native mode aggregates three local, read-only sources. The Codex provider requests `thread/list` from a short-lived `codex app-server` process. Claude Code command hooks POST lifecycle and subagent events to a loopback route. The bundled OpenClaw plugin posts normalized lifecycle metadata. The hub keeps session ID, provider-honest role, parent ID when known, normalized tool/state, redacted title, project folder name, and timestamps. Explicit title mappings attach people to task IDs.
+One house displays at most five people, while badges and analytics count all observed helpers. Adult leads and child helpers stay distinct from decorative animals. Reading a person's details opens its source conversation.
 
-The separate live adapter reads `{ sessions: [...] }` from another loopback HTTP endpoint. Native provider failures are isolated: one unavailable tool does not hide the others.
+## Runtime and privacy
 
-Activity has a hard 800 ms timeout. Invalid, unavailable, or non-local sources yield an empty degraded snapshot. They do not alter `/api/village`, derived states, or the scene's buildings.
+- Original SVG pixel artwork, six silhouettes and physical construction layers; no external assets or game engine.
+- Ground click walks, building click opens details; arrows walk, Shift+arrows or drag pan the bounded camera.
+- Two decorative animals use CSS-only patrols paused offscreen, in hidden tabs and under reduced motion.
+- Polling pauses in hidden tabs. Stable geometry keeps walking routes through refreshes.
+- Node binds IPv4 loopback. Native APIs require owner access; fictional demo/YAML modes do not.
+- Project plans and auth state stay outside the source tree and static output. Public builds use fictional fixtures only.
+- No agent commands, remote transcript bridge, token accounting or model inference service.
 
-## Runtime
-
-- React and CSS render a semantic top-down tile map. Buildings and people are native buttons, not mirrored canvas controls.
-- Stable task-ID hashing selects one of eight original architectural families. Server-derived `data-stage` attributes reveal the correct construction parts.
-- The camera is a bounded CSS translation controlled by drag, wheel, or arrow keys.
-- The client polls truth and activity every 5 seconds, pauses in hidden tabs, and retains the last known truth on failure.
-- Truth polling updates construction; activity polling updates people only.
-- The Node HTTP server serves the built SPA and read-only JSON APIs on `127.0.0.1` only.
-- Demo, truth-only, native, and live modes use the same UI contract.
-
-## Why this stays small
-
-YAML is reviewable, portable, and sufficient for a personal or small-team dashboard. HTTP polling is observable and easy to recover. A game engine, database, event bus, and agent-control layer would add operational cost before they improve the core job: knowing what is done, what needs attention, and how to resume it.
+Known tradeoff: the ledger is a small single-process store, not a multi-user database or a cross-process collaborative editor. Unsupported metrics remain unmeasured rather than estimated.

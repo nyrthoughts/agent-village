@@ -1,0 +1,71 @@
+/* Architecture owns its layers; legacy status styles must not invent a roof. */
+.pixel-building.traveler-building {
+  width: 112px;
+  height: 100px;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.pixel-building.traveler-building::after {
+  display: none;
+}
+
+.traveler-building__art {
+  position: absolute;
+  left: 0;
+  top: -32px;
+  width: 112px;
+  height: 128px;
+  overflow: visible;
+  /* Painted roof pixels outside the ground footprint still belong to the house. */
+  pointer-events: visiblePainted;
+  image-rendering: pixelated;
+  transition: filter 100ms linear;
+}
+
+.traveler-building:hover .traveler-building__art,
+.traveler-building:focus-visible .traveler-building__art {
+  filter: brightness(1.08);
+}
+
+.traveler-building:focus-visible {
+  outline: 3px dashed #fff1b9;
+  outline-offset: 4px;
+}
+
+.traveler-building__working,
+.traveler-building__alert {
+  position: absolute;
+  z-index: 2;
+  right: 4px;
+  top: 1px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #315b58;
+  background: #a9d6bd;
+  box-shadow: 2px 2px 0 #36584233;
+}
+
+.traveler-building__working::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  background: #426f65;
+}
+
+.traveler-building__alert {
+  border-color: #714d39;
+  background: #edb982;
+  color: #714d39;
+  font: 800 10px/9px Monaco, monospace;
+  text-align: center;
+}
+
+.traveler-building .pixel-building__label small {
+  line-height: 1.35;
+  text-transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .traveler-building__art { transition: none; }
+}

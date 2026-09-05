@@ -25,6 +25,8 @@ It selects up to 60 non-archived root tasks updated in the last seven days. Jour
 
 Snapshots are cached for five seconds; unchanged transcript tails are reused in memory. Restarts reread original sources. No additional conversation database exists, and remote Codex sessions are not connected implicitly.
 
+Parent-child edges add up to 200 helper metadata records at depth eight. Helpers inherit the root project's identity. Child transcripts are never opened by this collector. Existing/open edges mean detected, not active; a recent index timestamp means recent, not confirmed work. Source coverage and collection caps are shown in the UI.
+
 ## Claude Code
 
 Existing conversations need no hooks. Native mode reads recent journals below `~/.claude/projects` and allowlisted process metadata below `~/.claude/sessions`. It selects up to 60 sessions, preferring running processes; those may be older than seven days. Existing tmux metadata appears when available. Agents need not restart.
@@ -37,7 +39,7 @@ npm run connect:claude
 
 The installer atomically updates Claude settings, preserves unrelated hooks and upgrades only Agent Village's marked commands. Curl loads authorization from the private header file; the secret value is not placed in settings or command arguments. Unknown events and missing/incorrect authorization are rejected. Only allowlisted lifecycle metadata is retained in a bounded in-memory store.
 
-`SubagentStart` attaches a helper beside its lead; `SubagentStop` removes it. Short hook timeouts keep observation failures from interrupting Claude.
+`SubagentStart` attaches a helper beside its lead; `SubagentStop` removes it. Coverage starts with the observer process and expires after thirty minutes; a hook older than two minutes cannot keep claiming active work. Short hook timeouts keep observation failures from interrupting Claude. Confirmed process metadata requires a present PID and recent declared state; a newer Stop hook supersedes an older busy state.
 
 For a custom port, set `AGENT_VILLAGE_HOOK_URL` to the loopback URL with the exact `/api/hooks/claude` path. Pass the server's `VILLAGE_AUTH_DIR` when changing its location. These variables must be present when installing or updating hooks.
 
@@ -65,7 +67,7 @@ Set `AGENT_VILLAGE_URL` to the server's loopback base URL for a custom port. The
 
 Native mode groups conversations by local directory and common Git repository. `VILLAGE_PROJECT_ALIASES` can map directories, `session:codex:ID`, `session:claude:ID` or `title:PREFIX` to a shared display name. Keep real path mappings outside the repository. `VILLAGE_FOCUS_PROJECTS` selects displayed project names; authenticated search still exposes others.
 
-Each native project opens a brief, timeline and source conversations. Briefs extract explicit done/next/blocker sections without calling a model or independently verifying claims. Unsupported token counts, duration estimates and delivery percentages are omitted. Browser storage retains reading-point IDs/timestamps and language, not conversation text or owner tokens.
+Each native project opens a private goal/milestone panel, agent counts, a brief, timeline and source conversations. Briefs extract explicit done/next/blocker sections without calling a model or independently verifying claims. Unsupported token counts and duration estimates are labelled unmeasured. Browser storage retains reading-point IDs/timestamps and language, not conversation text, project plans or owner tokens.
 
 In YAML/demo/live modes, `activity_mapping` places a worker beside an evidence-based task using a case-insensitive title substring:
 
@@ -75,4 +77,4 @@ activity_mapping:
     taskId: example-release
 ```
 
-Mapping changes position only. These task stages come from evidence verification; native houses organize observed conversations instead. The GitHub demo is fictional and never reads local sessions. See [security](../SECURITY.md) for same-account malware, shared-session and other limits.
+Mapping changes position only. YAML task stages come from evidence verification; native house stages come from explicit private milestone validations, separately from observed conversations. The GitHub demo is fictional and never reads local sessions. See [security](../SECURITY.md) for same-account malware, shared-session and other limits.

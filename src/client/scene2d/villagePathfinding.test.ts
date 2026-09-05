@@ -40,7 +40,7 @@ describe('village pathfinding', () => {
     expect(findVillagePath(navigation, layout.entrance, layout.entrance)).toEqual([]);
   });
 
-  it.each([0, 1, 6, 9, 12])('reaches every observed house door from the entrance with %i projects', (count) => {
+  it.each([0, 1, 6, 9, 12, 20, 30])('reaches every observed house door from the entrance with %i projects', (count) => {
     const village = observedVillage(Array.from({ length: count }, (_, index) => ({ id: `codex:${index}`, tool: 'codex' as const, state: 'idle' as const, projectKey: `repo-${index}`, project: `Project ${index}`, history: [], lastActivityAt: '2026-09-04T12:00:00Z' })), []);
     const map = layoutVillage2d(village);
     const navigation = navigationFor(map);

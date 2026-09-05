@@ -44,12 +44,12 @@ describe('canonical demo fixture', () => {
       'atlas-bridge-footing': 'planned',
       'atlas-bridge-pier': 'verified',
       'atlas-bridge-deck': 'planned',
-      'atlas-library': 'verified',
+      'atlas-library-hall': 'verified',
       'atlas-weather-site': 'in_progress',
       'beacon-relay-hub': 'planned',
       'beacon-lens': 'verified',
       'beacon-lens-frame': 'verified',
-      'beacon-notes': 'in_progress',
+      'beacon-garden-journal': 'in_progress',
     });
     expect(new Set(Object.values(stages))).toEqual(new Set([
       'lot', 'foundation', 'frame', 'walls', 'roof', 'complete',

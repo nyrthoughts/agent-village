@@ -4,6 +4,19 @@ import { parseTranscript, observedVillage, mergeLiveSessions } from './projectOb
 const line = (type: string, payload: unknown, timestamp = '2026-09-04T12:00:00Z') => JSON.stringify({ type, payload, timestamp });
 
 describe('private project observer', () => {
+  it('does not merge unrelated hook-only sessions with the same short folder name', () => {
+    const result = mergeLiveSessions([], ['one', 'two'].map((id) => ({ id: `claude:${id}`, tool: 'claude' as const, role: 'lead' as const, state: 'working' as const, project: 'repo', lastActivityAt: '2026-09-04T12:00:00Z' })));
+    expect(new Set(result.map((s) => s.projectKey)).size).toBe(2);
+  });
+  it('refreshes equal-time hook provenance as the observation ages, retaining reports and project ownership', () => {
+    const at = '2026-09-04T12:00:00Z';
+    const sessions = [{ id: 'claude:a', tool: 'claude' as const, role: 'lead' as const, state: 'working' as const, projectKey: 'repo', project: 'Project', attachedTaskId: 'building', history: [], summary: 'Report retained', lastActivityAt: at }];
+    const result = mergeLiveSessions(sessions, [{ id: 'claude:a', tool: 'claude', role: 'lead', state: 'unknown', lastActivityAt: at, activityEvidence: { level: 'detected', source: 'claude-hook', observedAt: at } }]);
+    expect(result[0]?.state).toBe('unknown');
+    expect(result[0]?.activityEvidence?.level).toBe('detected');
+    expect(result[0]?.summary).toBe('Report retained');
+    expect(result[0]?.attachedTaskId).toBe('building');
+  });
   it('keeps distinct building identities for focused projects even when filtered', () => {
     const names = ['One', 'Two', 'Three', 'Four', 'Five', 'Six'];
     const sessions = names.map((project) => ({ id: project, tool: 'codex' as const, state: 'idle' as const, projectKey: project, project, history: [], lastActivityAt: '2026-09-04T12:00:00Z' }));

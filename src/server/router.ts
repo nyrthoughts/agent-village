@@ -10,8 +10,10 @@ import { deriveWorkspace } from './truth/derive.js';
 import { verifyWorkspaceEvidence } from './truth/evidence/verify.js';
 import { hasTraversal, readStatic } from './static.js';
 import type { LocalSessions } from './activity/localSessions.js';
-import { observedVillage, mergeLiveSessions } from './activity/projectObserver.js';
+import { observedVillage, mergeLiveSessions, projectId } from './activity/projectObserver.js';
 import { AuthError, OwnerAuth } from './auth/ownerAuth.js';
+import { ProjectPlans } from './projectPlans.js';
+import { planWriteSchema, type ProjectPlansById } from '../shared/projectPlan.js';
 
 export interface RouterOptions {
   villagePath: string;
@@ -82,6 +84,7 @@ export function createRouter(options: RouterOptions) {
       throw new Error('Native auth directory must stay outside the static directory');
     }
   }
+  const plans = options.mode === 'native' && options.ownerAuth ? new ProjectPlans(options.ownerAuth.directory) : undefined;
   const observed = async () => {
     const local = await options.localSessions!.snapshot();
     const hooks = options.nativeActivity ? await options.nativeActivity.snapshot([]) : undefined;
@@ -176,6 +179,32 @@ export function createRouter(options: RouterOptions) {
       return;
     }
 
+    if (rawPath === '/api/plan' && request.method === 'POST') {
+      if (!plans || !options.localSessions) { json(response, 404, { error: 'not_found' }); return; }
+      if (request.headers.origin !== canonicalOrigin) { json(response, 403, { error: 'local_access_only' }); return; }
+      if (!request.headers['content-type']?.startsWith('application/json')) { json(response, 400, { error: 'invalid_json' }); return; }
+      const body = await readJsonBody(request);
+      if (!body.ok) {
+        response.setHeader('connection', 'close'); response.once('finish', () => request.destroy());
+        json(response, body.status, { error: 'invalid_plan' }); return;
+      }
+      const input = planWriteSchema.safeParse(body.value);
+      if (!input.success) { json(response, 422, { error: 'invalid_plan' }); return; }
+      const snapshot = await observed();
+      const session = snapshot.sessions.find((session) => projectId(session.projectKey) === input.data.projectId);
+      if (session?.projectKey.startsWith('hook:')) { json(response, 409, { error: 'project_identity_pending' }); return; }
+      try {
+        if (!session && !plans.read()[input.data.projectId]) { json(response, 404, { error: 'unknown_project' }); return; }
+        json(response, 200, plans.save(input.data.projectId, input.data.plan, input.data.revision, 'owner', session?.project));
+      }
+      catch (error) {
+        const code = error instanceof Error ? error.message : '';
+        json(response, code === 'plan_conflict' ? 409 : code === 'plan_capacity' ? 422 : 503,
+          { error: ['plan_conflict', 'plan_capacity'].includes(code) ? code : 'plan_unavailable' });
+      }
+      return;
+    }
+
     if (request.method !== 'GET') {
       json(response, 405, { error: 'method_not_allowed' });
       return;
@@ -189,7 +218,12 @@ export function createRouter(options: RouterOptions) {
     if (rawPath === '/api/village') {
       if (options.mode === 'native' && options.localSessions) {
         const snapshot = await observed();
-        json(response, 200, observedVillage(snapshot.sessions, snapshot.errors, options.focusProjects)); return;
+        let saved: ProjectPlansById = {};
+        const errors = [...snapshot.errors];
+        try { saved = plans?.read() ?? {}; } catch { errors.push('Objectifs privés illisibles. Aucune progression déduite.'); }
+        const village = observedVillage(snapshot.sessions, errors, options.focusProjects, saved);
+        if ('coverage' in snapshot) village.observation!.coverage = snapshot.coverage as string[];
+        json(response, 200, village); return;
       }
       const loaded = loadWorkspace(options.villagePath);
       if (!loaded.ok) {

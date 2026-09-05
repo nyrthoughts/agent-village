@@ -1,7 +1,8 @@
-export type RoofShape = 'gable' | 'flat' | 'stepped' | 'hipped' | 'stilt';
+export type BuildingArchitecture = 'japanese_workshop' | 'moroccan_courtyard' | 'dutch_gable' | 'brazilian_sobrado' | 'greek_terraces' | 'norwegian_storehouse';
+export type RoofShape = 'swept' | 'courtyard' | 'stepped' | 'hipped' | 'terraced' | 'stilt';
 
 export interface BuildingFamily {
-  id: string;
+  id: BuildingArchitecture;
   index: number;
   roof: RoofShape;
   roofColor: string;
@@ -14,14 +15,12 @@ export interface BuildingFamily {
 }
 
 export const BUILDING_FAMILIES: readonly BuildingFamily[] = [
-  { id: 'timber_north', index: 0, roof: 'gable', roofColor: '#4f8db9', roofLight: '#7fb7d4', roofDark: '#315a77', wallColor: '#e4c985', wallLight: '#fff0b4', wallDark: '#a9744b', trimColor: '#64442f' },
-  { id: 'courtyard_sun', index: 1, roof: 'flat', roofColor: '#e4a047', roofLight: '#f4c36d', roofDark: '#9b5c2d', wallColor: '#f0d69a', wallLight: '#fff1bf', wallDark: '#c38a55', trimColor: '#76503a' },
-  { id: 'townhouse_brick', index: 2, roof: 'stepped', roofColor: '#7c4d56', roofLight: '#b56d72', roofDark: '#4d3443', wallColor: '#c97857', wallLight: '#eaa177', wallDark: '#8c493d', trimColor: '#f2d89d' },
-  { id: 'earth_courtyard', index: 3, roof: 'flat', roofColor: '#a76d3d', roofLight: '#d29755', roofDark: '#6e482f', wallColor: '#d9a86c', wallLight: '#f1cb89', wallDark: '#9b6946', trimColor: '#5f4937' },
-  { id: 'mountain_adobe', index: 4, roof: 'stepped', roofColor: '#c06f3f', roofLight: '#e69a5f', roofDark: '#81472f', wallColor: '#e4b77d', wallLight: '#f8daa1', wallDark: '#a66f4e', trimColor: '#60483b' },
-  { id: 'tropical_stilt', index: 5, roof: 'stilt', roofColor: '#3d8f73', roofLight: '#69b497', roofDark: '#28634f', wallColor: '#e7c77e', wallLight: '#f8e3aa', wallDark: '#9e7749', trimColor: '#5d4934' },
-  { id: 'woodland_tile', index: 6, roof: 'hipped', roofColor: '#39736c', roofLight: '#5ca097', roofDark: '#27534e', wallColor: '#d8cf9b', wallLight: '#f3ecc1', wallDark: '#958861', trimColor: '#58483b' },
-  { id: 'civic_modern', index: 7, roof: 'flat', roofColor: '#5b718e', roofLight: '#8497ae', roofDark: '#3a4b62', wallColor: '#d5d8cf', wallLight: '#f1f1df', wallDark: '#929b94', trimColor: '#42515a' },
+  { id: 'japanese_workshop', index: 0, roof: 'swept', roofColor: '#477d78', roofLight: '#76a69b', roofDark: '#2b514f', wallColor: '#e8cf9b', wallLight: '#fff0c5', wallDark: '#bc9469', trimColor: '#624b3b' },
+  { id: 'moroccan_courtyard', index: 1, roof: 'courtyard', roofColor: '#dea769', roofLight: '#f9d69a', roofDark: '#a5724e', wallColor: '#ecc48a', wallLight: '#ffe3ae', wallDark: '#bd855d', trimColor: '#785240' },
+  { id: 'dutch_gable', index: 2, roof: 'stepped', roofColor: '#ae5b47', roofLight: '#dd8961', roofDark: '#714535', wallColor: '#c47552', wallLight: '#eaaa77', wallDark: '#915740', trimColor: '#f4dfab' },
+  { id: 'brazilian_sobrado', index: 3, roof: 'hipped', roofColor: '#c27149', roofLight: '#eda976', roofDark: '#86523e', wallColor: '#72aba3', wallLight: '#a6d0b4', wallDark: '#4d7b77', trimColor: '#f6e4b1' },
+  { id: 'greek_terraces', index: 4, roof: 'terraced', roofColor: '#d1ddca', roofLight: '#fff4ce', roofDark: '#8aa5a0', wallColor: '#eee9cc', wallLight: '#fff9de', wallDark: '#b6c4b6', trimColor: '#467c98' },
+  { id: 'norwegian_storehouse', index: 5, roof: 'stilt', roofColor: '#668557', roofLight: '#9bae70', roofDark: '#3e6044', wallColor: '#9a6946', wallLight: '#c49059', wallDark: '#674a38', trimColor: '#4c4031' },
 ] as const;
 
 function stableHash(value: string): number {
