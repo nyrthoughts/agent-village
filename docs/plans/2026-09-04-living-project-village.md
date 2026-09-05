@@ -45,4 +45,4 @@ User approved this corrective lot and requested autonomous completion. Implement
 - [x] Phase 1 implemented and tested.
 - [x] Phase 2 implemented and tested.
 - [x] Independent review and complete verification: 248 unit tests, 14 Chrome E2E, typecheck, hygiene and production audit pass. CTO found no remaining P1/P2 after fixes; CDO reviewed fictional desktop/mobile captures.
-- [ ] Private runtime updated and code/demo published.
+- [x] Private runtime updated and code/demo published at `8d04569`. CI run `33938207404` and Pages run `33938207403` succeeded. Installed bundle identity and anonymous read/write denial verified; owner enrollment preserved. A restart requires the owner's own passkey login, not fresh enrollment.
