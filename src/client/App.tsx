@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { Worker } from '../shared/activity.js';
 import type { ObservedSession } from '../shared/observation.js';
+import type { DerivedWorkspace, DerivedProject } from '../server/truth/derive.js';
 import { useVillage } from './hooks/useVillage.js';
 import { useActivity } from './hooks/useActivity.js';
 import { savedLanguage, LANGUAGE_KEY, type Language } from './language.js';
@@ -9,6 +11,66 @@ import { VillageScene } from './village/VillageScene.js';
 import { NotificationPanel } from './village/NotificationPanel.js';
 import { BoardView } from './village/BoardView.js';
 import { SessionDrawer } from './village/SessionDrawer.js';
+
+function workerToSession(worker: Worker, projectKey: string): ObservedSession {
+  return {
+    ...worker,
+    projectKey,
+    history: [],
+  };
+}
+
+function allTaskIds(project: DerivedProject): Set<string> {
+  const ids = new Set<string>();
+  for (const task of project.tasks) {
+    ids.add(task.id);
+    for (const sub of task.subtasks) ids.add(sub.id);
+  }
+  for (const feature of project.features) {
+    for (const task of feature.tasks) {
+      ids.add(task.id);
+      for (const sub of task.subtasks) ids.add(sub.id);
+    }
+  }
+  return ids;
+}
+
+function enrichWorkspace(
+  workspace: DerivedWorkspace,
+  workers: Worker[],
+): DerivedWorkspace {
+  const hasObservation = workspace.projects.some(
+    (p) => p.observation && p.observation.sessions.length > 0,
+  );
+  if (hasObservation || workers.length === 0) return workspace;
+
+  const projects = workspace.projects.map((project): DerivedProject => {
+    const taskIds = allTaskIds(project);
+    const projectWorkers = workers.filter(
+      (w) => w.attachedTaskId && taskIds.has(w.attachedTaskId),
+    );
+    if (projectWorkers.length === 0) return project;
+
+    const sessions: ObservedSession[] = projectWorkers.map((w) =>
+      workerToSession(w, project.id),
+    );
+    const lastActivityAt =
+      sessions
+        .map((s) => s.lastActivityAt)
+        .sort()
+        .pop() ?? new Date().toISOString();
+
+    return {
+      ...project,
+      observation: {
+        sessions,
+        lastActivityAt,
+      },
+    };
+  });
+
+  return { ...workspace, projects };
+}
 
 export function App() {
   const village = useVillage();
@@ -40,7 +102,7 @@ export function App() {
     return (
       <main className="village-shell" style={{ display: 'grid', placeItems: 'center' }}>
         <p style={{ color: 'var(--text-secondary)' }}>
-          {language === 'fr' ? 'Chargement du village…' : 'Loading village…'}
+          {language === 'fr' ? 'Chargement du village\u2026' : 'Loading village\u2026'}
         </p>
       </main>
     );
@@ -56,7 +118,11 @@ export function App() {
     );
   }
 
-  const workspace = village.data;
+  const workspace = enrichWorkspace(
+    village.data,
+    activity.data?.workers ?? [],
+  );
+
   const allSessions: ObservedSession[] = workspace.projects.flatMap(
     (p) => p.observation?.sessions ?? [],
   );
@@ -119,7 +185,7 @@ export function App() {
             aria-pressed={view === 'village'}
             onClick={() => setView('village')}
           >
-            <span className="village-toggle__icon">🏠</span>
+            <span className="village-toggle__icon" aria-hidden="true">&#x1F3E0;</span>
             Village
           </button>
           <button
@@ -128,7 +194,7 @@ export function App() {
             aria-pressed={view === 'board'}
             onClick={() => setView('board')}
           >
-            <span className="village-toggle__icon">📋</span>
+            <span className="village-toggle__icon" aria-hidden="true">&#x1F4CB;</span>
             Board
           </button>
         </div>
