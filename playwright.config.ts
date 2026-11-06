@@ -1,6 +1,12 @@
-import { defineConfig, devices } from '@playwright/test';
+import { existsSync } from 'node:fs';
+import { chromium, defineConfig, devices } from '@playwright/test';
 
-const port = process.env.PLAYWRIGHT_PORT ?? '4180';
+// CI installs Playwright's Chromium. Local machines without it fall back to an installed Chrome
+// (Playwright always uses a fresh temporary profile).
+const bundledChromium = (() => { try { return existsSync(chromium.executablePath()); } catch { return false; } })();
+
+// A dedicated port so tests never collide with a local village on the default 4180.
+const port = process.env.PLAYWRIGHT_PORT ?? '4286';
 const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
@@ -13,7 +19,7 @@ export default defineConfig({
   use: {
     baseURL,
     trace: 'retain-on-failure',
-    channel: process.env.PLAYWRIGHT_CHANNEL === 'chrome' ? 'chrome' : undefined,
+    channel: process.env.PLAYWRIGHT_CHANNEL === 'chrome' || !bundledChromium ? 'chrome' : undefined,
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },

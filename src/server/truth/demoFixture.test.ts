@@ -74,4 +74,16 @@ describe('canonical demo fixture', () => {
       rmSync(directory, { recursive: true, force: true });
     }
   });
+
+  it('skips git metadata whether it is a directory or a linked-worktree pointer file', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'agent-village-hygiene-git-'));
+    const homePath = ['', 'Users', 'someone', 'checkout'].join('/');
+    writeFileSync(join(directory, '.git'), `gitdir: ${homePath}/.git/worktrees/one\n`, 'utf8');
+    writeFileSync(join(directory, 'clean.md'), 'Fictional content only.\n', 'utf8');
+    try {
+      expect(() => execFileSync(process.execPath, [join(root, 'scripts/check-clean.mjs'), '--root', directory])).not.toThrow();
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
 });

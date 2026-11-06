@@ -1,10 +1,8 @@
 # Agent Village
 
-Agent Village turns parallel agent work into a small village you can read in seconds.
+Agent Village is a local, read-only operations board for parallel agent work. One scan answers: what moves, what changed since your last visit, what is blocked, and where you need to step in.
 
-![Six original buildings in the fictional village](docs/traveler-village.png)
-
-The private native village groups actual Codex and Claude Code conversations into project districts. Each district has a common house and a construction parcel for every explicitly defined milestone. It shows recent requests, timestamped reports and source history after the owner's passkey check. The public [GitHub Pages demo](https://nyrthoughts.github.io/agent-village/) uses fictional data. Activity and agent reports never prove delivery.
+The private native board reads existing Codex and Claude Code sessions after the owner's passkey check. The public [GitHub Pages demo](https://nyrthoughts.github.io/agent-village/) shows a fictional six-project board. Activity and agent reports never prove delivery.
 
 ## Private native quick start
 
@@ -19,41 +17,28 @@ VILLAGE_MODE=native npm start
 
 Open `http://localhost:4180`. Setup prints the location of a private `bootstrap.txt` file, never its code. Open it locally, enter the code in the locked page within 15 minutes, then register your passkey. User verification is required. Enrollment consumes the code; setup cannot replace an enrolled owner.
 
-Conversations do not load before authentication. The browser keeps its bearer token only in memory for 30 minutes. Reloading requires another login. **Lock** removes private content immediately; successful logout revokes the server session. Each login rotates the previous session.
+Conversations do not load before authentication. The browser keeps its bearer token only in memory for 30 minutes. Reloading requires another login. **Lock** removes private content immediately; successful logout revokes the server session and closes the live stream. Each login rotates the previous session.
 
-The server binds to `127.0.0.1` but uses `localhost` as the canonical browser origin. The IP URL redirects to localhost on the same port. Remote devices, Tailscale proxies and public tunnels are unsupported. See [owner access](docs/owner-access.md) and [deployment](docs/deployment.md) for private storage, restarts and the disposable launcher.
+The server binds to `127.0.0.1` but uses `localhost` as the canonical browser origin. Remote devices, Tailscale proxies and public tunnels are unsupported. See [owner access](docs/owner-access.md) and [deployment](docs/deployment.md).
 
-## Read or visit
+## Reading the board
 
-- Read sourced project updates, a combined timeline and original conversations. Briefs extract explicit sections; they are not model-generated summaries or independently verified results.
-- Choose a **District**, or open a project and choose **Explore this district**. The common house summarizes the plan; each parcel opens its exact milestone, validation note and editor. **All districts** returns to the overview. Every filtered project remains available in the selector, even beyond the nine overview entrances.
-- Click the ground to walk immediately. Click a house to open its brief immediately. No hidden visit mode or travel prerequisite. Three avatar appearances are available.
-- Arrows walk, Shift+arrows pan the camera, and Escape stops walking. A new destination replaces the old one. Keyboard and touch open buildings directly, including tall roofs.
-- Use bounded camera panning, mobile controls and reduced motion. Source refreshes do not reset an unchanged route.
-- Choose **Français / English** before login or in the village. Interface labels and dates change; source conversations keep their original language. No translation API is used.
-- Mark a project as read to identify later exchanges. Reading points and language stay in browser storage; bearer tokens and conversation text do not.
+- **For you** — contradictions, decisions, reports to read and validations, by type then oldest wait first. Each item quotes its dated source and stays until a newer source fact or your action (seen, snooze, validation) resolves it; nothing expires on a hidden timer.
+- **Since your last visit** — changes after your last visit, grouped by project; minor changes are folded.
+- **Projects** — one line per project: goal, state, declared next action, declared dependencies, milestones validated in your ledger and the proof ladder `Declared / Activity / Commit / CI / Merge / Deployment`. GitHub proofs count only for the project's observed repository and branch, then the exact SHA. An unlit dot means *not observed*, never *failed*; partial or unrecognized CI is shown as inconclusive, never green. No percentages or ETAs.
+- **Detail** — opens beside the list: sourced proofs, the goal and milestone ledger, sessions with copy-only resume commands, the sourced timeline and the source conversation.
+- **Unmatched** — sessions received without a trusted project identity. Attach them explicitly; nothing is guessed from names.
+- **Source bar** — stream status, every source with its age (stale beyond three cadences, unreachable after a failure) and the measured render latency.
 
-The village uses six original architectural silhouettes: Japanese workshop, Moroccan courtyard, Dutch gable, Brazilian balcony house, Greek terraces and Norwegian raised timber. A moss capybara and copper otter inhabit the gardens and water edge. Animals pause offscreen or when reduced motion is requested. No copied game assets or added game engine.
+While your pointer or focus is in the board, or a detail is open, the view stays frozen and shows "N changes — apply". Applying keeps your selection and scroll position. Keyboard: `j`/`k` to move, Enter to open, Escape to close. Choose **Français / English** before login or on the board; source conversations keep their language.
 
-## Goals that build houses
+## Real time
 
-Open a private project and choose **Define the goal**. Enter a stable objective and up to twelve milestones. Validate a milestone with a note saying what you checked. The house progresses through foundations, frame, walls and roof; reopening a milestone rolls the building back. A project without a plan displays a survey plot, never a completed house.
-
-Inside a district, the common house retains those aggregate phases. Individual milestone parcels are either unvalidated lots or validated buildings: the ledger does not contain intermediate milestone progress, so none is invented. Reopening a milestone changes only its parcel and the common-house rollup. Buildings keep their positions and architectural family across updates. A completed building is not automatically a deployed result.
-
-The panel distinguishes owner validation from a recorded local check. Neither tokens, elapsed time nor chat activity can complete a milestone. Plans live in an owner-only `project-plans.json` beside the private authentication state, outside Git and static output. Revisions prevent concurrent edits from overwriting each other. Planned projects stay visible when their recent conversations age out. Hook-only provisional identities cannot receive a permanent plan until the project is identified.
-
-The UI shows root conversations, detected helpers, recent signals and confirmed process observations separately. A detected parent-child edge is not an active worker. At most five people are drawn per building; badges and project analytics retain the full observed counts. Tokens, worked time and remaining duration are not measured by these native connections.
-
-Native workers gather near the common house because the sources identify their project, not a specific milestone. Only a confirmed working signal no older than two minutes animates work; future, missing or expired evidence does not. Waiting and idle people rest. A separate UI clock expires old work indicators even when source refreshes fail. Animals remain decorative, not agent activity signals.
+The server keeps an append-only event journal with exact, durable deduplication and a monotone sequence, projects it with a pure reducer and pushes events over an authenticated stream. Claude/OpenClaw hooks arrive immediately; Codex and Claude journals are detected with file watching and a 5-second safety poll; optional GitHub facts are read every 30–60 seconds. A disconnected browser catches up exactly from its last sequence or receives a fresh snapshot, and polls every 5 seconds until the stream returns. See [architecture](docs/architecture.md).
 
 ## Connect existing work
 
-Codex requires no API key. Native mode uses `sqlite3 -readonly` against its existing local index, then reads bounded transcript tails. Claude sessions come from existing journals and process metadata, including tmux when present. Nothing starts or instructs an agent.
-
-The view refreshes every five seconds while visible. It selects up to 60 root sessions per source with a seven-day recency window; running Claude sessions may be older. Codex helpers come from at most 200 parent-child metadata records, depth eight; their transcripts are not read. Claude helper coverage includes only hooks received since startup, retained for thirty minutes. Recent means a signal within two minutes, not continuous activity. Each root transcript read is capped at 4 MiB and displayed history at 24 exchanges. Reasoning and tool payloads are excluded. Original journals remain the history source; no new conversation database is created.
-
-Projects are grouped automatically. `VILLAGE_PROJECT_ALIASES` maps directory paths, session IDs or title prefixes to display names. `VILLAGE_FOCUS_PROJECTS` selects initially displayed project names; search still exposes the rest after login. Keep real path mappings outside the repository.
+Codex requires no API key. Native mode uses `sqlite3 -readonly` against its existing local index, then reads bounded transcript tails. Claude sessions come from existing journals and process metadata. Nothing starts or instructs an agent.
 
 Claude and OpenClaw hooks are optional. After first-time `auth:setup`:
 
@@ -63,7 +48,15 @@ npm run connect:claude
 npm run disconnect:claude
 ```
 
-The installer preserves unrelated Claude settings. Hook requests load a separate authorization header from the private `ingestion.header` file. It permits observation submissions, never project reads or owner authentication. The bundled OpenClaw plugin uses the same private header and reports lifecycle metadata only. See [connections](docs/connections.md) for installation and custom ports.
+Hook requests use a separate `ingestion.header` that permits observation submissions only, never reads or owner authentication.
+
+GitHub facts (head commits of the observed branches and the default branch, check runs for each exact SHA, pull requests, deployments) are opt-in per repository and read-only:
+
+```sh
+VILLAGE_GITHUB_REPOS='["owner/name"]' VILLAGE_MODE=native npm start
+```
+
+They use your local `gh` authentication with conditional requests. Text is redacted and credential-bearing links are dropped before anything is stored. No webhook or tunnel. See [connections](docs/connections.md) for aliases, mappings and custom ports.
 
 ## Demo and YAML modes
 
@@ -72,31 +65,22 @@ npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173` for the fictional development fixture. To serve its production build:
-
-```sh
-npm run build
-npm start
-```
-
-Open `http://127.0.0.1:4180`. These demo commands do not enable native observation.
+Open `http://127.0.0.1:5173` for the fictional board. To serve the production build: `npm run build && npm start`, then open `http://127.0.0.1:4180`.
 
 | Mode | Data and access |
 | --- | --- |
-| `demo` | Fictional YAML and activity fixture; default, no owner gate. |
-| `truth-only` | YAML evidence without workers; no owner gate. |
-| `native` | Owner passkey required; local observed projects and conversations. |
+| `demo` | Fictional six-project board; default, no owner gate. |
+| `truth-only` | YAML tasks with evidence verdicts; no owner gate. |
+| `native` | Owner passkey required; local sessions, hooks and optional GitHub. |
 | `live` | YAML plus an AMC-compatible loopback activity endpoint; no owner gate. |
 
-Use fictional or non-sensitive inputs outside native mode. Copy `fixtures/village.demo.yaml` to define a YAML workspace and set `VILLAGE_FILE` to its location. All IDs must be unique. Supported states are `planned`, `in_progress`, `blocked`, `awaiting_review` and `verified`.
-
-YAML modes map `workspace → project → feature → task → subtask` into evidence-based construction stages. V1 verifies repository commit existence and approved human review. Other represented proof types (`test`, `pr_merged`, `deployed`, `observed`) remain `not_checked_v1`; they cannot prove completion. Native buildings use explicit private milestone validations instead; notes do not run tests or deployment verifiers automatically.
+Use fictional or non-sensitive inputs outside native mode. YAML modes verify commit existence and approved human review; `test`, `pr_merged`, `deployed` and `observed` evidence remain `not_checked_v1` and cannot prove completion.
 
 ## Privacy boundary
 
-The public repository and demo contain fictional data and cannot read this computer's sessions. Native source conversations stay local; authentication files must remain outside the repository and build output.
+The public repository and demo contain fictional data and cannot read this computer's sessions. The journal, plans, mappings and authentication files stay in a private owner-only directory outside the repository and build output.
 
-Passkeys do not protect journals against software running as the owner's OS account, root/administrator access or malware. Anyone using an unlocked browser session can read it. Do not share the OS account, passkey or active session. See [security](SECURITY.md) for the full boundary.
+Passkeys do not protect journals against software running as the owner's OS account, root/administrator access or malware. Anyone using an unlocked browser session can read it. See [security](SECURITY.md).
 
 ## Quality gates
 

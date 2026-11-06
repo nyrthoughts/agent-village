@@ -10,7 +10,6 @@ import { redactTitle } from './redact.js';
 const execute = promisify(execFile);
 type RecordData = Record<string, any>;
 interface Options { home?: string; aliases?: Record<string, string> }
-interface Snapshot { sessions: ObservedSession[]; errors: string[]; coverage: string[] }
 const WEEK = 7 * 24 * 60 * 60 * 1000;
 const RECENT_MS = 120_000;
 const HELPER_LIMIT = 200;
@@ -26,19 +25,50 @@ function recent(at: string, now = Date.now()): boolean {
 }
 function sqlString(value: string): string { return `'${value.replace(/'/g, "''")}'`; }
 
+/** `owner/name` for GitHub remotes only; other hosts are not queried by the optional GitHub source. */
+export function normalizeRemote(url: string): string | undefined {
+  const match = /^(?:https:\/\/(?:[^@/\s]+@)?github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)([A-Za-z0-9_.-]{1,100})\/([A-Za-z0-9_.-]{1,100}?)(?:\.git)?\/?$/.exec(url.trim());
+  return match ? `${match[1]}/${match[2]}` : undefined;
+}
+
+export interface Snapshot { sessions: ObservedSession[]; errors: string[]; coverage: string[] }
+
 export class LocalSessions {
   private readonly home: string;
   private readonly transcripts = new Map<string, { signature: string; data: TranscriptSnapshot }>();
-  private readonly projects = new Map<string, { key: string; name: string }>();
+  private readonly projects = new Map<string, { key: string; name: string; repo?: string }>();
+  private readonly branches = new Map<string, { at: number; branch?: string }>();
   private pending?: Promise<Snapshot>;
   private cached?: { at: number; value: Snapshot };
   constructor(private readonly options: Options = {}) { this.home = options.home ?? homedir(); }
 
+  /** Root of the observed sources, for change watchers. */
+  get roots(): { codex: string; claude: string } { return { codex: join(this.home, '.codex'), claude: join(this.home, '.claude') }; }
+
   async snapshot(): Promise<Snapshot> {
     if (this.cached && Date.now() - this.cached.at < 5000) return this.cached.value;
+    return this.refresh();
+  }
+
+  /** Uncached collection, still deduplicated while one is in flight. */
+  async refresh(): Promise<Snapshot> {
     if (this.pending) return this.pending;
     this.pending = this.collect().then((value) => { this.cached = { at: Date.now(), value }; return value; }).finally(() => { this.pending = undefined; });
     return this.pending;
+  }
+
+  private async branch(cwd: string): Promise<string | undefined> {
+    const cached = this.branches.get(cwd);
+    if (cached && Date.now() - cached.at < 30_000) return cached.branch;
+    let branch: string | undefined;
+    try {
+      const { stdout } = await execute('git', ['-C', cwd, 'rev-parse', '--abbrev-ref', 'HEAD'], { timeout: 1500, maxBuffer: 4096 });
+      branch = stdout.trim().slice(0, 200) || undefined;
+      if (branch === 'HEAD') branch = undefined;
+    } catch { branch = undefined; }
+    this.branches.set(cwd, { at: Date.now(), branch });
+    if (this.branches.size > 300) this.branches.delete(this.branches.keys().next().value!);
+    return branch;
   }
 
   private async transcript(path: string, tool: 'codex' | 'claude'): Promise<TranscriptSnapshot> {
@@ -61,20 +91,24 @@ export class LocalSessions {
     return data;
   }
 
-  private async project(cwd: string, sessionId = '', title = ''): Promise<{ key: string; name: string }> {
+  /** Session alias, then cwd → Git common root → normalized remote, then path aliases. */
+  private async project(cwd: string, sessionId = '', title = ''): Promise<{ key: string; name: string; repo?: string }> {
     const sessionAlias = this.options.aliases?.[`session:${sessionId}`]
       ?? Object.entries(this.options.aliases ?? {}).find(([key]) => key.startsWith('title:') && title.startsWith(key.slice(6)))?.[1];
     if (sessionAlias) return { key: `alias:${sessionAlias}`, name: sessionAlias };
     const cached = this.projects.get(cwd);
     if (cached) return cached;
     let key = cwd.includes('/.claude/worktrees/') ? cwd.split('/.claude/worktrees/')[0]! : cwd;
+    let repo: string | undefined;
     try {
       const { stdout } = await execute('git', ['-C', key, 'rev-parse', '--path-format=absolute', '--git-common-dir'], { timeout: 1500, maxBuffer: 4096 });
       const gitDir = stdout.trim();
       if (gitDir.endsWith('/.git')) key = dirname(gitDir);
-    } catch { /* Non-repository task directories retain their own identity. */ }
+      const remote = await execute('git', ['-C', key, 'remote', 'get-url', 'origin'], { timeout: 1500, maxBuffer: 4096 });
+      repo = normalizeRemote(remote.stdout);
+    } catch { /* Non-repository task directories and remote-less checkouts retain their own identity. */ }
     const alias = this.options.aliases?.[cwd] ?? this.options.aliases?.[key];
-    const result = { key: alias ? `alias:${alias}` : key, name: alias ?? (key === this.home ? 'Sessions personnelles' : basename(key)) };
+    const result = { key: alias ? `alias:${alias}` : key, name: alias ?? (key === this.home ? 'Sessions personnelles' : basename(key)), ...(repo ? { repo } : {}) };
     this.projects.set(cwd, result);
     return result;
   }
@@ -96,7 +130,10 @@ export class LocalSessions {
           const lastActivityAt = parsed.lastActivityAt ?? new Date(row.updated_at * 1000).toISOString();
           // An old task_started event cannot establish that a process is still running.
           const state = Date.now() - Date.parse(lastActivityAt) > 120_000 ? 'idle' : parsed.state;
-          sessions.push({ ...parsed, id: `codex:${row.id}`, tool: 'codex', role: 'lead',
+          const cwd = typeof row.cwd === 'string' ? row.cwd : undefined;
+          const branch = cwd ? await this.branch(cwd) : undefined;
+          sessions.push({ ...parsed, id: `codex:${row.id}`, tool: 'codex', role: 'lead', cwd,
+            ...(branch ? { branch } : {}), ...(project.repo ? { repo: project.repo } : {}),
             projectKey: project.key, project: project.name, attachedTaskId: projectId(project.key),
             title: String(row.title || 'Codex').slice(0, 120), lastActivityAt, state,
             activityEvidence: { level: recent(lastActivityAt) ? 'recent' : 'detected', source: 'codex-journal', observedAt: lastActivityAt },
@@ -147,10 +184,13 @@ export class LocalSessions {
           const parsed = await this.transcript(candidate.path, 'claude');
           const live = running.get(candidate.id);
           if (!parsed.summary && !parsed.objective && !live) continue;
-          const project = await this.project(live?.cwd ?? parsed.cwd ?? dirname(candidate.path), `claude:${candidate.id}`, String(live?.name ?? ''));
+          const cwd = typeof live?.cwd === 'string' ? live.cwd : parsed.cwd;
+          const project = await this.project(cwd ?? dirname(candidate.path), `claude:${candidate.id}`, String(live?.name ?? ''));
           const lastActivityAt = parsed.lastActivityAt ?? new Date(candidate.modified).toISOString();
           const freshProcess = live && typeof live.statusObservedAt === 'string' && recent(live.statusObservedAt);
-          sessions.push({ ...parsed, id: `claude:${candidate.id}`, tool: 'claude', role: 'lead',
+          const branch = cwd ? await this.branch(cwd) : undefined;
+          sessions.push({ ...parsed, id: `claude:${candidate.id}`, tool: 'claude', role: 'lead', cwd,
+            ...(branch ? { branch } : {}), ...(project.repo ? { repo: project.repo } : {}),
             projectKey: project.key, project: project.name, attachedTaskId: projectId(project.key),
             title: String(live?.name ?? parsed.objective ?? 'Claude Code').slice(0, 120), lastActivityAt,
             state: live ? freshProcess ? live.status === 'busy' ? 'working' : live.status === 'idle' ? 'waiting' : 'unknown' : 'unknown' : 'idle',

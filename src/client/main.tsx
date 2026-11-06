@@ -1,9 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './App';
 import { AuthGate } from './AuthGate';
+import { BoardApp } from './board/BoardApp';
 import './styles/tokens.css';
-import './styles/scene.css';
 
 const container = document.getElementById('root');
 if (!container) {
@@ -12,6 +11,6 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <AuthGate><App /></AuthGate>
+    <AuthGate><BoardApp /></AuthGate>
   </StrictMode>,
 );

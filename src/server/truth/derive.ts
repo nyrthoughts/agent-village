@@ -18,7 +18,7 @@ export type EvidenceVerdict = 'verified' | 'invalid' | 'pending' | 'not_checked_
 export type VerdictsById = Record<string, EvidenceVerdict[]>;
 
 export type Warning = 'unproven_claim' | 'invalid_evidence';
-export interface DerivedEvidence { type: Evidence['type']; verdict: EvidenceVerdict; note?: string }
+export interface DerivedEvidence { type: Evidence['type']; verdict: EvidenceVerdict; note?: string; sha?: string }
 
 export interface DerivedSubtask {
   id: string;
@@ -153,6 +153,7 @@ function deriveLeaf(
     evidence: node.evidence.map((item, index) => ({
       type: item.type,
       verdict: verdicts[index] ?? 'not_checked_v1',
+      ...(item.type === 'commit' ? { sha: item.sha } : {}),
       ...('note' in item && item.note ? { note: item.note } : {}),
     })),
   };

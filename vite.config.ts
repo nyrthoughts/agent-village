@@ -5,7 +5,7 @@ export default defineConfig({
   base: process.env.VILLAGE_PUBLIC_BASE || '/',
   plugins: [react()],
   build: {
-    // Keep the complete pixel village in one small browser bundle.
+    // One small browser bundle for the board.
     chunkSizeWarningLimit: 720,
   },
   server: {

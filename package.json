@@ -1,7 +1,7 @@
 {
   "name": "agent-village",
   "version": "0.1.0",
-  "description": "A living architect-table village for evidence-backed project work, with agent activity as a separate non-authoritative overlay.",
+  "description": "A local, read-only operations board for parallel agent work: sourced, dated facts, real-time events and no inferred progress.",
   "license": "Apache-2.0",
   "private": true,
   "packageManager": "npm@10.9.2",
@@ -30,7 +30,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "yaml": "^2.5.0",
-    "zod": "^3.23.8"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
@@ -43,7 +43,7 @@
     "jsdom": "^24.1.1",
     "tsx": "^4.23.13",
     "typescript": "^5.5.4",
-    "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vite": "^8.2.4",
+    "vitest": "^4.1.12"
   }
 }

@@ -1,36 +1,20 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
-import { adaptAmcPayload } from '../src/server/activity/amcAdapter.js';
-import { loadWorkspace } from '../src/server/config/load.js';
-import { deriveWorkspace } from '../src/server/truth/derive.js';
-import { verifyWorkspaceEvidence } from '../src/server/truth/evidence/verify.js';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { fixtureSnapshot } from '../src/server/board/staticBoard.js';
 
-const villagePath = resolve('fixtures/village.demo.yaml');
-const activityPath = resolve('fixtures/amc/dashboard.nominal.json');
+/**
+ * Static GitHub Pages export: the fictional six-project board only. No API endpoint, native
+ * source, journal or private file is involved; the snapshot is labelled fictional.
+ */
+const fixturePath = resolve('fixtures/board.demo.json');
 const outputDir = resolve('public/demo');
-const fetchedAt = '2026-08-31T15:00:00.000Z';
 
-const loaded = loadWorkspace(villagePath);
-if (!loaded.ok) {
-  throw new Error(`Demo fixture is invalid: ${loaded.errors.join('; ')}`);
-}
-
-const verdicts = await verifyWorkspaceEvidence(loaded.workspace, dirname(villagePath));
-const village = deriveWorkspace(loaded.workspace, verdicts);
-const activityPayload: unknown = JSON.parse(await readFile(activityPath, 'utf8'));
-const activity = adaptAmcPayload(
-  activityPayload,
-  loaded.workspace.activity_mapping ?? [],
-  'demo',
-  fetchedAt,
-);
-
-if (!activity) throw new Error('Demo activity fixture is invalid');
+const snapshot = fixtureSnapshot(JSON.parse(await readFile(fixturePath, 'utf8')));
+if (!snapshot.fictional) throw new Error('The public demo must be fictional');
 
 await mkdir(outputDir, { recursive: true });
-await Promise.all([
-  writeFile(resolve(outputDir, 'village.json'), `${JSON.stringify(village)}\n`, 'utf8'),
-  writeFile(resolve(outputDir, 'activity.json'), `${JSON.stringify(activity)}\n`, 'utf8'),
-]);
+// Retire snapshots of the former village view so Pages only serves the board.
+await Promise.all(['village.json', 'activity.json'].map((name) => rm(resolve(outputDir, name), { force: true })));
+await writeFile(resolve(outputDir, 'board.json'), `${JSON.stringify(snapshot)}\n`, 'utf8');
 
-console.log('Exported redacted demo snapshots.');
+console.log('Exported the fictional demo board.');

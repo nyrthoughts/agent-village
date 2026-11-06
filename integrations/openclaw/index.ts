@@ -1,4 +1,5 @@
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+import { randomUUID } from "node:crypto";
 import { constants, openSync, fstatSync, readFileSync, closeSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -25,11 +26,14 @@ function field(value: unknown, key: string): string | undefined {
 async function report(eventName: "session_start" | "agent_start" | "agent_end" | "session_end", event: unknown, ctx: unknown) {
   const sessionId = field(ctx, "sessionKey") ?? field(ctx, "runId") ?? field(event, "runId");
   if (!sessionId) return;
+  // One identity and time per lifecycle event: a retried delivery is recognized as the same event.
   const payload = {
     sessionId,
     event: eventName,
     title: field(ctx, "agentId"),
     cwd: field(ctx, "workspaceDir"),
+    eventId: randomUUID(),
+    occurredAt: new Date().toISOString(),
   };
   try {
     const url = new URL(endpoint);
@@ -37,13 +41,20 @@ async function report(eventName: "session_start" | "agent_start" | "agent_end" |
       || url.username || url.password || url.search || url.hash || url.pathname !== "/") return;
     const token = authorization();
     if (!token) return;
-    await fetch(new URL("/api/hooks/openclaw", url), {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: token },
-      redirect: "error",
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(250),
-    });
+    const body = JSON.stringify(payload);
+    // At most one retry, with the identical body: the server merges both deliveries.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const response = await fetch(new URL("/api/hooks/openclaw", url), {
+          method: "POST",
+          headers: { "content-type": "application/json", authorization: token },
+          redirect: "error",
+          body,
+          signal: AbortSignal.timeout(250),
+        });
+        if (response.status < 500) return;
+      } catch { /* Network failure: retry once. */ }
+    }
   } catch {
     // Observation must never block or alter an OpenClaw run.
   }

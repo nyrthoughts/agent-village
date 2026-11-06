@@ -4,6 +4,9 @@ import type { Worker, WorkerState } from '../../shared/activity.js';
 import { redactTitle } from './redact.js';
 
 const sessionId = z.string().regex(/^[A-Za-z0-9._:-]{1,120}$/);
+/** Producer-generated delivery identity, reused on every retry of the same lifecycle event. */
+const eventId = z.string().regex(/^[A-Za-z0-9._:-]{8,120}$/);
+const producerTime = z.string().datetime({ offset: true }).max(40);
 export const CLAUDE_HOOK_EVENTS = ['SessionStart', 'UserPromptSubmit', 'PostToolUse', 'PostToolUseFailure',
   'Notification', 'Stop', 'SubagentStart', 'SubagentStop', 'SessionEnd'] as const;
 const claudeEvent = z.object({
@@ -12,13 +15,57 @@ const claudeEvent = z.object({
   cwd: z.string().min(1).max(2_048),
   agent_id: sessionId.optional(),
   agent_type: z.string().min(1).max(120).optional(),
+  // Identifier only, used solely inside a hashed idempotence key. Tool inputs/outputs are stripped.
+  tool_use_id: sessionId.optional().catch(undefined),
+  event_id: eventId.optional().catch(undefined),
+  occurred_at: producerTime.optional().catch(undefined),
 }); // Claude sends extra fields; Zod strips them rather than retaining prompt/tool contents.
+
+/** Delivery metadata a producer may send outside the payload (bundled hook command headers). */
+export interface HookDelivery { eventId?: string; occurredAt?: string }
+
+/** Allowlisted, bounded hook metadata handed to the event journal. No raw payload field survives. */
+export interface HookObservation {
+  tool: 'claude' | 'openclaw';
+  sessionId: string;
+  parentId?: string;
+  role: Worker['role'] & string;
+  state: WorkerState;
+  event: string;
+  title?: string;
+  hint?: string;
+  /** Source-derived discriminator for the idempotence key (never persisted as such). */
+  discriminator: string;
+  /** Stable source identity of a tool call (Claude `tool_use_id`); hashed into the key only. */
+  toolUseId?: string;
+  /** Producer delivery identity; hashed into the key only. */
+  eventId?: string;
+  /** Producer time of the lifecycle event, when supplied and plausible. */
+  occurredAt?: Date;
+  /** Server receipt time. */
+  at: Date;
+}
 const openClawEvent = z.object({
   sessionId,
   event: z.enum(['session_start', 'agent_start', 'agent_end', 'session_end']),
   title: z.string().max(240).optional(),
   cwd: z.string().max(2_048).optional(),
+  eventId: eventId.optional().catch(undefined),
+  occurredAt: producerTime.optional().catch(undefined),
 });
+
+const FUTURE_TOLERANCE_MS = 5 * 60_000;
+/** A producer time is kept only when it parses and is not in the future beyond clock skew. */
+function producerAt(value: string | undefined, receipt: Date): Date | undefined {
+  if (!value) return undefined;
+  const at = Date.parse(value);
+  return Number.isFinite(at) && at <= receipt.getTime() + FUTURE_TOLERANCE_MS ? new Date(at) : undefined;
+}
+function delivery(meta: HookDelivery | undefined, id: string | undefined, at: string | undefined, receipt: Date) {
+  const stableId = id ?? (meta?.eventId && eventId.safeParse(meta.eventId).success ? meta.eventId : undefined);
+  const time = producerAt(at ?? (meta?.occurredAt && producerTime.safeParse(meta.occurredAt).success ? meta.occurredAt : undefined), receipt);
+  return { ...(stableId ? { eventId: stableId } : {}), ...(time ? { occurredAt: time } : {}) };
+}
 
 interface StoredWorker extends Worker { seenAt: number }
 
@@ -37,11 +84,23 @@ function openClawState(event: string): WorkerState {
 export class HookActivityStore {
   readonly #records = new Map<string, StoredWorker>();
 
+  readonly #observers = new Set<(observation: HookObservation) => void>();
+
   constructor(
     private readonly now: () => Date = () => new Date(),
     private readonly ttlMinutes = 30,
     private readonly maxRecords = 1_000,
   ) {}
+
+  /** Receives each accepted hook as allowlisted metadata; ingestion never triggers anything else. */
+  observe(listener: (observation: HookObservation) => void): () => void {
+    this.#observers.add(listener);
+    return () => { this.#observers.delete(listener); };
+  }
+
+  private emit(observation: HookObservation): void {
+    for (const listener of this.#observers) listener(observation);
+  }
 
   private prune(): void {
     const cutoff = this.now().getTime() - this.ttlMinutes * 60_000;
@@ -55,7 +114,7 @@ export class HookActivityStore {
     this.#records.delete(oldest.id);
   }
 
-  ingestClaude(payload: unknown): boolean {
+  ingestClaude(payload: unknown, meta?: HookDelivery): boolean {
     const parsed = claudeEvent.safeParse(payload);
     if (!parsed.success) return false;
     const current = this.now();
@@ -64,6 +123,17 @@ export class HookActivityStore {
       || parsed.data.hook_event_name === 'SubagentStop';
     if (isHelperEvent && !parsed.data.agent_id) return false;
     const helperId = `${leadId}:helper:${parsed.data.agent_id ?? ''}`;
+    const event = parsed.data.hook_event_name;
+    const hint = redactTitle(basename(parsed.data.cwd) || '').slice(0, 80) || undefined;
+    this.emit({
+      tool: 'claude', sessionId: isHelperEvent ? helperId : leadId, ...(isHelperEvent ? { parentId: leadId } : {}),
+      role: isHelperEvent ? 'helper' : 'lead', state: event === 'SubagentStop' ? 'idle' : claudeState(event), event,
+      ...(isHelperEvent && parsed.data.agent_type ? { title: redactTitle(parsed.data.agent_type).slice(0, 120) } : {}),
+      ...(hint ? { hint } : {}),
+      discriminator: [event, parsed.data.agent_id ?? '', parsed.data.tool_use_id ?? ''].join('|'),
+      ...(parsed.data.tool_use_id ? { toolUseId: parsed.data.tool_use_id } : {}),
+      ...delivery(meta, parsed.data.event_id, parsed.data.occurred_at, current), at: current,
+    });
     if (parsed.data.hook_event_name === 'SubagentStop') {
       this.#records.delete(helperId);
       return true;
@@ -96,7 +166,7 @@ export class HookActivityStore {
     return true;
   }
 
-  ingestOpenClaw(payload: unknown): boolean {
+  ingestOpenClaw(payload: unknown, meta?: HookDelivery): boolean {
     const parsed = openClawEvent.safeParse(payload);
     if (!parsed.success) return false;
     const current = this.now();
@@ -105,6 +175,10 @@ export class HookActivityStore {
     const rawTitle = parsed.data.title?.trim()
       || (parsed.data.cwd ? basename(parsed.data.cwd) : '')
       || 'OpenClaw session';
+    const hint = parsed.data.cwd ? redactTitle(basename(parsed.data.cwd)).slice(0, 80) || undefined : undefined;
+    this.emit({ tool: 'openclaw', sessionId: id, role: 'unknown', state: openClawState(parsed.data.event), event: parsed.data.event,
+      title: redactTitle(rawTitle).slice(0, 120), ...(hint ? { hint } : {}), discriminator: parsed.data.event,
+      ...delivery(meta, parsed.data.eventId, parsed.data.occurredAt, current), at: current });
     this.#records.set(id, {
       id,
       tool: 'openclaw',

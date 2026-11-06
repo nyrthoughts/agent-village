@@ -6,6 +6,8 @@ import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createVillageServer, listenLocal } from './index.js';
 import type { LocalSessions } from './activity/localSessions.js';
+import type { BoardSnapshot } from '../shared/board.js';
+import type { AppMode } from './mode.js';
 
 const fixturePath = resolve('fixtures/village.demo.yaml');
 const cleanups: Array<() => Promise<void> | void> = [];
@@ -14,12 +16,12 @@ afterEach(async () => {
   while (cleanups.length > 0) await cleanups.pop()?.();
 });
 
-async function start(villagePath = fixturePath) {
+async function start(villagePath = fixturePath, mode: AppMode = 'demo') {
   const distDir = mkdtempSync(join(tmpdir(), 'agent-village-dist-'));
   mkdirSync(join(distDir, 'assets'));
-  writeFileSync(join(distDir, 'index.html'), '<main>Village shell</main>', 'utf8');
+  writeFileSync(join(distDir, 'index.html'), '<main>Board shell</main>', 'utf8');
   writeFileSync(join(distDir, 'assets', 'app.js'), 'export {};', 'utf8');
-  const server = createVillageServer({ villagePath, distDir });
+  const server = createVillageServer({ villagePath, distDir, mode });
   await listenLocal(server, 0);
   cleanups.push(async () => {
     await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
@@ -44,7 +46,7 @@ async function rawStatus(origin: string, path: string, headers?: Record<string, 
   });
 }
 
-describe('local village server', () => {
+describe('local board server', () => {
   it('fails closed before reading private sessions when native auth is not configured', async () => {
     const snapshot = vi.fn(async () => ({ sessions: [], errors: [] }));
     const server = createVillageServer({ villagePath: fixturePath, distDir: '/tmp', mode: 'native',
@@ -52,8 +54,8 @@ describe('local village server', () => {
     await listenLocal(server, 0);
     cleanups.push(() => new Promise<void>((done) => server.close(() => done())));
     const origin = `http://localhost:${(server.address() as AddressInfo).port}`;
-    expect((await fetch(`${origin}/api/village`)).status).toBe(503);
-    expect((await fetch(`${origin}/api/activity`)).status).toBe(503);
+    expect((await fetch(`${origin}/api/board`)).status).toBe(503);
+    expect((await fetch(`${origin}/api/stream`)).status).toBe(503);
     expect(snapshot).not.toHaveBeenCalled();
   });
   it('rejects foreign origins and hosts before exposing private native data', async () => {
@@ -65,29 +67,31 @@ describe('local village server', () => {
     expect(await rawStatus(origin, '/api/health', { host: 'evil.example' })).toBe(403);
     expect((await fetch(`${origin}/api/health`, { headers: { origin } })).status).toBe(200);
   });
-  it('serves health and an evidence-derived village snapshot', async () => {
-    const { origin } = await start();
+  it('serves health and an evidence-derived board in truth-only mode', async () => {
+    const { origin } = await start(fixturePath, 'truth-only');
     await expect(fetch(`${origin}/api/health`).then((response) => response.json())).resolves.toEqual({ ok: true });
-
-    const response = await fetch(`${origin}/api/village`);
-    const body = await response.json() as { name: string; projects: unknown[] };
+    const response = await fetch(`${origin}/api/board`);
+    const body = await response.json() as BoardSnapshot;
     expect(response.status).toBe(200);
-    expect(body.name).toBe('Verdant Labs');
-    expect(body.projects).toHaveLength(2);
+    expect(new Set(Object.values(body.state.tasks).map((task) => task.projectName))).toEqual(new Set(['Atlas', 'Beacon']));
+    expect(body.errors).toEqual([]);
   });
 
-  it('returns structured invalid-config errors', async () => {
+  it('reports invalid YAML as a dated source failure instead of inventing a board', async () => {
     const directory = mkdtempSync(join(tmpdir(), 'agent-village-config-'));
     const invalidPath = join(directory, 'village.yaml');
     writeFileSync(invalidPath, 'version: 2\nname: Broken\nprojects: []\n', 'utf8');
     cleanups.push(() => rmSync(directory, { recursive: true, force: true }));
-    const { origin } = await start(invalidPath);
+    const { origin } = await start(invalidPath, 'truth-only');
+    const body = await fetch(`${origin}/api/board`).then((response) => response.json()) as BoardSnapshot;
+    expect(body.errors[0]).toMatch(/Configuration YAML invalide/);
+    expect(body.health).toEqual([expect.objectContaining({ id: 'yaml', lastError: 'configuration invalide', lastErrorAt: expect.any(String) })]);
+    expect(Object.keys(body.state.projects)).toHaveLength(0);
+  });
 
-    const response = await fetch(`${origin}/api/village`);
-    const body = await response.json() as { error: string; errors: Array<{ path: string }> };
-    expect(response.status).toBe(422);
-    expect(body.error).toBe('invalid_config');
-    expect(body.errors[0]).toHaveProperty('path');
+  it('no longer exposes the retired village and activity endpoints', async () => {
+    const { origin } = await start();
+    for (const path of ['/api/village', '/api/activity']) expect((await fetch(`${origin}${path}`)).status).toBe(404);
   });
 
   it('keeps API 404s separate from the SPA fallback', async () => {
@@ -98,7 +102,7 @@ describe('local village server', () => {
 
     const spa = await fetch(`${origin}/projects/atlas`);
     expect(spa.status).toBe(200);
-    expect(await spa.text()).toContain('Village shell');
+    expect(await spa.text()).toContain('Board shell');
   });
 
   it('serves static assets with their content type', async () => {

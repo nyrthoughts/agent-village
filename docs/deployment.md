@@ -21,7 +21,7 @@ The server binds to `127.0.0.1:4180` but requires the canonical browser origin `
 
 The browser session lasts 30 minutes and exists only in memory. Reloading requires another passkey check; restarting the server invalidates sessions. Each login rotates the previous session. **Lock** clears private content immediately. Successful logout revokes its server token; if the request fails, the page still locks while that token remains valid until expiry or later login.
 
-Native APIs reject unauthenticated reads before collecting journals. `/api/health` is public liveness only, not proof of authentication or source access. Preserve installed owner state when updating the application, then verify the unauthenticated APIs remain closed before unlocking it.
+Native APIs reject unauthenticated reads before collecting journals; source collection runs only while an owner session is active. `/api/health` is public liveness only, not proof of authentication or source access. The event journal lives in `journal/` inside the private directory (0700, files 0600). Preserve installed owner state when updating the application, then verify that unauthenticated `/api/board` and `/api/stream` still return 401 before unlocking it.
 
 ## Disposable launcher
 
@@ -33,11 +33,11 @@ The launcher requires curl and tar in addition to the native prerequisites. It d
 
 ## Public fictional demo
 
-`npm run build` exports fictional, redacted snapshots to `dist/demo` and builds the client. With `VILLAGE_PUBLIC_BASE=/agent-village/`, the client reads only static demo files and skips native authentication. A root-hosted demo uses the server's `native: false` status. Missing APIs may fall back to static snapshots on HTTP 404 or an HTML shell; authentication failures do not trigger that fallback.
+`npm run build` exports the fictional six-project board (`fixtures/board.demo.json`) to `dist/demo/board.json` and builds the client. With `VILLAGE_PUBLIC_BASE=/agent-village/`, the client reads only that static file, needs no API endpoint and skips native authentication; the page states that the data are fictional and shows the capture date. A root-hosted demo uses the server's `native: false` status. Missing APIs may fall back to the static snapshot on HTTP 404 or an HTML shell; authentication failures do not trigger that fallback.
 
 The `deploy public demo` workflow currently runs on `main`, `design/emerald-village-v4` and manual dispatch. It publishes `dist` to GitHub Pages with the repository subpath. That does not deploy the private server. Inspect exports before publishing; never copy native responses, journals or auth state into the artifact.
 
-The demo illustrates evidence-based task progress. Native buildings organize observed project conversations and sourced reports, without unsupported completion percentages or independent verification. Activity never proves delivery.
+Fictional demo facts carry no links, so no URL is fabricated. Activity never proves delivery.
 
 ## Unsupported exposure and other modes
 
@@ -45,6 +45,6 @@ Do not proxy the native server through Tailscale Serve, a reverse proxy or a pub
 
 The development server (`npm run dev`, port 5173) defaults to fictional data. Use the built server at its canonical localhost origin to validate native passkeys; the development proxy is not a supported native deployment.
 
-`truth-only` reads YAML evidence without workers. `live` also reads an AMC-compatible loopback endpoint. Neither uses the owner gate; use fictional or non-sensitive inputs. Optional native hooks require the separate ingestion header created by setup; see [connections](connections.md).
+`truth-only` reads YAML evidence without workers. `live` also reads an AMC-compatible loopback endpoint. Both rebuild their board on a 5-second background timer, one refresh at a time, re-verifying evidence on each refresh even without a YAML edit, and are polled by the browser. Neither uses the owner gate; use fictional or non-sensitive inputs. Optional native hooks require the separate ingestion header created by setup; see [connections](connections.md).
 
 Local authentication does not defend against same-account malware, root/administrator access or use of an unlocked browser session. Keep the OS account, passkey and active session private.

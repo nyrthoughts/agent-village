@@ -32,9 +32,16 @@ function assertLoopback(endpoint: string): void {
 
 function shellQuote(value: string): string { return `'${value.replace(/'/g, "'\\''")}'`; }
 
+/**
+ * Each invocation generates one delivery identity and records the producer time; both travel
+ * as headers so the payload stays Claude's own. If no UUID tool exists the header is empty and
+ * the server falls back to its documented receipt-second identity.
+ */
+const DELIVERY_HEADERS = `--header "x-village-event-id: $(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null)" --header "x-village-occurred-at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"`;
+
 function hookCommand(endpoint: string, headerPath: string): string {
   // curl loads Authorization from a private file; neither argv nor settings contain its value.
-  return `curl -q --noproxy '*' --proto '=http' --max-redirs 0 --silent --max-time 0.25 --request POST --header 'content-type: application/json' --header ${shellQuote(`@${headerPath}`)} --data-binary @- ${shellQuote(endpoint)} >/dev/null 2>&1 || true # ${MARKER}`;
+  return `curl -q --noproxy '*' --proto '=http' --max-redirs 0 --silent --max-time 0.25 --request POST --header 'content-type: application/json' --header ${shellQuote(`@${headerPath}`)} ${DELIVERY_HEADERS} --data-binary @- ${shellQuote(endpoint)} >/dev/null 2>&1 || true # ${MARKER}`;
 }
 
 function asSettings(value: unknown): ClaudeSettings {

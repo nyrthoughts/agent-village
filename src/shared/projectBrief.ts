@@ -30,8 +30,8 @@ const sections: Record<string, Section> = {
   blocage: 'blocked', bloque: 'blocked', blockers: 'blocked', blocked: 'blocked',
 };
 
-function declaredSections(update: SourcedUpdate) {
-  const result: Record<Section, SourcedUpdate[]> = { done: [], next: [], blocked: [] };
+export function declaredSections<T extends { text: string }>(update: T): Record<Section, T[]> {
+  const result: Record<Section, T[]> = { done: [], next: [], blocked: [] };
   let section: Section | undefined;
   for (const line of update.text.split('\n')) {
     const clean = line.trim().replace(/^[-*#]+\s*/, '').replace(/\*\*/g, '');

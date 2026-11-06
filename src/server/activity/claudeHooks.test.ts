@@ -21,6 +21,9 @@ describe('Claude Code hook settings', () => {
     const command = merged.hooks.Stop?.[1]?.hooks[0]?.command;
     expect(command).toMatch(/^curl -q --noproxy '\*' --proto '=http' --max-redirs 0 /);
     expect(command).not.toContain('--location');
+    // One delivery identity and producer time per invocation, sent as headers (payload untouched).
+    expect(command).toContain('--header "x-village-event-id: $(uuidgen');
+    expect(command).toContain('--header "x-village-occurred-at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"');
   });
 
   it('is idempotent and can remove only Agent Village hooks', () => {
