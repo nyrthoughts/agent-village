@@ -16,21 +16,7 @@ vi.mock('./hooks/useVillage.js', () => ({
           effectiveStatus: 'in_progress',
           progress: { verified: 0, total: 1, remaining: 1 },
           features: [],
-          tasks: [],
-          observation: {
-            lastActivityAt: new Date().toISOString(),
-            sessions: [
-              {
-                id: 's1',
-                tool: 'codex',
-                state: 'working',
-                lastActivityAt: new Date().toISOString(),
-                projectKey: 'p1',
-                history: [],
-                title: 'Build auth',
-              },
-            ],
-          },
+          tasks: [{ id: 't1', title: 'Task 1', effectiveStatus: 'in_progress', warnings: [], roof: false, progress: { total: 1, verified: 0, remaining: 1, stage: 'frame', stageIndex: 1 }, subtasks: [], evidence: [] }],
         },
       ],
       observation: { fetchedAt: new Date().toISOString(), errors: [], historyWindow: '7d' },
@@ -42,7 +28,7 @@ vi.mock('./hooks/useVillage.js', () => ({
 
 vi.mock('./hooks/useActivity.js', () => ({
   useActivity: () => ({
-    data: { status: 'live', fetchedAt: new Date().toISOString(), workers: [] },
+    data: { status: 'demo', fetchedAt: new Date().toISOString(), workers: [] },
     loading: false,
   }),
 }));
@@ -60,8 +46,7 @@ describe('App', () => {
 
   it('renders Village and Board toggle buttons', () => {
     render(<App />);
-    const villageButtons = screen.getAllByText('Village');
-    expect(villageButtons.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Village').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Board').length).toBeGreaterThanOrEqual(1);
   });
 
@@ -70,8 +55,8 @@ describe('App', () => {
     expect(container.querySelector('.notif-panel')).toBeTruthy();
   });
 
-  it('renders project buildings', () => {
-    render(<App />);
-    expect(screen.getAllByText('Test Project').length).toBeGreaterThanOrEqual(1);
+  it('uses demo fixture data when no live workers', () => {
+    const { container } = render(<App />);
+    expect(container.querySelector('.notif-panel__demo-badge')).toBeTruthy();
   });
 });

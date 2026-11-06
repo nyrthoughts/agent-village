@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Worker } from '../shared/activity.js';
 import type { ObservedSession } from '../shared/observation.js';
 import type { DerivedWorkspace, DerivedProject } from '../server/truth/derive.js';
@@ -11,13 +11,14 @@ import { VillageScene } from './village/VillageScene.js';
 import { NotificationPanel } from './village/NotificationPanel.js';
 import { BoardView } from './village/BoardView.js';
 import { SessionDrawer } from './village/SessionDrawer.js';
+import { DEMO_WORKERS, type DemoWorker } from './village/demoFixture.js';
 
 function workerToSession(worker: Worker, projectKey: string): ObservedSession {
-  return {
-    ...worker,
-    projectKey,
-    history: [],
-  };
+  const demo = worker as Partial<DemoWorker>;
+  const history = demo.demoSummary
+    ? [{ at: worker.lastActivityAt, kind: 'report' as const, text: demo.demoSummary }]
+    : [];
+  return { ...worker, projectKey, history };
 }
 
 function allTaskIds(project: DerivedProject): Set<string> {
@@ -35,41 +36,28 @@ function allTaskIds(project: DerivedProject): Set<string> {
   return ids;
 }
 
-function enrichWorkspace(
-  workspace: DerivedWorkspace,
-  workers: Worker[],
-): DerivedWorkspace {
-  const hasObservation = workspace.projects.some(
-    (p) => p.observation && p.observation.sessions.length > 0,
-  );
-  if (hasObservation || workers.length === 0) return workspace;
+function enrichWorkspace(workspace: DerivedWorkspace, workers: Worker[], activityStatus?: string): { enriched: DerivedWorkspace; isDemoMode: boolean } {
+  const hasObservation = workspace.projects.some((p) => p.observation && p.observation.sessions.length > 0);
+  if (hasObservation) return { enriched: workspace, isDemoMode: false };
+
+  const isDemoMode = activityStatus === 'demo' || workers.length === 0;
+  const allWorkers = isDemoMode ? DEMO_WORKERS : workers;
 
   const projects = workspace.projects.map((project): DerivedProject => {
     const taskIds = allTaskIds(project);
-    const projectWorkers = workers.filter(
-      (w) => w.attachedTaskId && taskIds.has(w.attachedTaskId),
-    );
-    if (projectWorkers.length === 0) return project;
+    const demoWorkers = allWorkers.filter((w) => {
+      const demo = w as Partial<DemoWorker>;
+      if (demo.demoProject) return demo.demoProject === project.id;
+      return w.attachedTaskId ? taskIds.has(w.attachedTaskId) : false;
+    });
+    if (demoWorkers.length === 0) return project;
 
-    const sessions: ObservedSession[] = projectWorkers.map((w) =>
-      workerToSession(w, project.id),
-    );
-    const lastActivityAt =
-      sessions
-        .map((s) => s.lastActivityAt)
-        .sort()
-        .pop() ?? new Date().toISOString();
-
-    return {
-      ...project,
-      observation: {
-        sessions,
-        lastActivityAt,
-      },
-    };
+    const sessions: ObservedSession[] = demoWorkers.map((w) => workerToSession(w, project.id));
+    const lastActivityAt = sessions.map((s) => s.lastActivityAt).sort().pop() ?? new Date().toISOString();
+    return { ...project, observation: { sessions, lastActivityAt } };
   });
 
-  return { ...workspace, projects };
+  return { enriched: { ...workspace, projects }, isDemoMode };
 }
 
 export function App() {
@@ -89,14 +77,8 @@ export function App() {
   useEffect(() => {
     document.documentElement.lang = language;
     window.dispatchEvent(new CustomEvent('agent-village:language', { detail: language }));
-    try {
-      localStorage.setItem(LANGUAGE_KEY, language);
-    } catch {
-      /* optional */
-    }
+    try { localStorage.setItem(LANGUAGE_KEY, language); } catch { /* optional */ }
   }, [language]);
-
-  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
 
   if (!village.data && village.loading) {
     return (
@@ -112,32 +94,17 @@ export function App() {
     return (
       <main className="village-shell" style={{ display: 'grid', placeItems: 'center' }}>
         <p style={{ color: 'var(--danger)' }}>
-          {village.error?.message ?? (language === 'fr' ? 'Impossible de charger le village.' : 'Could not load village.')}
+          {village.error?.message ?? (language === 'fr' ? 'Village indisponible.' : 'Village unavailable.')}
         </p>
       </main>
     );
   }
 
-  const workspace = enrichWorkspace(
-    village.data,
-    activity.data?.workers ?? [],
-  );
+  const { enriched: workspace, isDemoMode } = enrichWorkspace(village.data, activity.data?.workers ?? [], activity.data?.status);
 
-  const allSessions: ObservedSession[] = workspace.projects.flatMap(
-    (p) => p.observation?.sessions ?? [],
-  );
+  const allSessions: ObservedSession[] = workspace.projects.flatMap((p) => p.observation?.sessions ?? []);
   const roots = allSessions.filter((s) => s.role !== 'helper');
-  const selectedSession = selectedSessionId
-    ? allSessions.find((s) => s.id === selectedSessionId)
-    : undefined;
-
-  const handleSelectSession = (session: ObservedSession, _trigger: HTMLButtonElement) => {
-    setSelectedSessionId(session.id);
-  };
-
-  const handleSelectSessionById = (sessionId: string) => {
-    setSelectedSessionId(sessionId);
-  };
+  const selectedSession = selectedSessionId ? allSessions.find((s) => s.id === selectedSessionId) : undefined;
 
   return (
     <main className="village-shell" aria-label="Agent Village">
@@ -156,14 +123,14 @@ export function App() {
             village={workspace}
             language={language}
             now={now}
-            onSelectSession={handleSelectSession}
+            onSelectSession={(session, trigger) => setSelectedSessionId(session.id)}
           />
         ) : (
           <BoardView
             village={workspace}
             language={language}
             now={now}
-            onSelectSession={handleSelectSessionById}
+            onSelectSession={(id) => setSelectedSessionId(id)}
           />
         )}
       </div>
@@ -173,29 +140,18 @@ export function App() {
           village={workspace}
           now={now}
           language={language}
-          onSelectSession={handleSelectSessionById}
+          onSelectSession={(id) => setSelectedSessionId(id)}
+          isDemoMode={isDemoMode}
         />
       </div>
 
       <footer className="village-footer village-shell__footer">
         <div className="village-toggle" role="group" aria-label={language === 'fr' ? 'Vue' : 'View'}>
-          <button
-            type="button"
-            className="village-toggle__btn"
-            aria-pressed={view === 'village'}
-            onClick={() => setView('village')}
-          >
-            <span className="village-toggle__icon" aria-hidden="true">&#x1F3E0;</span>
-            Village
+          <button type="button" className="village-toggle__btn" aria-pressed={view === 'village'} onClick={() => setView('village')}>
+            <span className="village-toggle__icon" aria-hidden="true">&#x1F3E0;</span> Village
           </button>
-          <button
-            type="button"
-            className="village-toggle__btn"
-            aria-pressed={view === 'board'}
-            onClick={() => setView('board')}
-          >
-            <span className="village-toggle__icon" aria-hidden="true">&#x1F4CB;</span>
-            Board
+          <button type="button" className="village-toggle__btn" aria-pressed={view === 'board'} onClick={() => setView('board')}>
+            <span className="village-toggle__icon" aria-hidden="true">&#x1F4CB;</span> Board
           </button>
         </div>
       </footer>

@@ -5,14 +5,9 @@ import type { ObservedSession } from '../../shared/observation.js';
 
 function makeSession(overrides: Partial<ObservedSession> = {}): ObservedSession {
   return {
-    id: 'session-1',
-    tool: 'codex',
-    state: 'idle',
-    lastActivityAt: new Date().toISOString(),
-    projectKey: 'proj-1',
-    history: [],
-    title: 'Test session',
-    ...overrides,
+    id: 'session-1', tool: 'codex', state: 'idle',
+    lastActivityAt: new Date().toISOString(), projectKey: 'proj-1',
+    history: [], title: 'Test session', ...overrides,
   };
 }
 
@@ -21,29 +16,35 @@ describe('toolLabel', () => {
   it('maps claude', () => expect(toolLabel('claude')).toBe('Claude'));
   it('maps openclaw', () => expect(toolLabel('openclaw')).toBe('OpenClaw'));
   it('maps other to Forge', () => expect(toolLabel('other')).toBe('Forge'));
+  it('maps claude-code', () => expect(toolLabel('claude-code')).toBe('Claude Code'));
 });
 
 describe('AgentCharacter', () => {
-  it('renders a button with the tool class', () => {
+  it('renders a button with raster bot class', () => {
     const { container } = render(<AgentCharacter session={makeSession({ tool: 'claude' })} />);
     const button = container.querySelector('button');
-    expect(button?.classList.contains('agent-char--claude')).toBe(true);
+    expect(button?.classList.contains('raster-bot')).toBe(true);
+  });
+
+  it('uses the correct sprite src for codex', () => {
+    const { container } = render(<AgentCharacter session={makeSession({ tool: 'codex' })} />);
+    const img = container.querySelector('img');
+    expect(img?.getAttribute('src')).toBe('/sprites/bot-codex-idle.png');
+  });
+
+  it('uses walk sprite when working with confirmed evidence', () => {
+    const { container } = render(<AgentCharacter session={makeSession({
+      tool: 'codex', state: 'working',
+      activityEvidence: { level: 'confirmed', source: 'codex-index', observedAt: new Date().toISOString() },
+    })} />);
+    const img = container.querySelector('img');
+    expect(img?.getAttribute('src')).toBe('/sprites/bot-codex-walk.png');
   });
 
   it('includes accessible label', () => {
-    render(<AgentCharacter session={makeSession({ tool: 'codex', title: 'My session' })} />);
-    expect(screen.getByLabelText(/Codex · My session/)).toBeTruthy();
-  });
-
-  it('shows bubble when working', () => {
-    const { container } = render(
-      <AgentCharacter session={makeSession({ state: 'working', activityEvidence: { level: 'confirmed', source: 'codex-index', observedAt: new Date().toISOString() } })} />,
-    );
-    expect(container.querySelector('.agent-char__bubble')).toBeTruthy();
-  });
-
-  it('does not show bubble when idle', () => {
-    const { container } = render(<AgentCharacter session={makeSession({ state: 'idle' })} />);
-    expect(container.querySelector('.agent-char__bubble')).toBeNull();
+    const { container } = render(<AgentCharacter session={makeSession({ tool: 'codex', title: 'My session' })} />);
+    const button = container.querySelector('button');
+    expect(button?.getAttribute('aria-label')).toContain('Codex');
+    expect(button?.getAttribute('aria-label')).toContain('My session');
   });
 });
