@@ -1,7 +1,6 @@
-import type { ActivitySnapshot } from '../../shared/activity.js';
-import type { DerivedWorkspace } from '../../server/truth/derive.js';
 import { clearSession, sessionHeaders } from './session.js';
 import type { PlanDraft, ProjectPlan } from '../../shared/projectPlan.js';
+import type { BoardSnapshot } from '../../shared/board.js';
 
 export async function saveProjectPlan(projectId: string, plan: PlanDraft, revision: number, fetchImpl: typeof fetch = fetch): Promise<ProjectPlan> {
   return request<ProjectPlan>('/api/plan', fetchImpl, { method: 'POST', body: JSON.stringify({ projectId, plan, revision }), headers: { 'content-type': 'application/json' } });
@@ -58,18 +57,11 @@ async function requestWithStaticFallback<T>(
   }
 }
 
-export function fetchVillage(fetchImpl: typeof fetch = fetch): Promise<DerivedWorkspace> {
-  return requestWithStaticFallback<DerivedWorkspace>(
-    '/api/village',
-    `${import.meta.env.BASE_URL}demo/village.json`,
-    fetchImpl,
-  );
+export function fetchBoard(fetchImpl: typeof fetch = fetch): Promise<BoardSnapshot> {
+  return requestWithStaticFallback<BoardSnapshot>('/api/board', `${import.meta.env.BASE_URL}demo/board.json`, fetchImpl);
 }
 
-export function fetchActivity(fetchImpl: typeof fetch = fetch): Promise<ActivitySnapshot> {
-  return requestWithStaticFallback<ActivitySnapshot>(
-    '/api/activity',
-    `${import.meta.env.BASE_URL}demo/activity.json`,
-    fetchImpl,
-  );
+/** Owner attachment of an unmatched session; written to a private file by the server. */
+export async function saveMapping(sessionId: string, projectId: string, fetchImpl: typeof fetch = fetch): Promise<void> {
+  await request<{ ok: true }>('/api/mappings', fetchImpl, { method: 'POST', body: JSON.stringify({ sessionId, projectId }), headers: { 'content-type': 'application/json' } });
 }

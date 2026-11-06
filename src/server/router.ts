@@ -1,31 +1,44 @@
-import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { dirname, resolve } from 'node:path';
-import type { ActivitySnapshot } from '../shared/activity.js';
+import { resolve } from 'node:path';
 import type { AppMode } from './mode.js';
 import type { NativeActivityHub } from './activity/nativeActivity.js';
-import { adaptAmcPayload, fetchAmcActivity } from './activity/amcAdapter.js';
-import { loadWorkspace } from './config/load.js';
-import { deriveWorkspace } from './truth/derive.js';
-import { verifyWorkspaceEvidence } from './truth/evidence/verify.js';
 import { hasTraversal, readStatic } from './static.js';
 import type { LocalSessions } from './activity/localSessions.js';
-import { observedVillage, mergeLiveSessions, projectId } from './activity/projectObserver.js';
 import { AuthError, OwnerAuth } from './auth/ownerAuth.js';
 import { ProjectPlans } from './projectPlans.js';
-import { planWriteSchema, type ProjectPlansById } from '../shared/projectPlan.js';
+import { planWriteSchema } from '../shared/projectPlan.js';
+import { z } from 'zod';
+import { BoardError, NativeBoard, type NativeBoardOptions } from './board/native.js';
+import { FixtureBoard, YamlBoard, type BoardProvider } from './board/staticBoard.js';
+import { serveStream } from './board/stream.js';
 
 export interface RouterOptions {
   villagePath: string;
   distDir: string;
   mode?: AppMode;
   amcEndpoint?: string;
-  demoActivityPath?: string;
   nativeActivity?: NativeActivityHub;
-  localSessions?: LocalSessions;
-  focusProjects?: string[];
-  now?: () => Date;
+  localSessions?: LocalSessions | Pick<LocalSessions, 'snapshot'>;
   ownerAuth?: OwnerAuth;
+  /** Fictional event fixture for demo mode. */
+  boardFixturePath?: string;
+  /** Native board tuning and optional sources (tests inject fakes; GitHub stays opt-in). */
+  nativeBoard?: Partial<Omit<NativeBoardOptions, 'directory' | 'ownerAuth'>>;
+  streamHeartbeatMs?: number;
+}
+
+const mappingSchema = z.object({ sessionId: z.string().regex(/^[A-Za-z0-9._:@/+-]{1,160}$/), projectId: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/) }).strict();
+
+function createBoard(options: RouterOptions, plans?: ProjectPlans): BoardProvider | undefined {
+  const mode = options.mode ?? 'demo';
+  if (mode === 'native') {
+    if (!options.ownerAuth) return undefined;
+    return new NativeBoard({ directory: options.ownerAuth.directory, ownerAuth: options.ownerAuth, plans,
+      collector: options.localSessions as NativeBoardOptions['collector'], hooks: options.nativeActivity, ...options.nativeBoard });
+  }
+  if (mode === 'demo') return new FixtureBoard(options.boardFixturePath ?? resolve('fixtures/board.demo.json'));
+  return new YamlBoard({ villagePath: options.villagePath, mode, amcEndpoint: options.amcEndpoint });
 }
 
 function json(response: ServerResponse, status: number, value: unknown): void {
@@ -85,12 +98,8 @@ export function createRouter(options: RouterOptions) {
     }
   }
   const plans = options.mode === 'native' && options.ownerAuth ? new ProjectPlans(options.ownerAuth.directory) : undefined;
-  const observed = async () => {
-    const local = await options.localSessions!.snapshot();
-    const hooks = options.nativeActivity ? await options.nativeActivity.snapshot([]) : undefined;
-    return { ...local, sessions: mergeLiveSessions(local.sessions, hooks?.workers ?? []) };
-  };
-  return async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
+  const board = createBoard(options, plans);
+  const route = async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
     const rawPath = (request.url ?? '/').split('?')[0] ?? '/';
     const canonicalOrigin = `http://localhost:${request.socket.localPort}`;
     if (options.mode === 'native') {
@@ -104,7 +113,7 @@ export function createRouter(options: RouterOptions) {
       response.setHeader('cache-control', 'no-store');
       response.setHeader('x-content-type-options', 'nosniff');
       response.setHeader('referrer-policy', 'no-referrer');
-      // Inline styles position the existing React/SVG scene; scripts remain same-origin only.
+      // Scripts and connections (including the event stream) remain same-origin only.
       response.setHeader('content-security-policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
       response.setHeader('x-frame-options', 'DENY');
     }
@@ -152,11 +161,48 @@ export function createRouter(options: RouterOptions) {
           json(response, 200, result); return;
         }
         if (isHook) { options.ownerAuth.authorizeHook(request.headers.authorization); options.ownerAuth.limit('hook'); }
+        else if (rawPath === '/api/stream' && request.method === 'GET') {
+          // Session-bound stream: it closes on logout, rotation or expiry of this exact session.
+          const session = options.ownerAuth.authorizeSession(request.headers.authorization);
+          if (!(board instanceof NativeBoard)) { json(response, 503, { error: 'board_unavailable' }); return; }
+          const ownerAuth = options.ownerAuth;
+          board.activate();
+          serveStream(request, response, board, { expiresAt: session.expiresAt, isActive: () => ownerAuth.isActive(session.key), onRevoke: (listener) => ownerAuth.onRevoke(listener) },
+            { heartbeatMs: options.streamHeartbeatMs });
+          return;
+        }
         else options.ownerAuth.authorize(request.headers.authorization);
       } catch (error) {
         json(response, error instanceof AuthError ? error.status : 503, { error: error instanceof AuthError ? error.code : 'auth_unavailable' });
         return;
       }
+    }
+
+    if (rawPath === '/api/board' && request.method === 'GET') {
+      if (!board) { json(response, 503, { error: 'board_unavailable' }); return; }
+      if (board instanceof NativeBoard) board.activate();
+      else await board.ready;
+      json(response, 200, board.snapshot()); return;
+    }
+    if (rawPath === '/api/stream' && request.method === 'GET') {
+      // Fictional and YAML boards have no live stream; clients fall back to polling.
+      json(response, 404, { error: 'not_found' }); return;
+    }
+    if (rawPath === '/api/mappings' && request.method === 'POST') {
+      if (!(board instanceof NativeBoard) || !options.ownerAuth) { json(response, 404, { error: 'not_found' }); return; }
+      if (request.headers.origin !== canonicalOrigin) { json(response, 403, { error: 'local_access_only' }); return; }
+      try { options.ownerAuth.limit('write'); } catch { json(response, 429, { error: 'rate_limited' }); return; }
+      if (!request.headers['content-type']?.startsWith('application/json')) { json(response, 400, { error: 'invalid_json' }); return; }
+      const body = await readJsonBody(request);
+      if (!body.ok) { response.setHeader('connection', 'close'); response.once('finish', () => request.destroy()); json(response, body.status, { error: 'invalid_mapping' }); return; }
+      const input = mappingSchema.safeParse(body.value);
+      if (!input.success) { json(response, 422, { error: 'invalid_mapping' }); return; }
+      try { board.saveMapping(input.data.sessionId, input.data.projectId); json(response, 200, { ok: true }); }
+      catch (error) {
+        if (error instanceof BoardError) json(response, error.status, { error: error.code });
+        else json(response, 503, { error: 'mapping_unavailable' });
+      }
+      return;
     }
 
     if (request.method === 'POST' && (rawPath === '/api/hooks/claude' || rawPath === '/api/hooks/openclaw')) {
@@ -172,15 +218,24 @@ export function createRouter(options: RouterOptions) {
         json(response, body.status, { error: body.status === 413 ? 'payload_too_large' : body.status === 408 ? 'request_timeout' : 'invalid_json' });
         return;
       }
-      const accepted = rawPath.endsWith('/claude')
-        ? options.nativeActivity.ingestClaude(body.value)
-        : options.nativeActivity.ingestOpenClaw(body.value);
+      // Optional delivery identity from the bundled producers (generated once, reused on retry).
+      const header = (name: string) => { const value = request.headers[name]; return typeof value === 'string' ? value.slice(0, 160) : undefined; };
+      const meta = { eventId: header('x-village-event-id'), occurredAt: header('x-village-occurred-at') };
+      let accepted: boolean;
+      try {
+        accepted = rawPath.endsWith('/claude')
+          ? options.nativeActivity.ingestClaude(body.value, meta)
+          : options.nativeActivity.ingestOpenClaw(body.value, meta);
+      } catch {
+        // Persistence failed: the producer may retry with the same identity.
+        json(response, 503, { error: 'journal_unavailable' }); return;
+      }
       json(response, accepted ? 202 : 422, accepted ? { accepted: true } : { error: 'invalid_hook' });
       return;
     }
 
     if (rawPath === '/api/plan' && request.method === 'POST') {
-      if (!plans || !options.localSessions) { json(response, 404, { error: 'not_found' }); return; }
+      if (!plans || !(board instanceof NativeBoard)) { json(response, 404, { error: 'not_found' }); return; }
       if (request.headers.origin !== canonicalOrigin) { json(response, 403, { error: 'local_access_only' }); return; }
       if (!request.headers['content-type']?.startsWith('application/json')) { json(response, 400, { error: 'invalid_json' }); return; }
       const body = await readJsonBody(request);
@@ -190,17 +245,12 @@ export function createRouter(options: RouterOptions) {
       }
       const input = planWriteSchema.safeParse(body.value);
       if (!input.success) { json(response, 422, { error: 'invalid_plan' }); return; }
-      const snapshot = await observed();
-      const session = snapshot.sessions.find((session) => projectId(session.projectKey) === input.data.projectId);
-      if (session?.projectKey.startsWith('hook:')) { json(response, 409, { error: 'project_identity_pending' }); return; }
-      try {
-        if (!session && !plans.read()[input.data.projectId]) { json(response, 404, { error: 'unknown_project' }); return; }
-        json(response, 200, plans.save(input.data.projectId, input.data.plan, input.data.revision, 'owner', session?.project));
-      }
+      // Project identity comes from the projection (native collectors), never from a request-time source read.
+      try { json(response, 200, board.savePlan(input.data.projectId, input.data.plan, input.data.revision)); }
       catch (error) {
-        const code = error instanceof Error ? error.message : '';
-        json(response, code === 'plan_conflict' ? 409 : code === 'plan_capacity' ? 422 : 503,
-          { error: ['plan_conflict', 'plan_capacity'].includes(code) ? code : 'plan_unavailable' });
+        const code = error instanceof BoardError ? error.code : error instanceof Error ? error.message : '';
+        json(response, code === 'unknown_project' ? 404 : code === 'plan_conflict' ? 409 : code === 'plan_capacity' ? 422 : 503,
+          { error: ['unknown_project', 'plan_conflict', 'plan_capacity'].includes(code) ? code : 'plan_unavailable' });
       }
       return;
     }
@@ -215,80 +265,8 @@ export function createRouter(options: RouterOptions) {
       return;
     }
 
-    if (rawPath === '/api/village') {
-      if (options.mode === 'native' && options.localSessions) {
-        const snapshot = await observed();
-        let saved: ProjectPlansById = {};
-        const errors = [...snapshot.errors];
-        try { saved = plans?.read() ?? {}; } catch { errors.push('Objectifs privés illisibles. Aucune progression déduite.'); }
-        const village = observedVillage(snapshot.sessions, errors, options.focusProjects, saved);
-        if ('coverage' in snapshot) village.observation!.coverage = snapshot.coverage as string[];
-        json(response, 200, village); return;
-      }
-      const loaded = loadWorkspace(options.villagePath);
-      if (!loaded.ok) {
-        json(response, 422, { error: 'invalid_config', errors: loaded.errors });
-        return;
-      }
-      const verdicts = await verifyWorkspaceEvidence(
-        loaded.workspace,
-        dirname(options.villagePath),
-      );
-      json(response, 200, deriveWorkspace(loaded.workspace, verdicts));
-      return;
-    }
-
-    if (rawPath === '/api/activity') {
-      const fetchedAt = (options.now ?? (() => new Date()))().toISOString();
-      if ((options.mode ?? 'demo') === 'truth-only') {
-        json(response, 200, { status: 'absent', fetchedAt, workers: [] } satisfies ActivitySnapshot);
-        return;
-      }
-
-      const loaded = loadWorkspace(options.villagePath);
-      if (!loaded.ok) {
-        json(response, 422, { error: 'invalid_config', errors: loaded.errors });
-        return;
-      }
-      const mappings = loaded.workspace.activity_mapping ?? [];
-
-      if ((options.mode ?? 'demo') === 'native') {
-        if (options.localSessions) {
-          const local = await observed();
-          json(response, 200, { status: local.errors.length ? 'degraded' : 'live', fetchedAt, workers: local.sessions }); return;
-        }
-        const snapshot = options.nativeActivity
-          ? await options.nativeActivity.snapshot(mappings)
-          : { status: 'degraded' as const, fetchedAt, workers: [] };
-        json(response, 200, snapshot);
-        return;
-      }
-
-      if ((options.mode ?? 'demo') === 'live') {
-        const snapshot = await fetchAmcActivity({
-          endpoint: options.amcEndpoint ?? 'http://127.0.0.1:3000/api/dashboard',
-          mappings,
-          now: options.now,
-        });
-        json(response, 200, snapshot);
-        return;
-      }
-
-      try {
-        const payload: unknown = JSON.parse(
-          readFileSync(
-            options.demoActivityPath ?? resolve('fixtures/amc/dashboard.nominal.json'),
-            'utf8',
-          ),
-        );
-        const snapshot = adaptAmcPayload(payload, mappings, 'demo', fetchedAt);
-        json(response, 200, snapshot ?? { status: 'degraded', fetchedAt, workers: [] });
-      } catch {
-        json(response, 200, { status: 'degraded', fetchedAt, workers: [] });
-      }
-      return;
-    }
-
+    // `/api/village` and `/api/activity` were replaced by `/api/board`: they read sources
+    // (and ran subprocesses) inside the request. Every mode now serves the board projection.
     if (rawPath.startsWith('/api/')) {
       json(response, 404, { error: 'not_found' });
       return;
@@ -299,4 +277,5 @@ export function createRouter(options: RouterOptions) {
     response.setHeader('content-type', result.contentType);
     response.end(result.body);
   };
+  return Object.assign(route, { board, close: () => board?.stop() });
 }

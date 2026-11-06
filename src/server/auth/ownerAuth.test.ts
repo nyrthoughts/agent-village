@@ -76,6 +76,24 @@ describe('owner-only authentication lifecycle', () => {
     expect(() => prepareOwnerSetup(test.directory)).toThrow('already enrolled');
   });
 
+  it('fails an open session closed when the owner configuration disappears or becomes invalid', async () => {
+    const test = setup();
+    const session = await enroll(test);
+    const { key } = test.auth.authorizeSession(`Bearer ${session.token}`);
+    expect(test.auth.isActive(key)).toBe(true);
+    expect(test.auth.hasActiveSession()).toBe(true);
+    const ownerPath = join(test.directory, 'owner.json');
+    const saved = readFileSync(ownerPath, 'utf8');
+    writeFileSync(ownerPath, '{"version":2}', { mode: 0o600 });
+    expect(test.auth.isActive(key)).toBe(false);
+    expect(test.auth.hasActiveSession()).toBe(false);
+    writeFileSync(ownerPath, saved, { mode: 0o600 });
+    expect(test.auth.isActive(key)).toBe(true);
+    unlinkSync(ownerPath);
+    expect(test.auth.isActive(key)).toBe(false);
+    expect(test.auth.hasActiveSession()).toBe(false);
+  });
+
   it('does not enroll when WebAuthn verification fails and burns the challenge', async () => {
     const test = setup();
     const challenge = await test.auth.enrollOptions(test.bootstrapToken, origin);

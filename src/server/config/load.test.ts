@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { loadWorkspace } from './load.js';
 
@@ -22,7 +23,8 @@ afterEach(() => {
 
 describe('loadWorkspace', () => {
   it('loads the demo fixture', () => {
-    const result = loadWorkspace(new URL('../../../fixtures/village.demo.yaml', import.meta.url).pathname);
+    // fileURLToPath decodes percent-encoded characters such as spaces in the checkout path.
+    const result = loadWorkspace(fileURLToPath(new URL('../../../fixtures/village.demo.yaml', import.meta.url)));
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.workspace.version).toBe(1);

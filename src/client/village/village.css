@@ -1,0 +1,183 @@
+/* ── Village scene: living agents on a dark X/Grok canvas ── */
+
+.village-stage { position: relative; isolation: isolate; display: flex; flex-direction: column; width: 100%; height: 100dvh; min-height: 0; overflow: hidden; background: #000; }
+
+.village-map { position: relative; z-index: 1; flex: 1; min-height: 0; width: 100%; overflow: hidden; border: 1px solid #2f3336; background: #0a0e12; touch-action: none; cursor: grab; }
+.village-map:active { cursor: grabbing; }
+.village-map:focus-visible { outline: 2px solid #1d9bf0; outline-offset: -2px; }
+
+.pixel-world { position: absolute; top: 50%; left: 50%; transform-origin: center; user-select: none; }
+
+/* ── Terrain: dark, subtle grid ── */
+.pixel-terrain, .pixel-ground { position: absolute; inset: 0; }
+.pixel-ground { background-color: #0d1117; background-image: linear-gradient(90deg, rgba(47, 51, 54, .15) 1px, transparent 1px), linear-gradient(rgba(47, 51, 54, .12) 1px, transparent 1px); background-size: 16px 16px; }
+.pixel-zone { position: absolute; border: 1px solid #27303b; border-radius: 12px; background: #11161d; }
+
+.pixel-path { position: absolute; z-index: 1; border: 1px solid rgba(47, 51, 54, .25); background: rgba(29, 33, 38, .2); border-radius: 4px; }
+.pixel-path::after { content: none; }
+
+/* ── Pond: dark water ── */
+.pixel-pond { position: absolute; z-index: 2; overflow: hidden; border: 1px solid rgba(29, 155, 240, .2); border-radius: 16px; background: rgba(29, 155, 240, .06); }
+.pixel-pond::before, .pixel-pond::after { content: ""; position: absolute; left: -20%; width: 140%; height: 1px; background: repeating-linear-gradient(90deg, transparent 0 12px, rgba(29, 155, 240, .15) 12px 28px, transparent 28px 43px); animation: water-drift 4s linear infinite; }
+.pixel-pond::before { top: 25px; }
+.pixel-pond::after { top: 63px; animation-direction: reverse; }
+.pixel-pond i { display: none; }
+@keyframes water-drift { to { transform: translateX(43px); } }
+@media (prefers-reduced-motion: reduce) { .pixel-pond::before, .pixel-pond::after { animation: none; } }
+
+/* ── Cliff: dark ridge ── */
+.pixel-cliff { position: absolute; z-index: 2; border: 1px solid rgba(47, 51, 54, .3); border-radius: 8px; background: rgba(22, 24, 28, .4); }
+.pixel-cliff i { display: none; }
+
+/* ── Trees: subtle dark markers on the border ── */
+.pixel-forest-frame { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+.pixel-tree { position: absolute; z-index: 7; width: 16px; height: 20px; }
+.pixel-tree i { position: absolute; z-index: 2; top: 0; left: 2px; width: 12px; height: 12px; border: 1px solid rgba(0, 186, 124, .15); border-radius: 50%; background: rgba(0, 186, 124, .06); }
+.pixel-tree i::before, .pixel-tree i::after { content: none; }
+.pixel-tree b { position: absolute; z-index: 1; bottom: 0; left: 6px; width: 4px; height: 8px; background: rgba(47, 51, 54, .3); border-radius: 1px; }
+.pixel-tree--1 { opacity: .7; }
+.pixel-tree--2 i { background: rgba(0, 186, 124, .04); }
+
+/* ── Decorations: hidden in dark mode (scene is minimalist) ── */
+.pixel-flower, .pixel-rock, .pixel-fence { display: none; }
+.pixel-lamp { position: absolute; z-index: 4; width: 8px; height: 24px; }
+.pixel-lamp::before { content: ""; position: absolute; bottom: 0; left: 2px; width: 4px; height: 14px; background: rgba(47, 51, 54, .3); border-radius: 2px; }
+.pixel-lamp i { position: absolute; top: 0; left: -1px; width: 10px; height: 10px; border-radius: 50%; background: rgba(255, 212, 0, .12); box-shadow: 0 0 12px rgba(255, 212, 0, .08); border: none; }
+
+/* ── Zone signs: X-like cards ── */
+.pixel-zone-sign { display: none; }
+.pixel-zone-sign i { display: none; }
+.pixel-zone-sign strong { position: absolute; top: 50%; left: 50%; max-width: 140px; padding: 2px 6px; transform: translate(-50%, -50%); border: none; outline: none; color: #e7e9ea; background: transparent; box-shadow: none; font: 700 10px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; letter-spacing: .02em; text-transform: none; white-space: nowrap; }
+
+/* ── Village entrance: subtle gate ── */
+.village-entrance { position: absolute; z-index: 8; width: 36px; height: 20px; }
+.village-entrance::before { content: ""; position: absolute; left: 0; top: 0; width: 36px; height: 3px; background: #2f3336; border-radius: 2px; }
+.village-entrance i, .village-entrance b { position: absolute; top: 3px; width: 3px; height: 17px; background: #2f3336; border: none; border-radius: 1px; }
+.village-entrance i { left: 2px }
+.village-entrance b { right: 2px }
+
+/* ── Buildings (projects): X-card style ── */
+.pixel-building-plot { position: absolute; z-index: 5; width: 112px; height: 100px; }
+.pixel-building { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 112px; height: 100px; padding: 0; border: 1px solid #2f3336; border-radius: 16px; color: #e7e9ea; background: #16181c; cursor: pointer; transition: border-color .15s, background .15s; }
+.pixel-building:hover { border-color: #1d9bf0; background: rgba(29, 155, 240, .04); }
+.pixel-building:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
+.pixel-building__shadow { display: none; }
+.pixel-building__body { display: none; }
+.pixel-building__porch { display: none; }
+.pixel-building__name { position: absolute; top: calc(100% + 10px / var(--scene-scale)); left: 50%; transform: translateX(-50%); width: calc(140px / var(--scene-scale)); color: #e7e9ea; font: 600 calc(12px / var(--scene-scale))/1.25 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; text-align: center; }
+
+/* ── Building interior: icon-like glyph ── */
+.pixel-building::before { content: ""; display: block; width: 32px; height: 32px; margin-bottom: 6px; border-radius: 8px; background: var(--building-roof, #2f3336); opacity: .7; }
+.pixel-building:hover::before { opacity: 1; }
+
+/* ── Building status marks: X-like badges ── */
+.pixel-building__status-mark { position: absolute; z-index: 8; right: 8px; top: 8px; display: none; width: 20px; height: 20px; border: none; border-radius: 50%; color: #fff; background: #f4212e; font: 700 11px/20px -apple-system, sans-serif; text-align: center; box-shadow: none; }
+.pixel-building--working .pixel-building__status-mark { display: block; background: #00ba7c }
+.pixel-building--working .pixel-building__status-mark::before { content: "…" }
+.pixel-building--blocked .pixel-building__status-mark { display: block; background: #f4212e }
+.pixel-building--blocked .pixel-building__status-mark::before { content: "!" }
+.pixel-building--blocked { border-color: rgba(244, 33, 46, .3); }
+.pixel-building--waiting .pixel-building__status-mark { display: block; background: #ffd400; color: #000 }
+.pixel-building--waiting .pixel-building__status-mark::before { content: "?" }
+.pixel-building--quiet::before { opacity: .4; }
+
+/* ── Building label tooltip: X-like tooltip ── */
+.pixel-building__label { position: absolute; z-index: 20; left: 50%; bottom: -8px; transform: translate(-50%, 100%); display: grid; min-width: 120px; max-width: 200px; padding: 8px 12px; visibility: hidden; opacity: 0; border: 1px solid #2f3336; border-radius: 12px; color: #e7e9ea; background: #16181c; box-shadow: 0 4px 16px rgba(0, 0, 0, .4); text-align: left; transition: opacity .12s; pointer-events: none; }
+.pixel-building:hover .pixel-building__label, .pixel-building:focus-visible .pixel-building__label { visibility: visible; opacity: 1 }
+.pixel-building__label strong { overflow: hidden; text-overflow: ellipsis; font: 700 12px/1.3 -apple-system, sans-serif; white-space: nowrap; color: #e7e9ea; }
+.pixel-building__label small { margin-top: 2px; color: #71767b; font: 400 11px/1.3 -apple-system, sans-serif; }
+
+/* ── Attention badge: X notification dot ── */
+.pixel-building__attention { position: absolute; z-index: 10; left: 8px; top: 8px; min-width: 20px; padding: 2px 6px; border: none; border-radius: 9999px; background: #f4212e; color: #fff; font: 700 11px/1 -apple-system, sans-serif; text-align: center; box-shadow: none; animation: none; }
+
+/* ── Proof dots on buildings ── */
+.pixel-building__proofs { position: absolute; z-index: 9; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; gap: 3px; }
+.pixel-building__proof-dot { width: 6px; height: 6px; border-radius: 50%; border: none; }
+.pixel-building__proof-dot--observed { background: #00ba7c; }
+.pixel-building__proof-dot--failed { background: #f4212e; }
+.pixel-building__proof-dot--pending { background: #ffd400; }
+.pixel-building__proof-dot--absent { background: #2f3336; }
+.pixel-building__proof-dot--other-sha { background: #71767b; }
+
+/* ── Roof shape variants: no visual effect in card mode ── */
+.pixel-building[data-roof="flat"]::before, .pixel-building[data-roof="stepped"]::before, .pixel-building[data-roof="hipped"]::before { border-radius: 8px; }
+
+/* ── Agent characters: polished avatars ── */
+.pixel-agent-plot { position: absolute; z-index: 6; }
+.pixel-agent { position: relative; display: flex; flex-direction: column; align-items: center; width: 40px; height: 52px; padding: 0; border: none; background: transparent; cursor: pointer; }
+.pixel-agent:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; border-radius: 50%; }
+.pixel-agent__shadow { position: absolute; bottom: 2px; left: 8px; width: 24px; height: 6px; background: rgba(255, 255, 255, .04); border-radius: 50%; }
+.pixel-agent__head { position: absolute; top: 2px; left: 10px; width: 20px; height: 20px; border: 2px solid var(--agent-trim, #2f3336); border-radius: 50%; background: var(--agent-skin, #1d1f23); box-shadow: none; }
+.pixel-agent__head b { position: absolute; top: 8px; left: 4px; width: 3px; height: 2px; background: #e7e9ea; border-radius: 1px; box-shadow: 6px 0 #e7e9ea; }
+.pixel-agent__body { position: absolute; top: 20px; left: 8px; width: 24px; height: 16px; border: 2px solid var(--agent-trim, #2f3336); border-radius: 4px; background: var(--agent-color, #1d9bf0); box-shadow: none; }
+.pixel-agent__legs { position: absolute; bottom: 2px; left: 14px; width: 12px; height: 10px; border-left: 3px solid var(--agent-trim, #2f3336); border-right: 3px solid var(--agent-trim, #2f3336); background: transparent; border-radius: 0 0 2px 2px; }
+.pixel-agent__badge { position: absolute; z-index: 2; top: 0; right: 2px; width: 14px; height: 14px; border: 1.5px solid #000; border-radius: 50%; background: var(--agent-color, #1d9bf0); color: #fff; font: 700 7px/11px -apple-system, sans-serif; text-align: center; }
+.pixel-agent__bubble { position: absolute; z-index: 3; top: -14px; left: 50%; transform: translateX(-50%); padding: 2px 6px; border: 1px solid #2f3336; border-radius: 8px; background: #16181c; color: #71767b; font: 400 9px/1.2 -apple-system, sans-serif; white-space: nowrap; pointer-events: none; }
+.pixel-agent__label { position: absolute; z-index: 20; left: 50%; top: -8px; transform: translate(-50%, -100%); display: grid; min-width: 100px; max-width: 180px; padding: 6px 10px; visibility: hidden; opacity: 0; border: 1px solid #2f3336; border-radius: 12px; color: #e7e9ea; background: #16181c; box-shadow: 0 4px 16px rgba(0, 0, 0, .4); text-align: left; transition: opacity .12s; pointer-events: none; }
+.pixel-agent:hover .pixel-agent__label, .pixel-agent:focus-visible .pixel-agent__label { visibility: visible; opacity: 1 }
+.pixel-agent__label strong { font: 700 11px/1.3 -apple-system, sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pixel-agent__label small { color: #71767b; font: 400 10px/1.3 -apple-system, sans-serif; }
+
+/* ── Agent colors by tool ── */
+.pixel-agent--codex { --agent-color: #1d9bf0; --agent-light: #4db5f5; --agent-trim: #0d6ebd; --agent-skin: #0a1929; }
+.pixel-agent--claude { --agent-color: #c77a45; --agent-light: #e8a56f; --agent-trim: #8a4c2a; --agent-skin: #1c1208; }
+.pixel-agent--openclaw { --agent-color: #00ba7c; --agent-light: #33d49a; --agent-trim: #008a5c; --agent-skin: #071a12; }
+.pixel-agent--other { --agent-color: #71767b; --agent-light: #999; --agent-trim: #4a4e52; --agent-skin: #111214; }
+
+/* ── Agent state: idle fades, waiting shows bubble ── */
+.pixel-agent--idle { opacity: .4; }
+@media (prefers-reduced-motion: no-preference) {
+  .pixel-agent--working { animation: agent-pulse 2.4s ease-in-out infinite; }
+}
+@keyframes agent-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
+@media (prefers-reduced-motion: reduce) { .pixel-agent--working { animation: none; } }
+
+/* ── Map controls: X-like buttons ── */
+.map-controls { position: absolute; z-index: 15; left: 128px; bottom: 12px; display: flex; gap: 6px; }
+.map-controls button, .view-toggle { min-height: 36px; padding: 6px 14px; border: 1px solid #2f3336; border-radius: 9999px; background: #16181c; color: #e7e9ea; font: 600 12px -apple-system, sans-serif; cursor: pointer; }
+.map-controls button:disabled { opacity: .4; cursor: default; }
+.view-toggle { position: fixed; left: 12px; bottom: 12px; z-index: 20; }
+.view-toggle:focus-visible, .map-controls button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
+body:has(.village-overlay) .view-toggle { visibility: hidden; }
+.map-reset:hover { background: #1d1f23; }
+.map-hint { position: absolute; z-index: 15; right: 12px; bottom: 14px; color: #71767b; font: 400 11px -apple-system, sans-serif; opacity: .6; }
+
+/* ── Header bar: X top bar ── */
+.village-header { position: relative; z-index: 20; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 10px 16px; background: rgba(0, 0, 0, .85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid #2f3336; color: #e7e9ea; font: 500 13px/1.4 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.village-header__title { font-weight: 700; font-size: 15px; letter-spacing: -.01em; }
+.village-header__sources { position: relative; margin-left: auto; }
+.village-header__sources summary { cursor: pointer; }
+.village-header__sources .source-bar { position: absolute; top: 28px; right: 0; width: min(360px, 85vw); background: #16181c; border: 1px solid #2f3336; border-radius: 12px; padding: 12px; box-shadow: 0 8px 30px #0008; }
+.village-header__sources .source-bar__pending { display: none; }
+.village-attention, .village-updates { padding: 6px 12px; min-height: 36px; border: 1px solid #2f3336; border-radius: 9999px; background: #1d9bf0; color: #fff; font: 600 12px system-ui, sans-serif; cursor: pointer; }
+.village-updates { display: block; margin: 10px; background: #16181c; border-color: #1d9bf0; color: #e7e9ea; }
+.village-pending-slot { min-height: 56px; display: flow-root; }
+.village-pending-slot > small { display: block; padding: 18px 16px; color: #8b9297; font: 400 12px/20px system-ui, sans-serif; }
+.village-header__dot { width: 8px; height: 8px; border-radius: 50%; }
+.village-header__dot--ok { background: #00ba7c; }
+.village-header__dot--stale { background: #ffd400; }
+.village-header__dot--unreachable { background: #f4212e; }
+.village-header__dot--waiting { background: #71767b; }
+.village-header__feed { margin-left: 4px; font-size: 12px; color: #71767b; }
+.village-header__language { margin-left: 8px; }
+.village-header__language select { padding: 4px 8px; border: 1px solid #2f3336; border-radius: 9999px; background: #16181c; color: #e7e9ea; font: 500 12px -apple-system, sans-serif; }
+
+/* ── Detail overlay: X side panel ── */
+.village-overlay { position: fixed; inset: 0; z-index: 30; display: grid; grid-template-columns: 1fr minmax(380px, 560px); pointer-events: none; }
+.village-overlay__backdrop { pointer-events: auto; background: rgba(0, 0, 0, .5); }
+.village-overlay__panel { pointer-events: auto; overflow-y: auto; max-height: 100vh; padding: 0; background: #000; border-left: 1px solid #2f3336; box-shadow: -4px 0 20px rgba(0, 0, 0, .3); }
+.village-overlay button { min-height: 36px; padding: 6px 12px; border: 1px solid #2f3336; border-radius: 9999px; background: #16181c; color: #e7e9ea; font: 600 12px/1.4 system-ui, sans-serif; cursor: pointer; }
+.village-overlay .link-button { min-height: 30px; padding: 4px 0; border: 0; background: transparent; color: #1d9bf0; }
+.village-overlay .copy button { background: #e7e9ea; color: #0f1419; }
+.village-overlay button:focus-visible { outline: 2px solid #1d9bf0; outline-offset: 2px; }
+@media (max-width: 760px) {
+  .village-overlay { grid-template-columns: 1fr; }
+  .village-overlay__backdrop { display: none; }
+  .village-overlay__panel { width: 100vw; }
+  .village-header { gap: 8px; padding: 10px 12px; }
+  .village-header__title { flex: 1; font-size: 13px; }
+  .village-header__sources { margin-left: 0; }
+  .village-header__feed { display: none; }
+  .village-header__language { margin-left: 0; }
+  .map-hint { display: none; }
+}

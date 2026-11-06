@@ -1,7 +1,7 @@
 import type { ActivitySnapshot, Worker } from '../../shared/activity.js';
 import type { ActivityMapping } from '../../shared/schema.js';
 import { mapWorkers } from './mapWorkers.js';
-import type { HookActivityStore } from './hookStore.js';
+import type { HookActivityStore, HookDelivery } from './hookStore.js';
 
 export interface WorkerProvider {
   read(): Promise<Worker[]>;
@@ -14,12 +14,16 @@ export class NativeActivityHub {
     private readonly hooks?: HookActivityStore,
   ) {}
 
-  ingestClaude(payload: unknown): boolean {
-    return this.hooks?.ingestClaude(payload) ?? false;
+  observe(listener: Parameters<HookActivityStore['observe']>[0]): () => void {
+    return this.hooks?.observe(listener) ?? (() => undefined);
   }
 
-  ingestOpenClaw(payload: unknown): boolean {
-    return this.hooks?.ingestOpenClaw(payload) ?? false;
+  ingestClaude(payload: unknown, meta?: HookDelivery): boolean {
+    return this.hooks?.ingestClaude(payload, meta) ?? false;
+  }
+
+  ingestOpenClaw(payload: unknown, meta?: HookDelivery): boolean {
+    return this.hooks?.ingestOpenClaw(payload, meta) ?? false;
   }
 
   async snapshot(mappings: readonly ActivityMapping[]): Promise<ActivitySnapshot> {

@@ -40,6 +40,7 @@ export class OwnerAuth {
   #authenticating = false;
   #authWindow = { start: 0, count: 0 };
   #hookWindow = { start: 0, count: 0 };
+  #mappingWindow = { start: 0, count: 0 };
 
   constructor(directory: string, private readonly now: () => number = Date.now) {
     this.directory = ensurePrivateDirectory(directory);
@@ -77,10 +78,10 @@ export class OwnerAuth {
     }
   }
 
-  limit(kind: 'auth' | 'hook'): void {
-    const window = kind === 'auth' ? this.#authWindow : this.#hookWindow;
+  limit(kind: 'auth' | 'hook' | 'write'): void {
+    const window = kind === 'auth' ? this.#authWindow : kind === 'hook' ? this.#hookWindow : this.#mappingWindow;
     if (this.now() - window.start >= 60_000) { window.start = this.now(); window.count = 0; }
-    if (++window.count > (kind === 'auth' ? 30 : 240)) throw new AuthError(429, 'rate_limited');
+    if (++window.count > (kind === 'auth' ? 30 : kind === 'hook' ? 240 : 60)) throw new AuthError(429, 'rate_limited');
   }
 
   private addChallenge(value: Omit<Challenge, 'expiresAt'>): string {
@@ -168,18 +169,56 @@ export class OwnerAuth {
   private session() {
     const token = randomBytes(32).toString('base64url');
     const expiresAt = this.now() + SESSION_MINUTES * 60_000;
-    this.#sessions.clear(); // One active owner session; every authentication rotates it.
+    this.revokeAll(); // One active owner session; every authentication rotates it.
     this.#sessions.set(digest(token).toString('hex'), expiresAt);
     return { token, expiresAt: new Date(expiresAt).toISOString() };
   }
 
-  authorize(header: string | undefined): void {
+  readonly #revocations = new Set<() => void>();
+  /** Notified whenever existing sessions are revoked (rotation or logout). Streams close on it. */
+  onRevoke(listener: () => void): () => void {
+    this.#revocations.add(listener);
+    return () => { this.#revocations.delete(listener); };
+  }
+
+  private revokeAll(): void {
+    const had = this.#sessions.size > 0;
+    this.#sessions.clear();
+    if (had) for (const listener of [...this.#revocations]) { try { listener(); } catch { /* Revocation always completes. */ } }
+  }
+
+  /** Validates a bearer and returns its session key and expiry for long-lived responses. */
+  authorizeSession(header: string | undefined): { key: string; expiresAt: number } {
     const token = /^Bearer ([A-Za-z0-9_-]{43})$/.exec(header ?? '')?.[1];
     const key = token ? digest(token).toString('hex') : '';
     const expiresAt = this.#sessions.get(key);
     if (expiresAt === undefined) throw new AuthError(401, 'unauthorized');
     if (expiresAt <= this.now()) { this.#sessions.delete(key); throw new AuthError(401, 'session_expired'); }
     if (!this.owner()) throw new AuthError(503, 'auth_unavailable'); // Configuration drift fails closed.
+    return { key, expiresAt };
+  }
+
+  authorize(header: string | undefined): void { this.authorizeSession(header); }
+
+  /** Owner configuration still present and valid; any read or parse failure fails closed. */
+  #configured(): boolean {
+    try { return Boolean(this.owner()); } catch { return false; }
+  }
+
+  /**
+   * Check for an already authorized session (open streams): present, not expired, and the
+   * owner configuration is still present and valid, exactly like a new HTTP read.
+   */
+  isActive(key: string): boolean {
+    const expiresAt = this.#sessions.get(key);
+    return expiresAt !== undefined && expiresAt > this.now() && this.#configured();
+  }
+
+  /** Collection runs only while a valid session exists for a valid owner configuration. */
+  hasActiveSession(): boolean {
+    let active = false;
+    for (const expiresAt of this.#sessions.values()) if (expiresAt > this.now()) { active = true; break; }
+    return active && this.#configured();
   }
 
   authorizeHook(header: string | undefined): void {
@@ -189,5 +228,5 @@ export class OwnerAuth {
     }
   }
 
-  logout(header: string | undefined): { ok: true } { this.authorize(header); this.#sessions.clear(); return { ok: true }; }
+  logout(header: string | undefined): { ok: true } { this.authorize(header); this.revokeAll(); return { ok: true }; }
 }

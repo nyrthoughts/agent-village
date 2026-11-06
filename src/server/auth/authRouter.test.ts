@@ -65,15 +65,23 @@ describe('native owner HTTP boundary', () => {
     expect((await fetch(`${test.origin}/api/plan`, { method: 'POST', headers: { authorization, 'content-type': 'application/json' }, body: JSON.stringify(body) })).status).toBe(403);
     expect((await test.post('/api/plan', body, { authorization, origin: 'https://evil.example' })).status).toBe(403);
     expect((await test.post('/api/plan', body, { authorization })).status).toBe(404);
-    test.snapshot.mockResolvedValue({ errors: [], sessions: [{ id: 'hook', tool: 'claude', projectKey: 'hook:claude:only', project: 'repo', state: 'unknown', lastActivityAt: new Date().toISOString(), history: [] }] } as never);
-    expect((await test.post('/api/plan', { ...body, projectId: projectId('hook:claude:only') }, { authorization })).status).toBe(409);
+    // A hook-only identity is never a project, so it cannot receive a plan.
+    expect((await test.post('/api/hooks/claude', { session_id: 'only', hook_event_name: 'SessionStart', cwd: '/test/repo' }, { authorization: test.ingestion })).status).toBe(202);
+    expect((await test.post('/api/plan', { ...body, projectId: projectId('hook:claude:only') }, { authorization })).status).toBe(404);
     test.snapshot.mockResolvedValue({ errors: [], sessions: [{ id: 'one', tool: 'codex', projectKey: 'sample', project: 'Sample', state: 'idle', lastActivityAt: new Date().toISOString(), history: [] }] } as never);
+    // Project identity comes from the native projection, collected after an authorized board read.
+    expect((await fetch(`${test.origin}/api/board`, { headers: { authorization } })).status).toBe(200);
+    await vi.waitFor(async () => {
+      const board = await fetch(`${test.origin}/api/board`, { headers: { authorization } }).then((r) => r.json()) as { state: { projects: Record<string, unknown> } };
+      expect(board.state.projects[projectId('sample')]).toBeDefined();
+    });
     const response = await test.post('/api/plan', body, { authorization });
     expect(response.status).toBe(200); expect(await response.json()).toMatchObject({ revision: 1 });
     expect((await test.post('/api/plan', body, { authorization })).status).toBe(409);
-    const village = await fetch(`${test.origin}/api/village`, { headers: { authorization } }).then(r => r.json()) as import('../truth/derive.js').DerivedWorkspace;
-    expect(village.projects[0]?.objective).toBe(body.plan.objective);
-    expect(village.projects[0]?.tasks[0]?.progress.stage).toBe('complete');
+    const board = await fetch(`${test.origin}/api/board`, { headers: { authorization } }).then(r => r.json()) as import('../../shared/board.js').BoardSnapshot;
+    expect(board.plans[projectId('sample')]?.objective).toBe(body.plan.objective);
+    expect(board.plans[projectId('sample')]?.milestones[0]).toMatchObject({ validated: true, validatedBy: 'owner' });
+    expect(board.state.plans[projectId('sample')]).toMatchObject({ revision: 1, validated: 1, total: 1 });
     test.snapshot.mockResolvedValue({ errors: [], sessions: [] });
     expect((await test.post('/api/plan', { ...body, revision: 1 }, { authorization })).status).toBe(200);
     expect((await test.post('/api/plan', { ...body, revision: 1, plan: { ...body.plan, token: 'invalid' } }, { authorization })).status).toBe(422);
@@ -86,17 +94,19 @@ describe('native owner HTTP boundary', () => {
   });
   it('never reads sources for absent, invalid or ingestion-only credentials', async () => {
     const test = await start();
-    for (const path of ['/api/village', '/api/activity']) {
+    for (const path of ['/api/board', '/api/stream']) {
       for (const authorization of ['', `Bearer ${'x'.repeat(43)}`, test.ingestion]) {
         expect((await fetch(`${test.origin}${path}`, { headers: { authorization } })).status).toBe(401);
       }
     }
     expect(test.snapshot).not.toHaveBeenCalled();
     const token = await test.enroll();
-    expect((await fetch(`${test.origin}/api/village`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(200);
-    expect(test.snapshot).toHaveBeenCalledTimes(1);
+    expect((await fetch(`${test.origin}/api/board`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(200);
+    await vi.waitFor(() => expect(test.snapshot).toHaveBeenCalledTimes(1));
     expect((await test.post('/api/auth/logout', {}, { authorization: `Bearer ${token}` })).status).toBe(200);
-    expect((await fetch(`${test.origin}/api/village`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(401);
+    expect((await fetch(`${test.origin}/api/board`, { headers: { authorization: `Bearer ${token}` } })).status).toBe(401);
+    // Without an owner session the periodic collector pauses instead of reading again.
+    await new Promise((done) => setTimeout(done, 50));
     expect(test.snapshot).toHaveBeenCalledTimes(1);
   });
 
@@ -104,7 +114,7 @@ describe('native owner HTTP boundary', () => {
     const test = await start();
     const status = await fetch(`http://127.0.0.1:${test.port}/api/auth/status`).then((response) => response.json());
     expect(status).toEqual({ native: true, enrolled: false, bootstrapReady: true, sessionMinutes: 30, canonicalOrigin: test.origin });
-    expect((await fetch(`http://127.0.0.1:${test.port}/api/village`)).status).toBe(403);
+    expect((await fetch(`http://127.0.0.1:${test.port}/api/board`)).status).toBe(403);
     expect((await test.post('/api/auth/login/options', {}, { origin: 'http://localhost:9999' })).status).toBe(403);
     expect((await test.post('/api/auth/login/options', {}, { origin: 'https://evil.example' })).status).toBe(403);
     expect((await test.post('/api/auth/login/options', {}, { 'sec-fetch-site': 'same-site' })).status).toBe(403);

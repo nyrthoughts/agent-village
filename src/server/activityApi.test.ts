@@ -10,12 +10,13 @@ import { NativeActivityHub } from './activity/nativeActivity.js';
 import type { RouterOptions } from './router.js';
 import { OwnerAuth } from './auth/ownerAuth.js';
 import { prepareOwnerSetup } from './auth/privateState.js';
+import type { BoardSnapshot } from '../shared/board.js';
 
 const servers: Server[] = [];
 const directories: string[] = [];
 
 afterEach(async () => {
-  await Promise.all(servers.splice(0).map((server) => new Promise<void>((done) => server.close(() => done()))));
+  await Promise.all(servers.splice(0).map((server) => new Promise<void>((done) => { server.closeAllConnections(); server.close(() => done()); })));
   for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true });
 });
 
@@ -23,16 +24,11 @@ async function start(overrides: Partial<RouterOptions> = {}) {
   const distDir = mkdtempSync(join(tmpdir(), 'agent-village-activity-dist-'));
   directories.push(distDir);
   mkdirSync(join(distDir, 'assets'));
-  writeFileSync(join(distDir, 'index.html'), '<main>Village</main>', 'utf8');
-  const server = createVillageServer({
-    villagePath: resolve('fixtures/village.demo.yaml'),
-    distDir,
-    ...overrides,
-  });
+  writeFileSync(join(distDir, 'index.html'), '<main>Board</main>', 'utf8');
+  const server = createVillageServer({ villagePath: resolve('fixtures/village.demo.yaml'), distDir, ...overrides });
   servers.push(server);
   await listenLocal(server, 0);
-  const address = server.address() as AddressInfo;
-  return `http://127.0.0.1:${address.port}`;
+  return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
 function hookAuth() {
@@ -40,86 +36,62 @@ function hookAuth() {
   directories.push(directory);
   const paths = prepareOwnerSetup(directory);
   const ownerAuth = new OwnerAuth(directory);
-  // This suite covers activity formatting; the separate auth suites exercise owner verification.
+  // This suite covers mode data; the auth suites exercise owner verification.
   vi.spyOn(ownerAuth, 'authorize').mockImplementation(() => undefined);
   const authorization = readFileSync(paths.hookHeaderPath, 'utf8').trim().replace(/^Authorization: /, '');
   return { ownerAuth, authorization };
 }
 
-describe('/api/activity modes', () => {
-  it('serves the fictional AMC fixture in demo mode', async () => {
+describe('board modes', () => {
+  it('serves the fictional six-project board in demo mode, labelled fictional', async () => {
     const origin = await start({ mode: 'demo' });
-    const response = await fetch(`${origin}/api/activity`);
-    const snapshot = await response.json() as { status: string; workers: unknown[] };
-    expect(snapshot.status).toBe('demo');
-    expect(snapshot.workers).toHaveLength(3);
+    const board = await fetch(`${origin}/api/board`).then((response) => response.json()) as BoardSnapshot;
+    expect(board.fictional).toBe(true);
+    expect(Object.keys(board.state.projects)).toHaveLength(6);
+    expect(board.health).toEqual([expect.objectContaining({ kind: 'fixture' })]);
   });
 
-  it('degrades a failed live AMC call without changing village truth bytes', async () => {
-    const origin = await start({
-      mode: 'live',
-      amcEndpoint: 'http://127.0.0.1:1/api/dashboard',
-    });
-    const before = await fetch(`${origin}/api/village`).then((response) => response.text());
-    const activity = await fetch(`${origin}/api/activity`).then((response) => response.json()) as { status: string };
-    const after = await fetch(`${origin}/api/village`).then((response) => response.text());
-
-    expect(activity.status).toBe('degraded');
-    expect(after).toBe(before);
+  it('degrades a failed live AMC call to a dated source failure without changing YAML truth', async () => {
+    const origin = await start({ mode: 'live', amcEndpoint: 'http://127.0.0.1:1/api/dashboard' });
+    const board = await fetch(`${origin}/api/board`).then((response) => response.json()) as BoardSnapshot;
+    expect(board.health.find((source) => source.id === 'amc')).toMatchObject({ lastError: expect.any(String), lastErrorAt: expect.any(String) });
+    expect(Object.keys(board.state.sessions)).toHaveLength(0);
+    expect(Object.values(board.state.tasks).length).toBeGreaterThan(5);
   });
 
-  it('returns an absent snapshot in truth-only mode', async () => {
+  it('has no activity source in truth-only mode', async () => {
     const origin = await start({ mode: 'truth-only' });
-    const snapshot = await fetch(`${origin}/api/activity`).then((response) => response.json()) as { status: string; workers: unknown[] };
-    expect(snapshot).toMatchObject({ status: 'absent', workers: [] });
+    const board = await fetch(`${origin}/api/board`).then((response) => response.json()) as BoardSnapshot;
+    expect(board.health.map((source) => source.id)).toEqual(['yaml']);
+    expect(Object.keys(board.state.sessions)).toHaveLength(0);
   });
 
-  it('accepts loopback Claude hooks and exposes them through native activity', async () => {
-    const now = () => new Date('2026-09-01T12:00:00.000Z');
-    const hooks = new HookActivityStore(now);
-    const nativeActivity = new NativeActivityHub([
-      { read: async () => hooks.workers() },
-    ], now, hooks);
+  it('journals loopback Claude hooks without prompt content and keeps them unmatched', async () => {
+    const hooks = new HookActivityStore();
+    const nativeActivity = new NativeActivityHub([{ read: async () => hooks.workers() }], undefined, hooks);
     const auth = hookAuth();
-    const origin = await start({ mode: 'native', nativeActivity, ownerAuth: auth.ownerAuth });
-
+    const origin = await start({ mode: 'native', nativeActivity, ownerAuth: auth.ownerAuth, nativeBoard: { watch: false } });
     const hook = await fetch(`${origin}/api/hooks/claude`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: auth.authorization },
-      body: JSON.stringify({
-        session_id: 'claude-live',
-        hook_event_name: 'UserPromptSubmit',
-        cwd: '/work/atlas',
-        prompt: 'private prompt content',
-      }),
+      body: JSON.stringify({ session_id: 'claude-live', hook_event_name: 'UserPromptSubmit', cwd: '/work/atlas', prompt: 'private prompt content' }),
     });
     expect(hook.status).toBe(202);
-
-    const snapshot = await fetch(`${origin.replace('127.0.0.1', 'localhost')}/api/activity`).then((response) => response.json()) as { workers: Array<{ id: string; title?: string }> };
-    expect(snapshot.workers).toEqual([
-      expect.objectContaining({ id: 'claude:claude-live', title: 'atlas' }),
-    ]);
-    expect(JSON.stringify(snapshot)).not.toContain('private prompt content');
+    const journal = readFileSync(join(auth.ownerAuth.directory, 'journal', 'events.jsonl'), 'utf8');
+    expect(journal).toContain('"sessionId":"claude:claude-live"');
+    expect(journal).not.toContain('private prompt content');
+    expect(journal).not.toContain('/work/atlas');
   });
 
   it('rejects malformed and oversized native hook requests', async () => {
     const hooks = new HookActivityStore();
     const nativeActivity = new NativeActivityHub([], undefined, hooks);
     const auth = hookAuth();
-    const origin = await start({ mode: 'native', nativeActivity, ownerAuth: auth.ownerAuth });
-
-    const malformed = await fetch(`${origin}/api/hooks/openclaw`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: auth.authorization },
-      body: '{bad json',
-    });
+    const origin = await start({ mode: 'native', nativeActivity, ownerAuth: auth.ownerAuth, nativeBoard: { watch: false } });
+    const malformed = await fetch(`${origin}/api/hooks/openclaw`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: auth.authorization }, body: '{bad json' });
     expect(malformed.status).toBe(400);
-
-    const oversized = await fetch(`${origin}/api/hooks/claude`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: auth.authorization },
-      body: JSON.stringify({ payload: 'x'.repeat(70_000) }),
-    });
+    const oversized = await fetch(`${origin}/api/hooks/claude`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: auth.authorization },
+      body: JSON.stringify({ payload: 'x'.repeat(70_000) }) });
     expect(oversized.status).toBe(413);
   });
 });

@@ -1,12 +1,16 @@
 # Deferred backlog
 
-These are options, not V1 commitments.
+These are options, not commitments.
 
-- Inspect `test`, `pr_merged`, `deployed`, and `observed` evidence through pluggable verifiers.
-- Add adapters for other local session dashboards without changing the activity contract.
-- Generate or update YAML from agent lifecycle hooks after the manual model proves useful.
-- Add historical snapshots only if users need trend analysis, not just current recovery context.
-- Add shared authentication only if the product moves beyond localhost or a private tailnet.
-- Prototype a physical display only after the screen version is used consistently; the same `/api/village` truth can drive LEDs, e-ink, or a miniature building without coupling hardware to the renderer.
+- `connect:codex`: only if the installed Codex version documents a `notify` hook; the file watcher and 5-second poll cover Codex today.
+- Merge projects across separate clones of the same remote. Identities are keyed by Git common root today, so existing plans keep their identifiers; the normalized remote is stored as an attribute.
+- Model-written syntheses, if ever added: labelled as synthesis, citing event sequence numbers, never changing state or validation.
+- Inspect `test` and `observed` evidence through pluggable verifiers in YAML modes.
+- Adapters for other local session dashboards without changing the event contract.
+- Shared authentication only if the product moves beyond localhost.
+- A physical display driven by the same `/api/board` projection.
+- Per-branch proof ladders when a project has several observed branches (today the newest attributed commit is the head).
+- Compaction of the journal key index (16 bytes per accepted event, never pruned today).
+- Remove the village-era `observedVillage`/`mergeLiveSessions` helpers and construction stages once the ledger tests no longer rely on them.
 
-Explicitly out of scope: agent commands, approvals, prompt inspection, cost accounting, a game engine, and public multi-tenant hosting.
+Explicitly out of scope: agent commands, automatic execution triggered by events, approvals, prompt inspection, cost accounting, webhooks or tunnels, and public multi-tenant hosting. Any future execution would be a separate, disabled-by-default phase.

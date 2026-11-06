@@ -17,9 +17,13 @@ Sessions expire after 30 minutes. The token lives only in page memory; reloading
 
 Only minimal health and enrollment status are public. Private API reads require the owner session before collecting source data. A hook credential cannot read those APIs or administer the owner. Missing/corrupt private configuration fails closed. No endpoint can start, stop or instruct an agent.
 
-`POST /api/plan` is the only project-metadata write. It requires the owner session, exact canonical Origin and JSON. The server validates the known project identity, bounded goal/milestones and expected revision before an atomic private ledger update. Validation requires an explicit note. The ledger is limited to 64 KiB and one hundred projects. Corrupt or broadly readable files are not overwritten. This metadata API does not edit agent goals, execute commands or instruct agents.
+`POST /api/plan` and `POST /api/mappings` are the only owner writes. Both require the owner session, exact canonical Origin and JSON. The plan route validates a project known to the projection, bounded goal/milestones and expected revision before an atomic private ledger update; validation requires an explicit note. The ledger is limited to 64 KiB and one hundred projects. The mapping route attaches an unmatched session (never a native identity) to a known project in `project-mappings.json` (at most 300 entries, 60 writes per minute). Corrupt or broadly readable files are not overwritten. Neither route edits agent goals, executes commands or instructs agents.
 
-Auth challenges last two minutes and are consumed on a verification attempt. Auth requests are limited to 30 per minute; hook requests to 240 per minute. JSON uploads are limited to 64 KiB and five seconds. The observation store retains at most 1,000 records and expires them after 30 minutes.
+`GET /api/board` and `GET /api/stream` need the owner session; the ingestion header receives 401. A stream is bound to its session: logout, a new login (rotation), expiry, or a missing or invalid `owner.json` closes it. At most eight streams are open at once.
+
+The event journal (`journal/events.jsonl`, `journal/checkpoint.json` and the key-hash index `journal/keys/`) keeps allowlisted, bounded observations in the same private directory with the same permission checks. A corrupt checkpoint fails closed. Delete the `journal/` directory deliberately to start a new journal epoch; the browser then resets its visit marks.
+
+Auth challenges last two minutes and are consumed on a verification attempt. Auth requests are limited to 30 per minute; hook requests to 240 per minute. JSON uploads are limited to 64 KiB and five seconds. The replay ring keeps at most 5 000 events within 24 hours in memory; older events fold into the checkpoint.
 
 This protects against an anonymous visitor, another ordinary local account and cross-origin requests. A process already running with the owner's OS permissions can read the owner's source files; this web gate cannot protect those files from that process. Passkey storage/synchronization follows the authenticator the owner chooses. No transcript data or model requests leave the machine through this feature.
 
@@ -29,4 +33,4 @@ If the integrated browser does not support WebAuthn, use a compatible system bro
 
 An installed runtime keeps its private directory across updates. Back up only the exact installed runtime and private state to a directory accessible by its owner before an authorized update. The disposable launcher instead places private state inside its own temporary directory and removes it on exit; every new temporary launch requires fresh enrollment. It does not alter an installed runtime's owner state.
 
-Restart only Agent Village. Verify unauthenticated `/api/village` and `/api/activity` return 401 on localhost, and that `/api/auth/status` reports the expected enrollment state. The owner's actual enrollment is not complete until their real browser gesture succeeds.
+Restart only Agent Village. Verify unauthenticated `/api/board` and `/api/stream` return 401 on localhost, and that `/api/auth/status` reports the expected enrollment state. The owner's actual enrollment is not complete until their real browser gesture succeeds.

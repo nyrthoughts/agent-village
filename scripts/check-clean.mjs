@@ -21,6 +21,9 @@ const FORBIDDEN_FRAGMENTS = [
 async function collectTextFiles(root, directory = root) {
   const files = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
+    // Git metadata is never published. A linked worktree stores `.git` as a pointer file
+    // containing the local checkout path, so skip it whatever its entry type.
+    if (entry.name === '.git') continue;
     if (
       entry.isDirectory()
       && (SKIPPED_DIRECTORIES.has(entry.name) || entry.name.startsWith('node_modules'))

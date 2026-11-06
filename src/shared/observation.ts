@@ -12,6 +12,12 @@ export interface ObservedSession extends Worker {
   history: ObservedUpdate[];
   terminal?: string;
   sourceNote?: string;
+  /** Native working directory (private board only), used for a copy-only resume command. */
+  cwd?: string;
+  /** Current branch of the working directory when it is a Git checkout. */
+  branch?: string;
+  /** Normalized GitHub `owner/name` from the checkout's origin remote. */
+  repo?: string;
 }
 export interface ProjectObservation {
   buildingFamilyIndex?: number;

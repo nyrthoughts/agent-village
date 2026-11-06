@@ -8,6 +8,7 @@ import { NativeActivityHub } from './activity/nativeActivity.js';
 import { LocalSessions } from './activity/localSessions.js';
 import { OwnerAuth } from './auth/ownerAuth.js';
 import { DEFAULT_AUTH_DIRECTORY } from './auth/privateState.js';
+import { githubInterval } from './sources/github.js';
 
 export const LOCAL_HOST = '127.0.0.1';
 
@@ -22,6 +23,7 @@ export function createVillageServer(options: RouterOptions): Server {
       response.end('{"error":"internal_error"}');
     });
   });
+  server.once('close', () => route.close());
   server.requestTimeout = 10_000;
   server.headersTimeout = 10_000;
   server.maxHeadersCount = 50;
@@ -46,16 +48,20 @@ async function main(): Promise<void> {
   const nativeActivity = new NativeActivityHub([
     { read: async () => hooks.workers() },
   ], undefined, hooks);
+  const aliases = JSON.parse(process.env.VILLAGE_PROJECT_ALIASES ?? '{}') as Record<string, string>;
+  // GitHub reads are opt-in per repository (`owner/name`); nothing is polled by default.
+  const githubRepos = JSON.parse(process.env.VILLAGE_GITHUB_REPOS ?? '[]') as unknown;
+  if (!Array.isArray(githubRepos) || githubRepos.some((repo) => typeof repo !== 'string')) throw new Error('VILLAGE_GITHUB_REPOS must be a JSON array of owner/name strings');
   const server = createVillageServer({
     villagePath: resolve(process.env.VILLAGE_FILE ?? 'fixtures/village.demo.yaml'),
     distDir: resolve(process.env.DIST_DIR ?? 'dist'),
     mode,
     ownerAuth: mode === 'native' ? new OwnerAuth(process.env.VILLAGE_AUTH_DIR ?? DEFAULT_AUTH_DIRECTORY) : undefined,
     amcEndpoint: process.env.AMC_ENDPOINT,
-    demoActivityPath: resolve(process.env.AMC_FIXTURE ?? 'fixtures/amc/dashboard.nominal.json'),
     nativeActivity: mode === 'native' ? nativeActivity : undefined,
-    localSessions: mode === 'native' ? new LocalSessions({ aliases: JSON.parse(process.env.VILLAGE_PROJECT_ALIASES ?? '{}') }) : undefined,
-    focusProjects: JSON.parse(process.env.VILLAGE_FOCUS_PROJECTS ?? '[]'),
+    localSessions: mode === 'native' ? new LocalSessions({ aliases }) : undefined,
+    boardFixturePath: process.env.VILLAGE_DEMO_BOARD ? resolve(process.env.VILLAGE_DEMO_BOARD) : undefined,
+    nativeBoard: { aliases, ...(githubRepos.length ? { github: { repos: githubRepos as string[], intervalMs: githubInterval(process.env.VILLAGE_GITHUB_INTERVAL_MS) } } : {}) },
   });
   await listenLocal(server, port);
   const actualPort = (server.address() as { port: number }).port;

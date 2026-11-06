@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "fictional": true,
+  "capturedAt": "2026-10-14T16:00:00.000Z",
+  "plans": {
+    "orchard-atlas": {
+      "projectName": "Orchard Atlas",
+      "objective": "Publish an offline-ready fictional orchard map.",
+      "milestones": [
+        { "id": "tile-cache", "title": "Tile cache", "validated": false, "note": "" },
+        { "id": "offline-mode", "title": "Offline mode", "validated": false, "note": "" }
+      ],
+      "revision": 2,
+      "updatedAt": "2026-10-12T09:00:00.000Z"
+    },
+    "harbor-sync": {
+      "projectName": "Harbor Sync",
+      "objective": "Keep fictional harbor schedules in sync across two stores.",
+      "milestones": [
+        { "id": "schema", "title": "Shared schema", "validated": true, "note": "Reviewed the schema diff by hand.", "validatedAt": "2026-10-11T10:00:00.000Z", "validatedBy": "owner" },
+        { "id": "retries", "title": "Retry path", "validated": false, "note": "" },
+        { "id": "rollout", "title": "Gradual rollout", "validated": false, "note": "" }
+      ],
+      "revision": 3,
+      "updatedAt": "2026-10-11T10:00:00.000Z"
+    },
+    "meadow-docs": {
+      "projectName": "Meadow Docs",
+      "objective": "Publish the fictional meadow guide.",
+      "milestones": [
+        { "id": "outline", "title": "Outline", "validated": true, "note": "Outline approved in review.", "validatedAt": "2026-10-10T08:00:00.000Z", "validatedBy": "owner" },
+        { "id": "publish", "title": "Published guide", "validated": true, "note": "Opened the deployed guide and read it.", "validatedAt": "2026-10-13T09:30:00.000Z", "validatedBy": "owner" }
+      ],
+      "revision": 4,
+      "updatedAt": "2026-10-13T09:30:00.000Z"
+    }
+  },
+  "events": [
+    { "key": "demo:01", "kind": "session.observed", "source": "codex-journal", "provenance": "observed", "sessionId": "codex:demo-md-1", "projectId": "meadow-docs", "occurredAt": "2026-10-13T09:00:00.000Z",
+      "data": { "tool": "codex", "role": "lead", "state": "idle", "level": "detected", "title": "Publish the meadow guide", "projectName": "Meadow Docs", "repo": "example-org/meadow-docs", "branch": "main" } },
+    { "key": "demo:02", "kind": "session.update", "source": "codex-journal", "provenance": "declared", "sessionId": "codex:demo-md-1", "projectId": "meadow-docs", "occurredAt": "2026-10-13T08:40:00.000Z",
+      "data": { "tool": "codex", "kind": "request", "text": "Publish the guide once the review notes are applied.", "title": "Publish the meadow guide" } },
+    { "key": "demo:03", "kind": "session.update", "source": "codex-journal", "provenance": "declared", "sessionId": "codex:demo-md-1", "projectId": "meadow-docs", "occurredAt": "2026-10-13T09:00:00.000Z",
+      "data": { "tool": "codex", "kind": "report", "text": "## Done\n- Review notes applied.\n- Guide published to the docs environment.", "title": "Publish the meadow guide" } },
+    { "key": "demo:04", "kind": "github.commit", "source": "github", "provenance": "observed", "occurredAt": "2026-10-13T08:55:00.000Z",
+      "data": { "repo": "example-org/meadow-docs", "branch": "main", "sha": "d4e5f6a7b8c9", "message": "Apply review notes" } },
+    { "key": "demo:05", "kind": "github.ci", "source": "github", "provenance": "observed", "occurredAt": "2026-10-13T09:04:00.000Z",
+      "data": { "repo": "example-org/meadow-docs", "sha": "d4e5f6a7b8c9", "status": "success", "name": "3 checks" } },
+    { "key": "demo:06", "kind": "github.pr", "source": "github", "provenance": "observed", "occurredAt": "2026-10-13T08:50:00.000Z",
+      "data": { "repo": "example-org/meadow-docs", "number": 7, "state": "merged", "title": "Apply review notes", "headSha": "d4e5f6a7b8c9", "headBranch": "review-notes" } },
+    { "key": "demo:07", "kind": "github.deploy", "source": "github", "provenance": "observed", "occurredAt": "2026-10-13T09:10:00.000Z",
+      "data": { "repo": "example-org/meadow-docs", "id": 31, "environment": "docs", "state": "success", "sha": "d4e5f6a7b8c9" } },
+
+    { "key": "demo:10", "kind": "session.observed", "source": "codex-journal", "provenance": "observed", "sessionId": "codex:demo-hs-1", "projectId": "harbor-sync", "occurredAt": "2026-10-14T12:00:00.000Z",
+      "data": { "tool": "codex", "role": "lead", "state": "idle", "level": "detected", "title": "Retry path", "projectName": "Harbor Sync", "repo": "example-org/harbor-sync", "branch": "retry-path" } },
+    { "key": "demo:11", "kind": "session.update", "source": "codex-journal", "provenance": "declared", "sessionId": "codex:demo-hs-1", "projectId": "harbor-sync", "occurredAt": "2026-10-14T12:00:00.000Z",
+      "data": { "tool": "codex", "kind": "report", "text": "## Done\n- Sync retries added.\n- Integration tests pass.", "title": "Retry path" } },
+    { "key": "demo:16", "kind": "github.commit", "source": "github", "provenance": "observed", "occurredAt": "2026-10-14T11:15:00.000Z",
+      "data": { "repo": "example-org/harbor-sync", "branch": "retry-path", "sha": "c2c2c2c2c2c2", "message": "Add sync retries" } },
+    { "key": "demo:12", "kind": "github.ci", "source": "github", "provenance": "observed", "occurredAt": "2026-10-14T11:20:00.000Z",
+      "data": { "repo": "example-org/harbor-sync", "sha": "c2c2c2c2c2c2", "status": "success", "name": "4 checks" } },
+    { "key": "demo:13", "kind": "github.commit", "source": "github", "provenance": "observed", "occurredAt": "2026-10-14T12:10:00.000Z",
+      "data": { "repo": "example-org/harbor-sync", "branch": "main", "sha": "c3c3c3c3c3c3", "message": "Merge retry path" } },
+    { "key": "demo:14", "kind": "session.observed", "source": "codex-journal", "provenance": "observed", "sessionId": "codex:demo-hs-2", "projectId": "harbor-sync", "occurredAt": "2026-10-14T12:30:00.000Z",
+      "data": { "tool": "codex", "role": "lead", "state": "idle", "level": "detected", "title": "Retry review", "projectName": "Harbor Sync", "repo": "example-org/harbor-sync", "branch": "main" } },
+    { "key": "demo:15", "kind": "session.update", "source": "codex-journal", "provenance": "declared", "sessionId": "codex:demo-hs-2", "projectId": "harbor-sync", "occurredAt": "2026-10-14T12:30:00.000Z",
+      "data": { "tool": "codex", "kind": "report", "text": "## Blocked\n- Integration tests fail on the retry path when the second store is offline.", "title": "Retry review" } },
+
+    { "key": "demo:20", "kind": "github.pr", "source": "github", "provenance": "observed", "occurredAt": "2026-10-14T13:00:00.000Z",
+      "data": { "repo": "example-org/lantern-cli", "number": 12, "state": "merged", "title": "Add color output", "headSha": "b1b1b1b1b1b1", "headBranch": "color-output" } },
+    { "key": "demo:21", "kind": "github.commit", "source": "github", "provenance": "observed", "occurredAt": "2026-10-14T13:00:00.000Z",
+      "data": { "repo": "example-org/lantern-cli", "branch": "main", "sha": "b2b2b2b2b2b2", "message": "Merge color output" } },
+    { "key": "demo:22", "kind": "github.ci", "source": "github", "provenance": "observed", "occurredAt": "2026-10-14T13:08:00.000Z",
+      "data": { "repo": "example-org/lantern-cli", "sha": "b2b2b2b2b2b2", "status": "success", "name": "2 checks" } },
+    { "key": "demo:23", "kind": "session.update", "source": "claude-journal", "provenance": "declared", "sessionId": "claude:demo-lc-1", "projectId": "lantern-cli", "occurredAt": "2026-10-14T15:20:00.000Z",
+      "data": { "tool": "claude", "kind": "request", "text": "Add a config file so the theme persists.", "title": "Config file" } },
+    { "key": "demo:24", "kind": "session.update", "source": "claude-journal", "provenance": "declared", "sessionId": "claude:demo-lc-1", "projectId": "lantern-cli", "occurredAt": "2026-10-14T15:30:00.000Z",
+      "data": { "tool": "claude", "kind": "report", "text": "## Next steps\n- Write the config loader.\n## Blocked\n- Needs your decision: YAML or TOML for the config file.", "title": "Config file" } },
+    { "key": "demo:25", "kind": "session.observed", "source": "claude-process", "provenance": "observed", "sessionId": "claude:demo-lc-1", "projectId": "lantern-cli", "occurredAt": "2026-10-14T15:40:00.000Z",
+      "data": { "tool": "claude", "role": "lead", "state": "working", "level": "confirmed", "title": "Config file", "projectName": "Lantern CLI", "repo": "example-org/lantern-cli", "branch": "config-file", "terminal": "lantern:1" } },
+    { "key": "demo:26", "kind": "session.signal", "source": "claude-hook", "provenance": "observed", "sessionId": "claude:demo-lc-1", "occurredAt": "2026-10-14T15:50:00.000Z",
+      "data": { "tool": "claude", "role": "lead", "state": "waiting", "hookEvent": "Notification", "hint": "lantern-cli" } },
+
+    { "key": "demo:30", "kind": "session.observed", "source": "codex-journal", "provenance": "observed", "sessionId": "codex:demo-oa-1", "projectId": "orchard-atlas", "occurredAt": "2026-10-14T14:40:00.000Z",
+      "data": { "tool": "codex", "role": "lead", "state": "idle", "level": "detected", "title": "Tile cache", "projectName": "Orchard Atlas", "repo": "example-org/orchard-atlas", "branch": "main" } },
+    { "key": "demo:31", "kind": "session.update", "source": "codex-journal", "provenance": "declared", "sessionId": "codex:demo-oa-1", "projectId": "orchard-atlas", "occurredAt": "2026-10-14T14:10:00.000Z",
+      "data": { "tool": "codex", "kind": "request", "text": "Finish the tile cache and run the tests.", "title": "Tile cache" } },
+    { "key": "demo:32", "kind": "session.update", "source": "codex-journal", "provenance": "declared", "sessionId": "codex:demo-oa-1", "projectId": "orchard-atlas", "occurredAt": "2026-10-14T14:40:00.000Z",
+      "data": { "tool": "codex", "kind": "report", "text": "## Done\n- Tile cache implemented.\n- All tests pass on a1a1a1a.\n## Next steps\n- Start offline mode.", "title": "Tile cache" } },
+    { "key": "demo:33", "kind": "github.commit", "source": "github", "provenance": "observed", "occurredAt": "2026-10-14T14:45:00.000Z",
+      "data": { "repo": "example-org/orchard-atlas", "branch": "main", "sha": "a1a1a1a1a1a1", "message": "Add tile cache" } },
+    { "key": "demo:34", "kind": "github.ci", "source": "github", "provenance": "observed", "occurredAt": "2026-10-14T14:50:00.000Z",
+      "data": { "repo": "example-org/orchard-atlas", "sha": "a1a1a1a1a1a1", "status": "pending", "name": "unit-tests" } },
+    { "key": "demo:35", "kind": "github.ci", "source": "github", "provenance": "observed", "occurredAt": "2026-10-14T15:02:00.000Z",
+      "data": { "repo": "example-org/orchard-atlas", "sha": "a1a1a1a1a1a1", "status": "failure", "name": "unit-tests" } },
+
+    { "key": "demo:40", "kind": "session.observed", "source": "codex-journal", "provenance": "observed", "sessionId": "codex:demo-br-1", "projectId": "beacon-relay", "occurredAt": "2026-10-14T13:30:00.000Z",
+      "data": { "tool": "codex", "role": "lead", "state": "idle", "level": "detected", "title": "Relay health", "projectName": "Beacon Relay", "repo": "example-org/beacon-relay", "branch": "health" } },
+    { "key": "demo:44", "kind": "github.commit", "source": "github", "provenance": "observed", "occurredAt": "2026-10-14T10:50:00.000Z",
+      "data": { "repo": "example-org/beacon-relay", "branch": "health", "sha": "e5e5e5e5e5e5", "message": "Relay health draft" } },
+    { "key": "demo:41", "kind": "github.deploy", "source": "github", "provenance": "observed", "occurredAt": "2026-10-14T11:00:00.000Z",
+      "data": { "repo": "example-org/beacon-relay", "id": 88, "environment": "staging", "state": "failure", "sha": "e5e5e5e5e5e5" } },
+    { "key": "demo:42", "kind": "session.update", "source": "codex-journal", "provenance": "declared", "sessionId": "codex:demo-br-1", "projectId": "beacon-relay", "occurredAt": "2026-10-14T13:10:00.000Z",
+      "data": { "tool": "codex", "kind": "request", "text": "Add a health endpoint to the relay.", "title": "Relay health" } },
+    { "key": "demo:43", "kind": "session.update", "source": "codex-journal", "provenance": "declared", "sessionId": "codex:demo-br-1", "projectId": "beacon-relay", "occurredAt": "2026-10-14T13:30:00.000Z",
+      "data": { "tool": "codex", "kind": "report", "text": "Implemented the relay health endpoint. Should I also add metrics, or keep the scope minimal?", "title": "Relay health" } },
+
+    { "key": "demo:50", "kind": "session.signal", "source": "claude-hook", "provenance": "observed", "sessionId": "claude:demo-unmatched", "occurredAt": "2026-10-14T15:30:00.000Z",
+      "data": { "tool": "claude", "role": "lead", "state": "waiting", "hookEvent": "Stop", "hint": "scratch-notes" } },
+
+    { "key": "demo:60", "kind": "session.update", "source": "claude-journal", "provenance": "declared", "sessionId": "claude:demo-qd-1", "projectId": "quarry-data", "occurredAt": "2026-10-14T15:20:00.000Z",
+      "data": { "tool": "claude", "kind": "report", "text": "Profiling started on the import job; no result yet.", "title": "Import profiling" } },
+    { "key": "demo:61", "kind": "session.update", "source": "claude-journal", "provenance": "declared", "sessionId": "claude:demo-qd-1", "projectId": "quarry-data", "occurredAt": "2026-10-14T15:55:00.000Z",
+      "data": { "tool": "claude", "kind": "request", "text": "Profile the import job and report the slowest step.", "title": "Import profiling" } },
+    { "key": "demo:62", "kind": "session.observed", "source": "claude-process", "provenance": "observed", "sessionId": "claude:demo-qd-1", "projectId": "quarry-data", "occurredAt": "2026-10-14T15:58:00.000Z",
+      "data": { "tool": "claude", "role": "lead", "state": "working", "level": "confirmed", "title": "Import profiling", "projectName": "Quarry Data", "repo": "example-org/quarry-data", "branch": "profiling" } },
+    { "key": "demo:63", "kind": "session.signal", "source": "claude-hook", "provenance": "observed", "sessionId": "claude:demo-qd-1:helper:a1", "occurredAt": "2026-10-14T15:59:00.000Z",
+      "data": { "tool": "claude", "role": "helper", "state": "working", "hookEvent": "SubagentStart", "title": "profiler", "parentId": "claude:demo-qd-1" } }
+  ]
+}
