@@ -185,6 +185,13 @@ const english = {
   'Cliquer au sol pour marcher, sur une maison pour la visiter.': 'Click the ground to walk, or a house to visit it.',
   'Cliquer sur une maison pour ouvrir son bilan.': 'Click a house to open its brief.',
   'Flèches : marcher · Échap : arrêter · Glisser : caméra': 'Arrows: walk · Escape: stop · Drag: camera',
+  'Toutes les activités en temps réel': 'All activities in real time',
+  'À toi': 'For you',
+  'Depuis ta visite': 'Since your visit',
+  'Aucun signal récent': 'No recent signal',
+  'Répondre à tes agents': 'Reply to your agents',
+  'Pipeline': 'Pipeline',
+  'Voir tout dans X': 'See all in X',
 } as const;
 
 export function translate(language: Language, key: keyof typeof english, values: Record<string, string | number> = {}): string {
