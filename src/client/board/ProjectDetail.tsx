@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, type ReactNode } from 'react';
 import type { BoardSnapshot } from '../../shared/board.js';
 import { resumeCommand, sessionPresence, type ProjectRow, type TimelineEntry } from '../../shared/boardView.js';
 import type { SessionEntity } from '../../shared/projector.js';
@@ -23,13 +23,13 @@ export interface DetailProps {
   onClose: () => void;
   onConversation: (sessionId?: string) => void;
   onSeen: () => void;
+  notice?: ReactNode;
 }
 
 /** Right-hand detail panel; the project list stays visible. */
-export const ProjectDetail = forwardRef<HTMLElement, DetailProps>(function ProjectDetail({ row, snapshot, timeline, sessions, conversation, editPlan, t, language, now, onClose, onConversation, onSeen }, ref) {
-  const selectedSession = conversation ? snapshot.state.sessions[conversation] : undefined;
-  const conversationEntries = conversation ? Object.values(snapshot.state.updates).filter((entry) => entry.sessionId === conversation).sort((a, b) => Date.parse(b.at) - Date.parse(a.at)) : [];
+export const ProjectDetail = forwardRef<HTMLElement, DetailProps>(function ProjectDetail({ row, snapshot, timeline, sessions, conversation, editPlan, t, language, now, onClose, onConversation, onSeen, notice }, ref) {
   return <aside ref={ref} className="detail" aria-labelledby="detail-title" tabIndex={-1}>
+    {notice}
     <header className="detail__header">
       <div><small>{t('Détail du projet')}</small><h2 id="detail-title">{row.name}</h2><p>{row.objective ?? t('Objectif non défini')}</p></div>
       <div className="detail__header-actions">
@@ -37,17 +37,7 @@ export const ProjectDetail = forwardRef<HTMLElement, DetailProps>(function Proje
         <button type="button" className="detail__close" aria-label={t('Fermer le détail')} onClick={onClose}>×</button>
       </div>
     </header>
-    {selectedSession || conversation ? <section className="conversation" aria-label={t('Conversation d’origine')}>
-      <button type="button" className="link-button" onClick={() => onConversation(undefined)}>← {t('Retour aux conversations')}</button>
-      <h3>{t('Conversation d’origine')} · {selectedSession?.title ?? conversation}</h3>
-      {selectedSession && <SessionSummary session={selectedSession} t={t} language={language} now={now} />}
-      <ol className="timeline" data-scroll-anchor-list>
-        {conversationEntries.map((entry) => <li key={entry.key} data-anchor={entry.key}>
-          <header><strong>{t(entry.kind === 'report' ? 'Compte rendu' : 'Demande')}</strong> <ProvenanceBadge value="declared" t={t} /> <Stamp at={entry.at} language={language} now={now} /></header>
-          <p className="timeline__text">{entry.text}</p>
-        </li>)}
-      </ol>
-    </section> : <>
+    {conversation ? <SessionConversation snapshot={snapshot} sessionId={conversation} t={t} language={language} now={now} onBack={() => onConversation(undefined)} /> : <>
       <ProofLadder steps={row.ladder} t={t} language={language} now={now} detailed onSession={(id) => onConversation(id)} />
       <ProjectPlanPanel key={`${row.id}:${editPlan}`} projectId={row.id} plan={snapshot.plans[row.id]} language={language} editable={snapshot.capabilities.editPlans} startEditing={editPlan} />
       <section className="detail__sessions" aria-label={t('Agents et sessions')}>
@@ -91,4 +81,23 @@ function SessionSummary({ session, t, language, now }: { session: SessionEntity;
       {' · '}{t('dernier signal')} {session.stateSource} · <Stamp at={session.stateAt} language={language} now={now} /></small>
     {session.terminal && <small>{t('Terminal tmux :')} <code>{session.terminal}</code></small>}
   </div>;
+}
+
+/** The same sourced conversation can be read before a project is assigned. */
+export function SessionConversation({ snapshot, sessionId, t, language, now, onBack }: {
+  snapshot: BoardSnapshot; sessionId: string; t: Translate; language: Language; now: number; onBack: () => void;
+}) {
+  const selectedSession = snapshot.state.sessions[sessionId];
+  const conversationEntries = Object.values(snapshot.state.updates).filter((entry) => entry.sessionId === sessionId).sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+  return <section className="conversation" aria-label={t('Conversation d’origine')}>
+      <button type="button" className="link-button" onClick={onBack}>← {t('Retour aux conversations')}</button>
+      <h3>{t('Conversation d’origine')} · {selectedSession?.title ?? sessionId}</h3>
+      {selectedSession && <SessionSummary session={selectedSession} t={t} language={language} now={now} />}
+      <ol className="timeline" data-scroll-anchor-list>
+        {conversationEntries.map((entry) => <li key={entry.key} data-anchor={entry.key}>
+          <header><strong>{t(entry.kind === 'report' ? 'Compte rendu' : 'Demande')}</strong> <ProvenanceBadge value="declared" t={t} /> <Stamp at={entry.at} language={language} now={now} /></header>
+          <p className="timeline__text">{entry.text}</p>
+        </li>)}
+      </ol>
+    </section>;
 }

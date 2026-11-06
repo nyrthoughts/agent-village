@@ -8,7 +8,7 @@ const ZONE_GAP = 4;
 const ZONE_COLUMNS = 2;
 
 function zoneHeight(sessionCount: number): number {
-  return 24 + Math.max(0, Math.ceil(sessionCount / 2) - 1) * 5;
+  return Math.max(12, 5 + Math.ceil(sessionCount / 2) * 4);
 }
 
 function stableHash(value: string): number {
@@ -33,9 +33,10 @@ export function layoutVillage(rows: ProjectRow[], sessions: SessionEntity[]): Vi
   const rowCount = Math.max(1, Math.ceil(rows.length / ZONE_COLUMNS));
   const rowHeights = Array.from({ length: rowCount }, (_, row) =>
     Math.max(...rows.slice(row * ZONE_COLUMNS, row * ZONE_COLUMNS + ZONE_COLUMNS)
-      .map((project) => zoneHeight((sessionsByProject.get(project.id) ?? []).length)), 24));
+      .map((project) => zoneHeight((sessionsByProject.get(project.id) ?? []).length)), 12));
 
-  const height = Math.max(44, 12 + rowHeights.reduce((sum, v) => sum + v, 0) + Math.max(0, rowCount - 1) * 4);
+  const unmatchedCount = sessions.filter((session) => !session.projectId).length;
+  const height = Math.max(36, 12 + rowHeights.reduce((sum, v) => sum + v, 0) + Math.max(0, rowCount - 1) * 4 + Math.max(0, Math.ceil(unmatchedCount / 3) - 2) * 2);
   const zones: VillageZone[] = [];
   const buildings: VillageBuildingPlacement[] = [];
   const agents: VillageAgentPlacement[] = [];
@@ -94,7 +95,7 @@ export function layoutVillage(rows: ProjectRow[], sessions: SessionEntity[]): Vi
     agents.push({
       sessionId: session.id,
       x: 31 + (idx % 3) * 3,
-      y: height - 6 + Math.floor(idx / 3) * 2,
+      y: height - 6 - Math.max(0, Math.ceil(unmatchedSessions.length / 3) - 1) * 2 + Math.floor(idx / 3) * 2,
       tool: session.tool,
       role: session.role,
       state: session.state,

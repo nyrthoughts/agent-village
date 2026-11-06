@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type WheelEvent } from 'react';
 import type { BoardSnapshot } from '../../shared/board.js';
-import { buildBoardView, indexProjects } from '../../shared/boardView.js';
+import { buildBoardView, indexProjects, sessionPresence } from '../../shared/boardView.js';
 import type { SessionEntity } from '../../shared/projector.js';
 import type { Translate } from '../board/format.js';
 import type { Language } from '../language.js';
@@ -25,10 +25,15 @@ interface Props {
 
 export function VillageScene({ snapshot, now, t, language, onSelectProject, onSelectAgent }: Props) {
   const view = useMemo(() => buildBoardView(snapshot, now), [snapshot, now]);
-  const rows = view.rows;
+  const rows = useMemo(() => [...view.rows].sort((a, b) => a.id.localeCompare(b.id)), [view.rows]);
   const sessions: SessionEntity[] = useMemo(
-    () => Object.values(snapshot.state.sessions),
-    [snapshot.state.sessions],
+    () => {
+      const index = indexProjects(snapshot);
+      return [...[...index.projects.values()].flatMap((project) => project.sessions.map((session) => ({ ...session, projectId: project.id,
+        state: sessionPresence(session, now).state }))), ...index.unmatched.map((session) => ({ ...session, projectId: undefined,
+        state: sessionPresence(session, now).state }))];
+    },
+    [snapshot, now],
   );
   const layout = useMemo(() => layoutVillage(rows, sessions), [rows, sessions]);
   const buildingsByProject = useMemo(
@@ -37,6 +42,21 @@ export function VillageScene({ snapshot, now, t, language, onSelectProject, onSe
   );
 
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0 });
+  const map = useRef<HTMLElement>(null);
+  const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight - 80 });
+  const [zoom, setZoom] = useState(1);
+  useLayoutEffect(() => {
+    const element = map.current;
+    if (!element) return;
+    const measure = () => setViewport({ width: element.clientWidth || window.innerWidth, height: element.clientHeight || window.innerHeight - 80 });
+    measure();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : undefined;
+    observer?.observe(element);
+    window.addEventListener('resize', measure);
+    return () => { observer?.disconnect(); window.removeEventListener('resize', measure); };
+  }, []);
+  const fit = Math.min(1.2, (viewport.width - 48) / (layout.width * TILE), (viewport.height - 88) / (layout.height * TILE));
+  const scale = Math.max(0.05, fit) * zoom;
   const dragRef = useRef<{ pointerId: number; x: number; y: number; camera: Camera }>();
   const maxX = Math.max(0, (layout.width - 32) / 2);
   const maxY = Math.max(0, (layout.height - 24) / 2);
@@ -59,7 +79,7 @@ export function VillageScene({ snapshot, now, t, language, onSelectProject, onSe
   const onPointerMove = (e: ReactPointerEvent<HTMLElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== e.pointerId) return;
-    moveCamera(drag.camera.x - (e.clientX - drag.x) / TILE, drag.camera.y - (e.clientY - drag.y) / TILE);
+    moveCamera(drag.camera.x - (e.clientX - drag.x) / (TILE * scale), drag.camera.y - (e.clientY - drag.y) / (TILE * scale));
   };
   const stopDrag = (e: ReactPointerEvent<HTMLElement>) => {
     if (dragRef.current?.pointerId === e.pointerId) dragRef.current = undefined;
@@ -68,13 +88,15 @@ export function VillageScene({ snapshot, now, t, language, onSelectProject, onSe
     moveCamera(camera.x + e.deltaX / 80, camera.y + e.deltaY / 80);
   };
   const worldStyle: CSSProperties = {
+    '--scene-scale': scale,
     width: layout.width * TILE,
     height: layout.height * TILE,
-    transform: `translate(calc(-50% - ${camera.x * TILE}px), calc(-50% - ${camera.y * TILE}px)) scale(1.2)`,
-  };
+    transform: `translate(calc(-50% - ${camera.x * TILE * scale}px), calc(-50% - ${camera.y * TILE * scale}px)) scale(${scale})`,
+  } as CSSProperties;
 
   return (
     <section
+      ref={map}
       className="village-map"
       data-testid="village-map"
       data-building-count={layout.buildings.length}
@@ -103,7 +125,11 @@ export function VillageScene({ snapshot, now, t, language, onSelectProject, onSe
           </span>
         ))}
       </div>
-      <button type="button" className="map-reset" onClick={() => setCamera({ x: 0, y: 0 })}>{t('Recentrer')}</button>
+      <div className="map-controls">
+        <button type="button" className="map-reset" onClick={() => { setCamera({ x: 0, y: 0 }); setZoom(1); }}>{t('Recentrer')}</button>
+        <button type="button" aria-label="Zoom −" disabled={zoom <= 1} onClick={() => setZoom((value) => Math.max(1, value / 1.5))}>−</button>
+        <button type="button" aria-label="Zoom +" disabled={zoom >= 4} onClick={() => setZoom((value) => Math.min(4, value * 1.5))}>+</button>
+      </div>
       <span className="map-hint" aria-hidden="true">{t('Glisser ou flèches pour explorer')}</span>
     </section>
   );

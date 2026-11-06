@@ -48,6 +48,7 @@ export function VillageBuilding({ row, t, language: _language, onSelect }: Props
         <span className="pixel-building__window pixel-building__window--right" />
       </span>
       <span className="pixel-building__status-mark" aria-hidden="true" />
+      <strong className="pixel-building__name" aria-hidden="true">{row.name}</strong>
       {row.attention > 0 && <span className="pixel-building__attention" aria-hidden="true">{row.attention}</span>}
       <span className="pixel-building__proofs" aria-hidden="true">
         {proofStates.map((state, i) => <span key={i} className={`pixel-building__proof-dot pixel-building__proof-dot--${state}`} />)}
