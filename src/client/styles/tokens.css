@@ -1,32 +1,32 @@
 :root {
-  color-scheme: light;
-  --ink-950: #173f35;
-  --ink-900: #245847;
-  --ink-800: #39735c;
-  --paper-100: #fffbe0;
-  --paper-200: #f4e8b8;
-  --paper-500: #6e765a;
-  --wood-top: #efc06b;
-  --wood-left: #9a5939;
-  --wood-right: #c77a45;
-  --blueprint: #5c9fd0;
-  --blueprint-soft: #d5ebec;
-  --amber: #f2a936;
-  --coral: #db5943;
-  --leaf: #61a94e;
-  --leaf-deep: #286447;
-  --focus: #ffdc43;
-  --line: #416b54;
-  --shadow: rgba(20, 54, 41, 0.32);
-  font-family: Geneva, Verdana, ui-sans-serif, system-ui, sans-serif;
-  background: #255b48;
+  color-scheme: dark;
+  --ink-950: #e7e9ea;
+  --ink-900: #d6d9db;
+  --ink-800: #c4c7c9;
+  --paper-100: #16181c;
+  --paper-200: #1d1f23;
+  --paper-500: #71767b;
+  --wood-top: #ffd400;
+  --wood-left: #c77a45;
+  --wood-right: #e09050;
+  --blueprint: #1d9bf0;
+  --blueprint-soft: rgba(29, 155, 240, .12);
+  --amber: #ffd400;
+  --coral: #f4212e;
+  --leaf: #00ba7c;
+  --leaf-deep: #00966b;
+  --focus: #1d9bf0;
+  --line: #2f3336;
+  --shadow: rgba(0, 0, 0, 0.5);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: #000;
   color: var(--ink-950);
   font-synthesis: none;
 }
 
 * { box-sizing: border-box; }
-html { min-width: 320px; min-height: 100%; background: #255b48; }
-body { margin: 0; min-width: 320px; min-height: 100vh; overflow-x: hidden; background: #255b48; }
+html { min-width: 320px; min-height: 100%; background: #000; }
+body { margin: 0; min-width: 320px; min-height: 100vh; overflow-x: hidden; background: #000; }
 button, input { font: inherit; }
 button { -webkit-tap-highlight-color: transparent; }
-::selection { color: #173f35; background: #ffdc43; }
+::selection { color: #000; background: #1d9bf0; }
