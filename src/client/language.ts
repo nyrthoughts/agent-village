@@ -201,6 +201,19 @@ const english = {
   'Lecture seule dans ce mode.': 'Read-only in this mode.',
   'Agents et sessions': 'Agents and sessions',
   'Observation n’est pas exécution : rien ici ne lance, n’arrête ni n’instruit un agent.': 'Observation is not execution: nothing here starts, stops or instructs an agent.',
+  // Village scene
+  'AGENT VILLAGE': 'AGENT VILLAGE',
+  'AGENT VILLAGE · DÉMO': 'AGENT VILLAGE · DEMO',
+  'Chargement du village…': 'Loading the village…',
+  'Village des opérations': 'Operations village',
+  'Recentrer': 'Re-center',
+  'Glisser ou flèches pour explorer': 'Drag or use arrow keys to explore',
+  'Données fictives · {date}': 'Fictional data · {date}',
+  'Bloqué': 'Blocked',
+  'Actif': 'Active',
+  'à traiter': 'to handle',
+  'Inactif': 'Idle',
+  'Inconnu': 'Unknown',
 } as const;
 
 export function translate(language: Language, key: keyof typeof english, values: Record<string, string | number> = {}): string {

@@ -1,8 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+async function gotoBoard(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => localStorage.setItem('agent-village:view', 'board'));
+  await page.goto('/');
+}
+
 test.describe('fictional six-project board', () => {
   test('answers “where do I intervene?” from the first screen', async ({ page }) => {
-    await page.goto('/');
+    await gotoBoard(page);
     await expect(page.getByRole('heading', { name: 'Tableau des opérations' })).toBeVisible();
     await expect(page.getByRole('note')).toContainText('Données fictives');
     const rows = page.locator('.project-row');
@@ -31,7 +36,7 @@ test.describe('fictional six-project board', () => {
   });
 
   test('shows dated, distinct proofs: unlit is “not observed”, failure is distinct, CI on another commit is labelled', async ({ page }) => {
-    await page.goto('/');
+    await gotoBoard(page);
     const orchard = page.locator('.project-row', { hasText: 'Orchard Atlas' });
     await expect(orchard.locator('.ladder__dot--failed')).toHaveCount(1);
     await expect(orchard.locator('.ladder__dot--absent')).toHaveCount(2);
@@ -43,7 +48,7 @@ test.describe('fictional six-project board', () => {
   });
 
   test('keyboard: j/k move, Enter opens the side detail with the list still visible, Escape closes', async ({ page }) => {
-    await page.goto('/');
+    await gotoBoard(page);
     await page.locator('h1').click();
     await page.keyboard.press('j');
     const first = page.locator('.project-row').first();
@@ -65,7 +70,7 @@ test.describe('fictional six-project board', () => {
   });
 
   test('opens the source conversation and offers a copy-only resume command', async ({ page }) => {
-    await page.goto('/');
+    await gotoBoard(page);
     await page.locator('.project-row', { hasText: 'Beacon Relay' }).locator('.project-row__main').click();
     const detail = page.getByRole('complementary');
     await expect(detail.getByText('codex resume demo-br-1')).toBeVisible();
@@ -76,7 +81,7 @@ test.describe('fictional six-project board', () => {
   });
 
   test('marks attention seen and snoozes with identifiers only in storage', async ({ page }) => {
-    await page.goto('/');
+    await gotoBoard(page);
     const attention = page.getByRole('region', { name: /À toi/ });
     const before = await attention.locator('[data-attention-type]').count();
     await attention.locator('[data-attention-type]').first().getByRole('button', { name: 'Marquer vu' }).click();
@@ -96,7 +101,7 @@ test.describe('fictional six-project board', () => {
   });
 
   test('switches language and keeps the choice', async ({ page }) => {
-    await page.goto('/');
+    await gotoBoard(page);
     await page.getByRole('combobox', { name: 'Langue / Language' }).selectOption('en');
     await expect(page.getByRole('heading', { name: 'Operations board' })).toBeVisible();
     await expect(page.getByRole('region', { name: /For you/ })).toBeVisible();
@@ -107,7 +112,7 @@ test.describe('fictional six-project board', () => {
 
   test('390 px layout keeps the three zones in order without horizontal overflow', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/');
+    await gotoBoard(page);
     const tops = await Promise.all(['À toi', 'Depuis ta dernière visite', 'Projets'].map((name) =>
       page.getByRole('heading', { name: new RegExp(`^${name}`) }).evaluate((node) => node.getBoundingClientRect().top)));
     expect(tops).toEqual([...tops].sort((a, b) => a - b));
@@ -119,7 +124,7 @@ test.describe('fictional six-project board', () => {
 
   test('reduced motion removes the row highlight animation', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.goto('/');
+    await gotoBoard(page);
     const row = page.locator('.project-row').first();
     await row.evaluate((node) => node.classList.add('is-fresh'));
     expect(await row.evaluate((node) => getComputedStyle(node).animationName)).toBe('none');

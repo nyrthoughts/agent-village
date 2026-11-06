@@ -48,6 +48,7 @@ export async function startNative(browser: Browser, options: { heartbeatMs?: num
     method: 'POST', headers: { 'content-type': 'application/json', authorization: ingestion, ...delivery },
     body: JSON.stringify({ session_id: session, hook_event_name: event, cwd, prompt: 'fictional private prompt' }) });
   const enroll = async () => {
+    await page.addInitScript(() => localStorage.setItem('agent-village:view', 'board'));
     await page.goto(origin);
     await page.getByLabel('Code de configuration privé').fill(bootstrap);
     const enrolled = page.waitForResponse(`${origin}/api/auth/enroll/verify`);
