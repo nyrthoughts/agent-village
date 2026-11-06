@@ -72,8 +72,8 @@ export function VillageApp({ fetchImpl = fetch }: { fetchImpl?: typeof fetch }) 
   if (!shown || !view || !digest) {
     return <div className="village-stage">
       <div className="village-header"><span className="village-header__title">{t('AGENT VILLAGE')}</span></div>
-      <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#fff8cf' }}>
-        {feed.error ? <p role="alert" style={{ color: '#e65642' }}>{t('Tableau indisponible.')} {feed.error}</p> : <p role="status">{t('Chargement du village…')}</p>}
+      <div style={{ display: 'grid', placeItems: 'center', height: '100%', color: '#e7e9ea' }}>
+        {feed.error ? <p role="alert" style={{ color: '#f4212e' }}>{t('Tableau indisponible.')} {feed.error}</p> : <p role="status">{t('Chargement du village…')}</p>}
       </div>
     </div>;
   }
@@ -94,7 +94,7 @@ export function VillageApp({ fetchImpl = fetch }: { fetchImpl?: typeof fetch }) 
   return <div className="village-stage">
     <div className="village-header">
       <span className="village-header__title">{t(fictional ? 'AGENT VILLAGE · DÉMO' : 'AGENT VILLAGE')}</span>
-      {visibleAttention.length > 0 && <button type="button" style={{ padding: '2px 8px', border: '2px solid #e65642', background: '#e65642', color: '#fff', borderRadius: 4, cursor: 'pointer', font: '700 11px Monaco, monospace' }} onClick={openAttention}>
+      {visibleAttention.length > 0 && <button type="button" style={{ padding: '2px 8px', border: '1px solid rgba(244,33,46,.3)', background: 'rgba(244,33,46,.1)', color: '#f4212e', borderRadius: 9999, cursor: 'pointer', font: '600 13px -apple-system, sans-serif' }} onClick={openAttention}>
         {t('À toi')} ({visibleAttention.length})
       </button>}
       <span className="village-header__sources">
@@ -102,7 +102,7 @@ export function VillageApp({ fetchImpl = fetch }: { fetchImpl?: typeof fetch }) 
       </span>
       <span className="village-header__feed">{feed.status === 'live' ? '● Live' : feed.status}</span>
       {fictional && <span style={{ fontSize: 10, opacity: .6 }}>{t('Données fictives · {date}', { date: absolute(language, shown.generatedAt) })}</span>}
-      {shown.errors.length > 0 && <span style={{ fontSize: 10, color: '#e65642' }}>{shown.errors.map((e) => translateDiagnostic(language, e)).join(' · ')}</span>}
+      {shown.errors.length > 0 && <span style={{ fontSize: 10, color: '#f4212e' }}>{shown.errors.map((e) => translateDiagnostic(language, e)).join(' · ')}</span>}
       <label className="village-header__language">
         <select aria-label="Langue / Language" value={language} onChange={(e) => setLanguage(e.target.value === 'en' ? 'en' : 'fr')}>
           <option value="fr">FR</option><option value="en">EN</option>
@@ -122,10 +122,10 @@ export function VillageApp({ fetchImpl = fetch }: { fetchImpl?: typeof fetch }) 
 
     {overlayMode === 'attention' && <div className="village-overlay">
       <div className="village-overlay__backdrop" onClick={closeOverlay} />
-      <div className="village-overlay__panel" style={{ padding: '12px 16px' }}>
+      <div className="village-overlay__panel" style={{ padding: '16px 20px', background: '#000' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <h2 style={{ margin: 0, font: '700 18px/1.2 ui-sans-serif, system-ui, sans-serif' }}>{t('À toi')}</h2>
-          <button type="button" onClick={closeOverlay} style={{ minWidth: 36, fontSize: 18, border: '1px solid #d8d9d0', borderRadius: 6, background: '#fffefa', cursor: 'pointer' }}>×</button>
+          <h2 style={{ margin: 0, font: '700 18px/1.2 -apple-system, BlinkMacSystemFont, sans-serif', color: '#e7e9ea' }}>{t('À toi')}</h2>
+          <button type="button" onClick={closeOverlay} style={{ minWidth: 36, fontSize: 18, border: '1px solid #2f3336', borderRadius: '50%', background: 'transparent', color: '#e7e9ea', cursor: 'pointer' }}>×</button>
         </div>
         <AttentionInbox items={visibleAttention} hidden={view.attention.length - visibleAttention.length} t={t} language={language} now={now}
           resume={(sid) => resumeCommand(sid ? shown.state.sessions[sid] : undefined)} canValidate={shown.capabilities.editPlans}

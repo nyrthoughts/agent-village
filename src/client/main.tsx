@@ -18,9 +18,9 @@ function Root() {
   return <AuthGate>
     {mode === 'village' ? <VillageApp fetchImpl={fetch} /> : <BoardApp fetchImpl={fetch} />}
     <button type="button" onClick={toggle}
-      style={{ position: 'fixed', left: 12, bottom: 12, zIndex: 50, padding: '6px 12px', border: '2px solid #2f5d4c', borderRadius: 6, background: 'rgba(255,248,215,.95)', color: '#193e34', font: '700 11px Monaco, monospace', cursor: 'pointer', boxShadow: '3px 3px 0 rgba(23,63,53,.3)' }}
+      style={{ position: 'fixed', left: 12, bottom: 12, zIndex: 50, padding: '6px 14px', border: '1px solid #2f3336', borderRadius: 9999, background: '#16181c', color: '#e7e9ea', font: '600 12px -apple-system, sans-serif', cursor: 'pointer' }}
       aria-label={mode === 'village' ? 'Switch to board view' : 'Switch to village view'}>
-      {mode === 'village' ? '📋 Board' : '🏘️ Village'}
+      {mode === 'village' ? 'Board' : 'Village'}
     </button>
   </AuthGate>;
 }
