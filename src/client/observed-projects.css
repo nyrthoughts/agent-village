@@ -75,7 +75,8 @@
 .observed-inbox code,.observed-assign code { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px; }
 .observed-inbox button { min-height:36px; padding:6px 12px; border:1px solid #56714e; background:#e7edcf; color:var(--journal-ink); font:inherit; font-size:12px; cursor:pointer; }
 .observed-assign { padding:0 0 18px; margin-bottom:18px; border-bottom:1px solid #c8d0b9; }
-.observed-assign pre { max-width:100%; overflow-x:auto; padding:12px; border:1px solid #d0d6c2; background:#eeefdf; font-size:12px; line-height:1.5; }
+.observed-assign pre { max-width:100%; margin:12px 0; padding:0; border:0; background:transparent; }
+.observed-assign pre code { display:block; overflow-x:auto; padding:12px; white-space:pre; font-size:12px; line-height:1.5; }
 .observed-session .observed-provenance { margin:4px 0; color:#4f6a47; font-size:12px; line-height:1.5; }
 .observed-source-group__title { margin:22px 0 0; padding-bottom:6px; border-bottom:2px solid #c8d0b9; font-size:13px; letter-spacing:.02em; }
 .observed-links ul { padding-left:18px; }
