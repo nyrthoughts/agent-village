@@ -16,6 +16,9 @@
   .mt .need { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 16px; background: var(--text); color: #0f1419; font: 600 13.5px var(--sans); }
   .mt .need svg.i { width: 15px; height: 15px; stroke-width: 2.2; }
   .strip { height: 46px; flex: none; display: flex; align-items: stretch; gap: 0; overflow: hidden; border-bottom: 1px solid var(--line); padding-left: 4px; }
+  .strip { -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 28px), transparent); }
+  .strin { display: flex; margin-left: -228px; }
+  .dev::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 44px; background: linear-gradient(transparent, #000 70%); z-index: 55; pointer-events: none; }
   .strip span { display: flex; align-items: center; gap: 6px; padding: 0 12px; white-space: nowrap; color: var(--muted); font-size: 14px; position: relative; }
   .strip span.on { color: var(--text); font-weight: 600; }
   .strip span.on::after { content: ''; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 3px; border-radius: 2px; background: var(--input); }
@@ -48,7 +51,7 @@
   J.tag = 'zoom';
   const top = `<div class="sb"><span>14:32</span><span>●●● ▮</span></div>
     <div class="mt">${I('logo')}<h1>Village</h1><span class="tag demo">Demo</span><span class="need">${I('bell')}Needs you · 5</span></div>
-    <div class="strip"><div style="display:flex;margin-left:-178px">${D.projects.map(p => { const c = projectCounts(J, p.id); return `<span class="${p.id === 'warehouse' ? 'on' : ''}">${p.name}${counts(c)}</span>`; }).join('')}</div></div>`;
+    <div class="strip"><div class="strin">${D.projects.map(p => { const c = projectCounts(J, p.id); return `<span class="${p.id === 'warehouse' ? 'on' : ''}">${p.name}${counts(c)}</span>`; }).join('')}</div></div>`;
   document.getElementById('b').innerHTML = `<div class="eyebrow">Agent Village · step 2, v2 · mobile 390 × 844 · demo data</div>
   <h1>Mobile: one room at a time</h1>
   <p class="lede">At 390 px the whole floor would shrink each bot to about 20 px tall. The phone frames one room with the same render, scaled up. Swipe or tap the project strip to change room. "Needs you" stays one tap away in a bottom sheet.</p>
@@ -71,10 +74,10 @@
   const ub = J.bots[urgent.bot] || { source: 'cli', project: 'connector' };
   document.getElementById('s1').insertAdjacentHTML('beforeend', `<div class="sheet"><div class="grab"></div>
     <div class="sh"><h2>Needs you</h2><span class="muted" style="font-size:13px">5 waiting · oldest 41 min</span></div>
-    <div class="ask error"><span class="bar"></span><div><div class="top">${I('error')}<span class="who">${urgent.bot}</span><span class="muted">Connector Lab</span><span class="age">${urgent.age}</span></div>
+    <div class="ask error"><span class="bar"></span><div><div class="top">${I('error')}<span class="who">${nm(urgent.bot)}</span><span class="muted">Connector Lab</span><span class="age">${urgent.age}</span></div>
     <div class="txt">${urgent.text}</div><div class="ft"><span class="srcl">${I('cli')}Claude Code CLI</span><span class="btn">${urgent.open}${I('out')}</span></div></div></div></div>`);
   // sheet 2: full needs-you list, reusing the desktop column markup
-  const fake = { bots: { 'tool-schema': { source: 'cli', project: 'connector' }, 'model-refresh': { source: 'cli', project: 'warehouse' }, 'entity-audit': { source: 'codex', project: 'atlas' }, 'privacy-guard': { source: 'cli', project: 'privacy' }, 'outreach-copy': { source: 'codex', project: 'launch' } } };
+  const fake = { bots: { 'tool-schema': { source: 'cli', project: 'connector' }, 'model-refresh': { source: 'cli', project: 'warehouse' }, 'warehouse-qa': { source: 'cli', project: 'warehouse' }, 'privacy-guard': { source: 'cli', project: 'privacy' }, 'outreach-copy': { source: 'codex', project: 'launch' } } };
   const nc = document.createElement('div'); nc.innerHTML = needsCol(fake);
   const inner2 = nc.querySelector('.inner').innerHTML;
   document.getElementById('s2').insertAdjacentHTML('beforeend', `<div class="dimmed"></div><div class="full" style="top:40px"><div class="grab" style="width:38px;height:4px;border-radius:2px;background:var(--line-2);margin:8px auto 0"></div><div class="inner" style="top:14px">${inner2}</div></div>`);

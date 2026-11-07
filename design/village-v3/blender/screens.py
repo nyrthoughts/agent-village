@@ -19,7 +19,7 @@ STATE = {
 }
 
 
-def base(bg=(14, 17, 22)):
+def base(bg=(22, 27, 35)):
     im = Image.new("RGB", (W, H), bg)
     d = ImageDraw.Draw(im)
     d.rectangle([0, 0, W, 14], fill=(26, 30, 37))  # title bar
@@ -41,7 +41,7 @@ def code_lines(d, x0, y0, y1, dim=1.0, accent=None):
             w = random.randint(10, 46)
             if x + w > W - 10:
                 break
-            g = int(random.randint(95, 170) * dim)
+            g = int(random.randint(130, 215) * dim)
             col = (g, g + 4, g + 10)
             if accent and random.random() < 0.18:
                 col = tuple(int(c * 0.75 * dim) for c in accent)

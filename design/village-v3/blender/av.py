@@ -165,7 +165,7 @@ def glass(name="glass", hexcol="#DDE6EA", rough=0.04):
     return m
 
 
-def screen_mat(state, strength=6.0):
+def screen_mat(state, strength=2.6):
     key = f"screen-{state}"
     if key in _M:
         return _M[key]
@@ -175,6 +175,17 @@ def screen_mat(state, strength=6.0):
     img = bpy.data.images.load(str(Path(SCREEN_DIR) / f"screen-{state}.png"))
     tx = N.new("ShaderNodeTexImage")
     tx.image = img
+    tc = N.new("ShaderNodeTexCoord")  # generated boxes carry no UVs: map x -> u (mirrored), z -> v
+    sp = N.new("ShaderNodeSeparateXYZ")
+    inv = N.new("ShaderNodeMath")
+    inv.operation = "SUBTRACT"
+    inv.inputs[0].default_value = 1.0
+    cb = N.new("ShaderNodeCombineXYZ")
+    L.new(tc.outputs["Generated"], sp.inputs[0])
+    L.new(sp.outputs["X"], inv.inputs[1])
+    L.new(inv.outputs[0], cb.inputs["X"])
+    L.new(sp.outputs["Z"], cb.inputs["Y"])
+    L.new(cb.outputs[0], tx.inputs["Vector"])
     b.inputs["Base Color"].default_value = (0.005, 0.005, 0.006, 1)
     b.inputs["Roughness"].default_value = 0.12
     L.new(tx.outputs["Color"], b.inputs["Emission Color"])
@@ -816,13 +827,17 @@ def bot_codex(p, name, loc, yaw, state, frame=0):
 
 
 def bot_app(p, name, loc, yaw, state="offline", frame=0):
-    """App Claude: a dock. Shown covered until a verified source exists."""
+    """Claude app: a charging pedestal with its unit under a dust cover. Shown covered until a source exists."""
     root = G(name, loc, yaw, parent=p, col="bots")
     root.e["bot"] = name
-    root.box("stand", (0.5, 0.4, 0.06), (0, 0, 0), M["rubber"], 0.01)
-    root.box("dock", (0.46, 0.36, 0.32), (0, 0, 0.06), M["app"], 0.05, seg=3)
-    root.box("cover", (0.52, 0.42, 0.24), (0, 0, 0.2), M["cover"], 0.06, seg=4)
-    root.box("drape", (0.54, 0.44, 0.1), (0, 0, 0.12), M["cover"], 0.02, seg=2)
+    root.box("plate", (0.62, 0.5, 0.03), (0, 0, 0), M["steel"], 0.006)
+    root.box("pedestal", (0.36, 0.3, 0.62), (0, 0, 0.03), M["app"], 0.03, seg=3)
+    root.box("seam", (0.37, 0.004, 0.012), (0, 0.15, 0.4), M["bot_dark"], 0)
+    root.box("led", (0.05, 0.006, 0.012), (0.1, 0.152, 0.55), M["bot_dark"], 0)
+    root.box("cover", (0.46, 0.38, 0.4), (0, 0, 0.6), M["cover"], 0.07, seg=4)
+    root.box("hem", (0.48, 0.4, 0.05), (0, 0, 0.58), M["cover"], 0.015)
+    root.bar("cable", (0.0, -0.15, 0.08), (0.05, -0.55, 0.012), 0.012, M["rubber"])
+    root.bar("cable2", (0.05, -0.55, 0.012), (0.35, -0.75, 0.012), 0.012, M["rubber"])
     return root
 
 
@@ -982,7 +997,6 @@ def furnish(world, stations):
     task_lamp(a, "lampA", (0.25, 2.3, 0.74), 60)
     reading_table(a, "table", (3.2, 3.2, 0), 0)
     rug(a, "rug", (3.2, 3.4, 0), (2.6, 1.9))
-    stations["roadmap-chat"] = (None, (4.2, 5.2), 200)
     plant(a, "plant", (0.45, 5.45, 0), 1.5, seed=4)
 
     # Privacy Desk: compliance, lockers, a safe, a shredder
@@ -991,6 +1005,7 @@ def furnish(world, stations):
     safe(pr, "safe", (0.45, 0.6, 0), -90)
     stations["privacy-guard"] = (desk(pr, "deskA", (0.42, 1.9, 0), -90, seed=3), (0.42, 1.9), -90)
     stations["redaction-check"] = (desk(pr, "deskB", (0.42, 3.4, 0), -90, seed=4), (0.42, 3.4), -90)
+    desk(pr, "deskEmpty", (2.6, 3.6, 0), 0, top="birch", seed=21)  # unassigned desk, monitor off
     filing(pr, "fileA", (2.6, 0.38, 0), 0)
     filing(pr, "fileB", (3.1, 0.38, 0), 0, drawers=3)
     shredder(pr, "shred", (3.7, 0.3, 0), 0)
@@ -1035,7 +1050,7 @@ def furnish(world, stations):
     whiteboard(l, "wbB", (3.45, 0.45, 0), 6, seed=12)
     stations["landing-review"] = (desk(l, "deskA", (1.4, 2.4, 0), 0, seed=10), (1.4, 2.4), 0)
     stations["outreach-copy"] = (desk(l, "deskB", (3.4, 2.4, 0), 0, seed=11), (3.4, 2.4), 0)
-    stations["storyboard"] = (None, (4.9, 3.6), 210)
+    desk(l, "deskEmpty", (1.4, 4.45, 0), 0, seed=22, extras=False)  # unassigned desk
     rug(l, "rug", (3.4, 6.9, 0), (2.8, 2.2), rot=0, mat="tint_launch")
     sofa(l, "sofa", (3.4, 5.9, 0), 0)
     coffee_table(l, "ctable", (3.4, 7.2, 0), 0)
@@ -1048,19 +1063,19 @@ def furnish(world, stations):
 
 BOTS = [  # id, project, source, state. DEMO DATA ONLY.
     ("graph-map", "atlas", "cli", "working"),
-    ("entity-audit", "atlas", "codex", "approval"),
-    ("roadmap-chat", "atlas", "app", "offline"),
+    ("entity-audit", "atlas", "codex", "working"),
     ("privacy-guard", "privacy", "cli", "input"),
     ("redaction-check", "privacy", "codex", "working"),
     ("partner-connector", "connector", "cli", "working"),
     ("tool-schema", "connector", "cli", "error"),
     ("model-refresh", "warehouse", "cli", "approval"),
     ("segment-models", "warehouse", "codex", "working"),
-    ("warehouse-qa", "warehouse", "cli", "idle"),
+    ("warehouse-qa", "warehouse", "cli", "input"),
     ("landing-review", "launch", "cli", "working"),
     ("outreach-copy", "launch", "codex", "input"),
-    ("storyboard", "launch", "app", "offline"),
 ]
+# One Claude app dock for the whole floor: no source, so no per-project chats are claimed.
+APP_DOCK = ("claude-app", None, "app", "offline", (5.7, 0.75), 0)
 WALKER = ("release-notes", "connector", "codex", "idle", (5.7, 10.4), 0)  # in the aisle, world coords
 
 
@@ -1082,6 +1097,8 @@ def place_bots(world, R, stations, overrides=None, walker=True):
         placed[bid] = (b, proj, src, state, stations[bid][0])
         if state == "error":
             warn_triangle(b, "warn", (0.5, -0.1, 0), 140)
+    bid, proj, src, state, (x, y), yaw = APP_DOCK
+    placed[bid] = (bot_app(world, bid, (x, y, 0), yaw), proj, src, state, None)
     if walker:
         bid, proj, src, state, (x, y), yaw = WALKER
         b = BOT_FN[src](world, bid, (x, y, 0), yaw, state)

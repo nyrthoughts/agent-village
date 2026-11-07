@@ -16,7 +16,7 @@ TILE = [64, 32]
 def webp(p: Path) -> Path:
     out = p.with_suffix(".webp")
     im = Image.open(p)
-    im.save(out, "WEBP", quality=90, method=6, exact=False)
+    im.save(out, "WEBP", quality=90, method=4, exact=False)
     p.unlink()
     return out
 

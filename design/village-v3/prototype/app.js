@@ -30,12 +30,17 @@ const P = {
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3A4 4 0 0 0 13 5.3l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/>',
   branch: '<circle cx="6.5" cy="5.5" r="2"/><circle cx="6.5" cy="18.5" r="2"/><circle cx="17.5" cy="8.5" r="2"/><path d="M6.5 7.5v9M17.5 10.5c0 4-5 3.5-9.6 6.3"/>'
 };
+// ids (folder names) render in mono; titles with spaces render in the text face
+const nm = id => { const n = (D.bots[id] && D.bots[id].name) || id; return n.includes(' ') ? `<span class="ttl">${n}</span>` : n; };
 const I = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24">${P[n]}</svg>`;
 const SRC = { cli: 'Claude Code CLI', codex: 'Codex', app: 'Claude app' };
 const STATE = { working: 'Working', idle: 'Idle', approval: 'Approval needed', input: 'Input needed', error: 'Error', offline: 'Offline' };
 const ASKS = ['error', 'approval', 'input'];
 // where each project note is pinned: fraction along the room's x and y edges
-const NOTE_AT = { atlas: [0.84, 0.42], privacy: [0.78, 0.78], connector: [0.8, 0.55], warehouse: [0.86, 0.62], launch: [0.3, 0.86] };
+// note anchor: midpoint of floor-polygon edge (i0, i1), lifted by `lift` metres; `down` hangs the note below the edge
+const NOTE_EDGE = { atlas: [0, 3, 3.0, 0], privacy: [0, 3, 3.0, 0], connector: [0, 3, 3.0, 0], warehouse: [0, 1, 3.0, 0], launch: [2, 3, 0.45, 1] };
+// which floor corners sit on full-height exterior walls (for the focus mask)
+const TALL = { atlas: [0, 1, 3], privacy: [0, 3], connector: [0, 3], warehouse: [0, 1], launch: [] };
 const GROUP = { error: 'Error', approval: 'Approval needed', input: 'Input needed' };
 
 async function load(tag) {
@@ -53,7 +58,7 @@ function shell(colWide) {
   </nav>
   <header class="head">
     <h1>Village</h1><span class="tag demo">Demo</span>
-    <span class="counts">5 projects · 14 agents</span>
+    <span class="counts">5 projects · 12 agents</span>
     <div class="tabs"><button class="on">Village</button><button>List</button></div>
     <span class="sp"></span>
     <div class="srcs">${D.sources.map(s => `<span class="src">${I(s.id)}${s.label}<span class="st ${s.status === 'supported' ? 'ok' : 'no'}">${s.status}</span></span>`).join('')}</div>
@@ -105,25 +110,31 @@ function overlays(stage, J, T, o = {}) {
   for (const p of D.projects) {
     if (o.only && o.only !== p.id) continue;
     const a = J.projects[p.id];
-    // a note pinned to a free spot on the room's floor; the leader is 1.7 m tall in world units
-    const [u, v] = NOTE_AT[p.id];
+    // notes sit on the room's back wall top (or its front cut edge), where they cover no furniture
+    const [i0, i1, lift, down] = NOTE_EDGE[p.id];
     const q = a.poly;
-    const fp = [q[0][0] + u * (q[1][0] - q[0][0]) + v * (q[3][0] - q[0][0]), q[0][1] + u * (q[1][1] - q[0][1]) + v * (q[3][1] - q[0][1])];
-    const [x, y] = T.pt(o.only ? a.plate : fp);
+    const mid = [(q[i0][0] + q[i1][0]) / 2, (q[i0][1] + q[i1][1]) / 2 - lift * 39.19 * J.scale];
+    const [x, y] = T.pt(mid);
     const c = projectCounts(J, p.id);
-    const lead = o.leader || 1.7 * 39.19 * J.scale * T.k;
+    const lead = o.leader || 22;
     const sel = o.only === p.id;
-    h += `<div class="note ${sel ? 'sel' : ''}" style="left:${x}px;top:${y}px"><div class="lbl"><span class="nm">${p.name}</span>${sel && !o.compact ? `<span class="meta">${c.n} agents · ${c.working} working · ${p.last}</span>` : ''}<span class="ct">${counts(c)}</span></div><div class="leader" style="height:${lead}px;--h:${lead}px"></div></div>`;
+    h += `<div class="note ${sel ? 'sel' : ''} ${down ? 'down' : ''}" style="left:${x}px;top:${y}px"><div class="lbl"><span class="nm">${p.name}</span>${sel && !o.compact ? `<span class="meta">${c.n} agents · ${c.working} working · ${p.last}</span>` : ''}<span class="ct">${counts(c)}</span></div><div class="leader" style="height:${lead}px;--h:${lead}px"></div></div>`;
   }
+  const stack = [], stems = [];
   for (const a of D.asks) {
     const b = J.bots[a.bot];
     if (!b) continue;
     if (o.only && b.project !== o.only) continue;
     const [x, y] = T.pt(b.head);
     if (o.detail) {
-      h += `<div class="callx ${a.type}" style="left:${x}px;top:${y}px"><span class="lead"></span><div class="k">${I(a.type)}${GROUP[a.type]}</div><div class="t">${a.text}</div><div class="m">${a.bot} · ${SRC[b.source]} · ${a.age}</div></div>`;
+      // stack detailed call-outs so they never overlap; a stem joins each one to its bot
+      let cx = Math.min(x + 40, stage.clientWidth - 290), cy = y - 30;
+      while (stack.some(p => Math.abs(p[0] - cx) < 290 && Math.abs(p[1] - cy) < 128)) cy += 136;
+      stack.push([cx, cy]);
+      stems.push(`<path d="M${x} ${y} L${cx} ${cy - 14}" stroke="var(--${a.type})" stroke-width="1.2" fill="none"/><circle cx="${x}" cy="${y}" r="2.5" fill="var(--${a.type})"/>`);
+      h += `<div class="callx ${a.type}" style="left:${cx}px;top:${cy}px"><div class="k">${I(a.type)}${GROUP[a.type]}</div><div class="t">${a.text}</div><div class="m">${nm(a.bot)} · ${SRC[b.source]} · ${a.age}</div></div>`;
     } else {
-      h += `<div class="call ${a.type}" style="left:${x}px;top:${y}px">${I(a.type)}<span class="who">${a.bot}</span></div>`;
+      h += `<div class="call ${a.type}" style="left:${x}px;top:${y}px">${I(a.type)}<span class="who">${nm(a.bot)}</span></div>`;
     }
   }
   if (o.chips) {
@@ -134,16 +145,17 @@ function overlays(stage, J, T, o = {}) {
       const w = 8 * (id.length + 22);
       while (placed.some(p => Math.abs(p[0] - x) < (p[2] + w) / 2 && Math.abs(p[1] - y) < 28)) y += 28;
       placed.push([x, y, w]);
-      h += `<div class="chip" style="left:${x}px;top:${y}px"><b>${id}</b> · ${STATE[b.state].toLowerCase()} · ${D.bots[id].last}</div>`;
+      h += `<div class="chip" style="left:${x}px;top:${y}px"><b>${nm(id)}</b> · ${STATE[b.state].toLowerCase()} · ${D.bots[id].last}</div>`;
     }
   }
+  if (stems.length) h += `<svg class="stem" style="left:0;top:0" width="${stage.clientWidth}" height="${stage.clientHeight}">${stems.join('')}</svg>`;
   stage.insertAdjacentHTML('beforeend', h);
 }
 
-function dimOutside(stage, J, T, pid, alpha = 0.62) {
+function dimOutside(stage, J, T, pid, alpha = 0.62) { // 0.62 black = rest of the floor at 38 %
   const a = J.projects[pid];
-  const up = 3.1 * 39.19 * J.scale; // wall height in image px
-  const pts = a.poly.concat(a.poly.map(p => [p[0], p[1] - up])).map(T.pt);
+  const m = 39.19 * J.scale; // image px per vertical metre
+  const pts = a.poly.concat(a.poly.map((p, i) => [p[0], p[1] - (TALL[pid].includes(i) ? 3.1 : 1.0) * m])).map(T.pt);
   const hull = convexHull(pts);
   const W = stage.clientWidth, H = stage.clientHeight;
   const d = `M0 0H${W}V${H}H0Z M${hull.map(p => p.join(' ')).join(' L')} Z`;
@@ -162,9 +174,9 @@ function convexHull(p) {
 function hud(stage, reduced) {
   const dot = s => `<span class="dot" style="background:var(--${s})"></span>`;
   stage.insertAdjacentHTML('beforeend', `
-  <div class="watermark">DEMO DATA</div>
+  <div class="watermark">DEMO DATA</div>${reduced ? '<div class="hud rmnote">Reduced motion: no walking, no shake. <b>Write release notes for v0.4</b> waits at its bench.</div>' : ''}
   <div class="hud log"><h4><span>Recent activity</span><span>local sources</span></h4>
-    ${D.activity.map(a => `<div class="row"><span class="tm">${a.t}</span>${dot(a.state)}<span><span class="who">${a.bot}</span> ${a.text}</span></div>`).join('')}
+    ${D.activity.map(a => `<div class="row"><span class="tm">${a.t}</span>${dot(a.state)}<span><span class="who">${nm(a.bot)}</span> ${a.text}</span></div>`).join('')}
   </div>
   <div class="hud legend">
     <span>${dot('working')}Working</span><span>${dot('idle')}Idle</span>
@@ -174,7 +186,7 @@ function hud(stage, reduced) {
     <span>${dot('offline')}Offline</span>
   </div>
   <div class="hud ctl"><button>${I('plus')}</button><button>${I('minus')}</button><button>${I('target')}</button>
-    <button class="${reduced ? 'on' : ''}"><span class="lab">${I(reduced ? 'still' : 'motion')}${reduced ? 'Reduced motion · on' : 'Motion'}</span></button></div>`);
+    <button class="${reduced ? 'on' : ''}" title="${reduced ? 'Walkers wait at their stations' : ''}"><span class="lab">${I(reduced ? 'still' : 'motion')}${reduced ? 'Reduced motion · on' : 'Motion'}</span></button></div>`);
 }
 
 /* ---------- column */
@@ -184,14 +196,14 @@ function needsCol(J) {
     const b = J.bots[a.bot];
     const proj = D.projects.find(p => p.id === b.project).name;
     return `<div class="ask ${a.type}"><span class="bar"></span><div>
-      <div class="top">${I(a.type)}<span class="who">${a.bot}</span><span class="muted">${proj}</span><span class="age">${a.age}</span></div>
+      <div class="top">${I(a.type)}<span class="who">${nm(a.bot)}</span><span class="muted">${proj}</span><span class="age">${a.age}</span></div>
       <div class="txt">${a.text}</div>
       <div class="ft"><span class="srcl">${I(b.source)}${SRC[b.source]}</span><span class="btn">${a.open}${I('out')}</span></div></div></div>`;
   };
   return `<div class="ctabs"><button class="on">Needs you <span class="badge">${D.asks.length}</span></button><button>Project</button></div>
   <div class="scroll"><div class="inner">
-    <div class="sum"><h2>Needs you</h2><p>5 requests waiting. The oldest is 41 min old.</p></div>
-    <div class="filters"><button class="on">All <span class="k">5</span></button><button>Errors <span class="k">1</span></button><button>Approvals <span class="k">2</span></button><button>Questions <span class="k">2</span></button></div>
+    <div class="sum"><h2>Needs you</h2><p>5 requests waiting, 3 of them questions. The oldest is 41 min old.</p></div>
+    <div class="filters"><button class="on">All <span class="k">5</span></button><button>Errors <span class="k">1</span></button><button>Approvals <span class="k">1</span></button><button>Questions <span class="k">3</span></button></div>
     ${ASKS.map(t => `<div class="grp ${t}">${GROUP[t]}</div>${byType(t).map(card).join('')}`).join('')}
   </div></div>`;
 }
@@ -202,22 +214,22 @@ function projectCol(J, pid, scroll) {
   const c = projectCounts(J, pid);
   const bots = Object.entries(J.bots).filter(([, b]) => b.project === pid);
   const agent = ([id, b]) => `<div class="agent"><span class="av"><img src="../renders/avatars/${b.source}-${b.state}.webp"></span>
-      <div><div class="nm">${id}</div><div class="ln"><span class="stt ${b.state}">${STATE[b.state]}</span><span>${I(b.source)}</span><span>${SRC[b.source]} · ${D.bots[id].last}</span></div></div><span class="open">${I('out')}</span></div>`;
+      <div><div class="nm">${nm(id)}</div><div class="ln"><span class="stt ${b.state}">${STATE[b.state]}</span><span>${I(b.source)}</span><span>${SRC[b.source]} · ${D.bots[id].last}</span></div></div><span class="open">${I('out')}</span></div>`;
   return `<div class="ctabs"><button>Needs you <span class="badge">${D.asks.length}</span></button><button class="on">Project · ${p.name}</button></div>
   <div class="scroll"><div class="inner" style="top:${-scroll}px">
     <div class="pj"><span class="back">${I('back')}Needs you · 5</span>
       <h2>${p.name}</h2><div class="sub">${p.sub}</div>
-      <div class="stats"><div><b>${c.n}</b><span>agents</span></div><div><b>${c.working}</b><span><i class="dot" style="background:var(--working)"></i>working</span></div><div><b>${c.approval}</b><span><i class="dot" style="background:var(--approval)"></i>approval</span></div><div><b>${bots.filter(([, b]) => b.state === 'idle').length}</b><span><i class="dot" style="background:var(--idle)"></i>idle</span></div></div>
-      <div class="last">Last activity ${p.last} · <span class="mono">segment-models</span></div></div>
+      <div class="stats"><div><b>${c.n}</b><span>agents</span></div><div><b>${c.working}</b><span><i class="dot" style="background:var(--working)"></i>working</span></div><div><b>${c.approval}</b><span><i class="dot" style="background:var(--approval)"></i>approval</span></div><div><b>${c.input}</b><span><i class="dot" style="background:var(--input)"></i>input</span></div></div>
+      <div class="last">Last activity ${p.last} · <span class="mono">${nm('segment-models')}</span></div></div>
     <div class="sec"><div class="sh"><h4>Goal</h4><span class="prov">entered by you</span></div><p class="goal">${C.goal}</p></div>
     <div class="sec"><div class="sh"><h4>Agents and chats · ${bots.length}</h4><span class="prov">read locally · CLI, Codex</span></div>${bots.map(agent).join('')}</div>
     <div class="sec unav"><div class="sh"><h4>Claude app</h4><span class="prov">unavailable</span></div><p>No known history source. Claude app chats will not appear here until one is verified.</p></div>
     <div class="sec"><div class="sh"><h4>Decisions</h4><span class="prov">entered by you</span></div>${C.decisions.map(d => `<div class="dec"><span class="d">${d[0]}</span><span>${d[1]}</span></div>`).join('')}</div>
-    <div class="sec"><div class="sh"><h4>Tasks · ${C.tasks.length}</h4><span class="prov">entered by you</span></div>${C.tasks.map(t => `<div class="task ${t[0] ? 'done' : ''}"><span class="cb">${t[0] ? I('check') : ''}</span><span class="tx">${t[1]}</span><span class="ow ${t[2] === 'you' ? 'you' : ''}">${t[2]}</span></div>`).join('')}</div>
+    <div class="sec"><div class="sh"><h4>Tasks · ${C.tasks.length}</h4><span class="prov">entered by you</span></div>${C.tasks.map(t => `<div class="task ${t[0] ? 'done' : ''}"><span class="cb">${t[0] ? I('check') : ''}</span><span class="tx">${t[1]}</span><span class="ow ${t[2] === 'you' ? 'you' : ''}">${t[2] === 'you' ? 'you' : nm(t[2])}</span></div>`).join('')}</div>
     <div class="sec"><div class="sh"><h4>Linked repo</h4><span class="prov">detected · local folder</span></div>
       <div class="repo">${I('branch')}<div><div class="nm">${C.repo.name}</div><div class="br">branch ${C.repo.branch}</div></div><div class="nb">Link only. Agent activity is not a commit.</div></div></div>
     <div class="sec"><div class="sh"><h4>Artifacts · ${C.artifacts.length}</h4><span class="prov">links added by you</span></div><div class="arts">${C.artifacts.map(a => `<span class="art">${I(a[0])}${a[1]}</span>`).join('')}</div></div>
-    <div class="foot"><span class="btn primary">Open full context${I('out')}</span><span class="btn">Pin</span></div>
+    <div class="foot"><span class="btn primary">Open full context${I('out')}</span></div>
   </div></div>`;
 }
 

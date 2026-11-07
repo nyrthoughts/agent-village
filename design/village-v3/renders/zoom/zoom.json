@@ -19,19 +19,10 @@
    "id": "entity-audit",
    "file": "zoom-bot-entity-audit.webp",
    "x": 1542,
-   "y": 240,
+   "y": 275,
    "w": 318.0,
-   "h": 389,
+   "h": 354,
    "depth": 4.79
-  },
-  {
-   "id": "roadmap-chat",
-   "file": "zoom-bot-roadmap-chat.webp",
-   "x": 1435,
-   "y": 642,
-   "w": 267,
-   "h": 198,
-   "depth": 9.4
   },
   {
    "id": "model-refresh",
@@ -54,10 +45,10 @@
   {
    "id": "warehouse-qa",
    "file": "zoom-bot-warehouse-qa.webp",
-   "x": 1126,
-   "y": 684,
-   "w": 370,
-   "h": 343,
+   "x": 1123,
+   "y": 692,
+   "w": 373,
+   "h": 338,
    "depth": 13.3
   },
   {
@@ -79,13 +70,13 @@
    "depth": 20.52
   },
   {
-   "id": "storyboard",
-   "file": "zoom-bot-storyboard.webp",
-   "x": 1324,
-   "y": 1268,
-   "w": 258,
-   "h": 195,
-   "depth": 22.4
+   "id": "claude-app",
+   "file": "zoom-bot-claude-app.webp",
+   "x": 801,
+   "y": 437,
+   "w": 341,
+   "h": 267,
+   "depth": 6.45
   },
   {
    "id": "release-notes",
@@ -115,30 +106,16 @@
   "entity-audit": {
    "project": "atlas",
    "source": "codex",
-   "state": "approval",
+   "state": "working",
    "head": [
     1694.2,
-    279.0
+    332.7
    ],
    "foot": [
     1694.2,
     525.3
    ],
    "depth": 4.79
-  },
-  "roadmap-chat": {
-   "project": "atlas",
-   "source": "app",
-   "state": "offline",
-   "head": [
-    1568.4,
-    685.5
-   ],
-   "foot": [
-    1568.4,
-    746.6
-   ],
-   "depth": 9.4
   },
   "privacy-guard": {
    "project": "privacy",
@@ -227,10 +204,10 @@
   "warehouse-qa": {
    "project": "warehouse",
    "source": "cli",
-   "state": "idle",
+   "state": "input",
    "head": [
     1270.8,
-    717.9
+    731.1
    ],
    "foot": [
     1270.8,
@@ -266,19 +243,19 @@
    ],
    "depth": 20.52
   },
-  "storyboard": {
-   "project": "launch",
+  "claude-app": {
+   "project": null,
    "source": "app",
    "state": "offline",
    "head": [
-    1453.2,
-    1309.5
+    997.2,
+    478.0
    ],
    "foot": [
-    1453.2,
-    1370.6
+    997.2,
+    605.0
    ],
-   "depth": 22.4
+   "depth": 6.45
   },
   "release-notes": {
    "project": "connector",

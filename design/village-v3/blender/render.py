@@ -100,6 +100,7 @@ def anchors(placed, R):
         out["bots"][bid] = {"project": proj, "source": src, "state": state,
                             "head": av.project((p.x, p.y, zmax + 0.08)), "foot": av.project((p.x, p.y, 0)),
                             "depth": round(p.x + p.y, 3)}
+    out["bots"] = {k: v for k, v in out["bots"].items() if v["project"] or k == "claude-app"}
     for k, (x0, x1, y0, y1) in av.ROOMS.items():
         h = av.WALL_H if (x0 == 0 or y0 == 0) else av.CUT_H
         out["projects"][k] = {"plate": av.project((x0 + 0.15, y0 + 0.15, h + 0.2)),
@@ -138,7 +139,7 @@ def layered(tag, scale, focus=None, zoom=1.0, overrides=None, walker=True):
     for bid in lit:
         for o in lit[bid]:
             o.hide_render = True
-    if not (OUT / f"{tag}-base.png").exists() or "rebase" in sys.argv:
+    if True:
         av.render_to(OUT / f"{tag}-base.png")
     # one layer per bot, cropped to its box; its lit screen rides along
     for bid, (b, proj, src, state, st) in placed.items():

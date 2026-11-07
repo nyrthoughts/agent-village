@@ -54,7 +54,7 @@
    ],
    "anchor_2x": [
     1009.6,
-    385.9
+    400.0
    ],
    "depth": 2.99,
    "frames": 1
@@ -62,39 +62,20 @@
   {
    "file": "renders/scene/scene-bot-entity-audit.webp",
    "group": "bot layer",
-   "role": "entity-audit \u00b7 codex \u00b7 approval \u00b7 demo",
+   "role": "entity-audit \u00b7 codex \u00b7 working \u00b7 demo",
    "size_2x": [
     241,
-    260
+    236
    ],
    "offset_2x": [
     1023,
-    267
+    291
    ],
    "anchor_2x": [
     1124.8,
-    443.5
+    457.6
    ],
    "depth": 4.79,
-   "frames": 1
-  },
-  {
-   "file": "renders/scene/scene-bot-roadmap-chat.webp",
-   "group": "bot layer",
-   "role": "roadmap-chat \u00b7 app \u00b7 offline \u00b7 demo",
-   "size_2x": [
-    178,
-    133
-   ],
-   "offset_2x": [
-    952,
-    535
-   ],
-   "anchor_2x": [
-    1041.0,
-    591.0
-   ],
-   "depth": 9.4,
    "frames": 1
   },
   {
@@ -111,7 +92,7 @@
    ],
    "anchor_2x": [
     1403.2,
-    582.7
+    596.8
    ],
    "depth": 9.14,
    "frames": 1
@@ -130,7 +111,7 @@
    ],
    "anchor_2x": [
     1499.2,
-    630.7
+    644.8
    ],
    "depth": 10.64,
    "frames": 1
@@ -149,7 +130,7 @@
    ],
    "anchor_2x": [
     1743.7,
-    754.8
+    768.9
    ],
    "depth": 14.52,
    "frames": 1
@@ -168,7 +149,7 @@
    ],
    "anchor_2x": [
     1839.7,
-    802.8
+    816.9
    ],
    "depth": 16.02,
    "frames": 1
@@ -187,7 +168,7 @@
    ],
    "anchor_2x": [
     709.5,
-    668.4
+    682.5
    ],
    "depth": 11.82,
    "frames": 1
@@ -206,7 +187,7 @@
    ],
    "anchor_2x": [
     594.3,
-    726.0
+    740.1
    ],
    "depth": 13.62,
    "frames": 1
@@ -214,18 +195,18 @@
   {
    "file": "renders/scene/scene-bot-warehouse-qa.webp",
    "group": "bot layer",
-   "role": "warehouse-qa \u00b7 cli \u00b7 idle \u00b7 demo",
+   "role": "warehouse-qa \u00b7 cli \u00b7 input \u00b7 demo",
    "size_2x": [
-    247,
-    229
+    249,
+    225
    ],
    "offset_2x": [
-    746,
-    563
+    744,
+    569
    ],
    "anchor_2x": [
     842.6,
-    715.8
+    729.9
    ],
    "depth": 13.3,
    "frames": 1
@@ -244,7 +225,7 @@
    ],
    "anchor_2x": [
     1163.9,
-    882.8
+    896.9
    ],
    "depth": 18.52,
    "frames": 1
@@ -263,28 +244,28 @@
    ],
    "anchor_2x": [
     1035.9,
-    946.8
+    960.9
    ],
    "depth": 20.52,
    "frames": 1
   },
   {
-   "file": "renders/scene/scene-bot-storyboard.webp",
+   "file": "renders/scene/scene-bot-claude-app.webp",
    "group": "bot layer",
-   "role": "storyboard \u00b7 app \u00b7 offline \u00b7 demo",
+   "role": "claude-app \u00b7 app \u00b7 offline \u00b7 demo",
    "size_2x": [
-    172,
-    131
+    228,
+    179
    ],
    "offset_2x": [
-    878,
-    952
+    529,
+    398
    ],
    "anchor_2x": [
-    964.2,
-    1007.0
+    660.2,
+    510.7
    ],
-   "depth": 22.4,
+   "depth": 6.45,
    "frames": 1
   },
   {
@@ -301,7 +282,7 @@
    ],
    "anchor_2x": [
     1277.8,
-    805.4
+    819.5
    ],
    "depth": 16.1,
    "frames": 1
@@ -315,8 +296,8 @@
     180
    ],
    "anchor_2x": [
-    87.8,
-    145.2
+    88.0,
+    132.4
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -330,8 +311,8 @@
     60
    ],
    "anchor_2x": [
-    17.6,
-    47.7
+    18.9,
+    44.6
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -346,7 +327,7 @@
    ],
    "anchor_2x": [
     37.0,
-    147.5
+    154.3
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -360,8 +341,8 @@
     158
    ],
    "anchor_2x": [
-    34.5,
-    154.8
+    35.9,
+    135.8
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -375,8 +356,8 @@
     58
    ],
    "anchor_2x": [
-    24.1,
-    49.8
+    22.4,
+    42.0
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -390,8 +371,8 @@
     266
    ],
    "anchor_2x": [
-    94.0,
-    208.0
+    92.4,
+    215.3
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -405,8 +386,8 @@
     220
    ],
    "anchor_2x": [
-    88.8,
-    168.0
+    90.2,
+    172.7
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -420,8 +401,8 @@
     166
    ],
    "anchor_2x": [
-    76.2,
-    205.2
+    77.0,
+    200.6
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -435,8 +416,8 @@
     242
    ],
    "anchor_2x": [
-    65.3,
-    201.7
+    79.0,
+    196.7
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -450,8 +431,8 @@
     162
    ],
    "anchor_2x": [
-    27.2,
-    126.8
+    46.0,
+    132.8
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -465,8 +446,8 @@
     136
    ],
    "anchor_2x": [
-    38.4,
-    96.1
+    51.0,
+    105.2
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -481,7 +462,7 @@
    ],
    "anchor_2x": [
     34.0,
-    89.7
+    75.6
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -495,8 +476,8 @@
     276
    ],
    "anchor_2x": [
-    116.3,
-    233.9
+    111.9,
+    215.3
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -510,7 +491,7 @@
     106
    ],
    "anchor_2x": [
-    38.1,
+    38.8,
     78.2
    ],
    "anchor_rule": "floor point under the prop origin",
@@ -525,8 +506,8 @@
     234
    ],
    "anchor_2x": [
-    27.4,
-    183.1
+    63.0,
+    198.0
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -540,8 +521,8 @@
     296
    ],
    "anchor_2x": [
-    100.5,
-    225.1
+    103.9,
+    238.1
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -555,8 +536,8 @@
     240
    ],
    "anchor_2x": [
-    83.4,
-    196.5
+    84.1,
+    192.6
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -570,8 +551,8 @@
     162
    ],
    "anchor_2x": [
-    109.9,
-    104.0
+    104.1,
+    109.5
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -585,8 +566,8 @@
     108
    ],
    "anchor_2x": [
-    64.0,
-    79.8
+    66.0,
+    72.5
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -601,7 +582,7 @@
    ],
    "anchor_2x": [
     98.0,
-    133.8
+    114.2
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -615,8 +596,8 @@
     54
    ],
    "anchor_2x": [
-    19.1,
-    34.5
+    18.8,
+    37.5
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -630,8 +611,8 @@
     156
    ],
    "anchor_2x": [
-    63.5,
-    124.2
+    67.2,
+    130.9
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -645,8 +626,8 @@
     178
    ],
    "anchor_2x": [
-    51.7,
-    163.7
+    50.0,
+    146.6
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1
@@ -656,12 +637,12 @@
    "group": "prop",
    "role": "bot-app-dock",
    "size_2x": [
-    80,
-    86
+    132,
+    132
    ],
    "anchor_2x": [
-    40.0,
-    57.5
+    44.3,
+    103.0
    ],
    "anchor_rule": "floor point under the prop origin",
    "frames": 1

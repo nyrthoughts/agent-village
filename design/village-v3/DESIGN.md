@@ -15,7 +15,7 @@ Status: **design proposal, not validated**. No code under `src/` was changed. Ev
 | `visuals/04-mobile.png` | Mobile 390 × 844: room view, Needs you sheet, project context. |
 | `visuals/05-asset-sheet.png` | Layer pipeline and every modelled asset, same scale per row, floor anchors. |
 | `visuals/06-desktop-reduced-motion.png` | Reduced motion on: the walker waits at its station. |
-| `blender/` | The scene generator (`av.py`), render jobs (`render.py`), monitor screens (`screens.py`). |
+| `blender/` | The scene generator (`av.py`), render jobs (`render.py`), monitor screens (`screens.py`), WebP export and manifest (`export.py`). |
 | `renders/` | Rendered layers, sprite frames and asset renders (WebP), plus JSON with crops and anchors. |
 | `prototype/` | HTML that composites the layers and draws the UI. Design tool, not production code. |
 | `asset-manifest.json` | Every asset: file, role, size, anchor, frames. |
@@ -37,7 +37,7 @@ One meaning per channel.
 | Channel | Meaning | Detail |
 |---|---|---|
 | Room | Project | Same floor, same wall height, same light rig. Each room has signature props that say what the project does. |
-| Machine silhouette and body colour | Source tool | Cart on casters with one arm and a sensor head = **Claude Code CLI** (terracotta). Weighted column with a telescoping mast and a scanner bar = **Codex** (porcelain blue). Covered dock = **Claude app** (ivory, always covered). |
+| Machine silhouette and body colour | Source tool | Cart on casters with one arm and a sensor head = **Claude Code CLI** (terracotta). Weighted column with a telescoping mast and a scanner bar = **Codex** (porcelain blue). Covered charging pedestal = **Claude app** (ivory, always covered). One dock for the whole floor, in the aisle, because no source says which project a Claude app chat belongs to. |
 | Pose, desk monitor, status light, HTML call-out | State | Four redundant signals. Pose and monitor alone separate all six states in grayscale (board 03). |
 | Saturated colour | State only | Decor uses material swatches: concrete, plaster, oak, birch ply, walnut, galvanised steel, felt. Project tints are muted and appear only on felt, binders and bins. |
 
@@ -45,13 +45,15 @@ Bots have no faces, no eyes and no expressions. They are machines with a posture
 
 Room signatures (demo projects):
 
-| Room | Project | Signature props |
+| Position on screen | Project | Signature props |
 |---|---|---|
-| Back left | Atlas, knowledge graph | Archive shelving, pinboard with cards and thread, walnut reading table |
-| Back middle | Privacy Desk, compliance | Locker bank, safe, filing cabinets, shredder |
-| Back right | Connector Lab, integrations | Workbench with pegboard and tools, parts bins, cable spools |
-| Front left | Warehouse, data models | Server racks, pallet racking with cartons |
-| Front right | Launch Studio, go-to-market | Whiteboards on wheels, lounge corner with sofa |
+| Top corner | Atlas, knowledge graph | Archive shelving, pinboard with cards and thread, walnut reading table |
+| Right of Atlas, along the back-right wall | Privacy Desk, compliance | Locker bank, safe, filing cabinets, shredder, one unassigned desk |
+| Right corner | Connector Lab, integrations | Workbench with pegboard and tools, parts bins, cable spools |
+| Left, along the back-left wall | Warehouse, data models | Server racks, pallet racking with cartons |
+| Bottom, front of the floor | Launch Studio, go-to-market | Whiteboards on wheels, lounge corner with sofa, one unassigned desk |
+
+Agent labels use what the source calls the session: a folder name (`model-refresh`, `warehouse`), a task title or a truncated first prompt ("Rebuild segment models"). The demo mixes both on purpose; real names come from the source.
 
 ## 4. Layout
 
@@ -77,10 +79,10 @@ Stage layers, bottom to top:
 5. HUD.
 
 Rules:
-- **Project annotations**, not plates: the room name sits on a thin leader line that starts at the room's back corner, like a note on a model. Overview shows name plus pending-request counts (glyph + number). Selected view adds agents, working count and last activity.
+- **Project annotations**, not plates: the room name sits on a short leader pinned to the top of the room's back wall (or, for a room with no exterior wall, hanging from its front cut edge), like a note on a model. That keeps notes off furniture and bots. Overview shows name plus pending-request counts (glyph + number). Selected view adds agents, working count and last activity.
 - **Call-outs**: overview shows the compact call-out only (glyph + agent name) with a short stem down to the bot. The detailed call-out (kind, request text, agent, source, age) appears on hover, keyboard focus, or in the zoomed project view.
 - Name chips for working, idle and offline bots appear on hover or focus only (shown in the zoomed view on board 02).
-- Clicking a room or its annotation zooms the camera to it, dims the rest of the floor to 38 %, and switches the column to "Project".
+- Clicking a room or its annotation zooms the camera to it, dims the rest of the floor to 38 % (a mask shaped to the room's walls), and switches the column to "Project".
 - Clicking a bot, call-out or card opens the source (session, transcript or task) in its own tool. Agent Village never answers for the user.
 
 Label system (anti-slop rule): one pill only, the primary action button. Tabs and filters are underlined text. Counts are glyph + number. Plates, legend and log are hairline boxes with 4 px radius.
@@ -166,7 +168,8 @@ Unchanged from v1. They are the reason the design is honest.
 - **Unverified and blocking for real data:** the three "needs you" states each need a signal per source (for example Claude Code permission or notification hooks, Codex approval records). None is verified. Without a signal, the UI must not invent the state.
 - `main` treats "working" as a signal less than two minutes old. Keep that threshold. Older activity is idle.
 - Goal, decisions, tasks and artifacts are owner-entered. Extracting them from transcripts is out of scope until a source is verified.
-- Names are fictional (`demo-org/warehouse`, agent ids, projects). All statuses are invented.
+- Names are fictional (`demo-org/warehouse`, agent ids, projects). All statuses are invented. Demo request counts are deliberately uneven (Atlas 0, Warehouse 2).
+- The Claude app has no source, so the demo shows no Claude app chat names and does not place Claude app chats in any project.
 
 ## 9. Assets and how they are made
 
@@ -188,6 +191,7 @@ What step 3 still needs: split the base layer per room (so a room can be dimmed 
 python3 -m venv .venv && .venv/bin/pip install bpy==5.2.3 pillow numpy
 python3 blender/screens.py renders/screens
 for j in scene zoom parked states props; do .venv/bin/python blender/render.py $j renders/$j; done
+python3 blender/export.py
 node shoot.mjs
 ```
 
