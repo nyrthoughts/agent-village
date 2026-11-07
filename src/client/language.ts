@@ -185,6 +185,39 @@ const english = {
   'Cliquer au sol pour marcher, sur une maison pour la visiter.': 'Click the ground to walk, or a house to visit it.',
   'Cliquer sur une maison pour ouvrir son bilan.': 'Click a house to open its brief.',
   'Flèches : marcher · Échap : arrêter · Glisser : caméra': 'Arrows: walk · Escape: stop · Drag: camera',
+  'Rangé par votre règle': 'Matched by your rule',
+  'Même dépôt distant': 'Same git remote',
+  'Même dépôt Git': 'Same Git repository',
+  'Même dossier': 'Same folder',
+  'Non classée': 'Unassigned',
+  'identifiant de session': 'session id',
+  'chemin': 'path',
+  'dépôt distant': 'git remote',
+  'titre': 'title',
+  'enregistré par Codex': 'recorded by Codex',
+  'worktree Claude': 'Claude worktree',
+  'dossier fourre-tout': 'catch-all folder',
+  'aucun dossier enregistré': 'no folder recorded',
+  'Sessions non classées': 'Unassigned sessions',
+  'Signal de cycle de vie seul · projet à identifier': 'Lifecycle signal only · project not identified yet',
+  'Mon projet': 'My project',
+  'mon-projet': 'my-project',
+  'Lancées depuis le dossier personnel, /tmp ou sans dossier connu. Pour les ranger, ajoutez une règle dans projects.yaml :': 'Started from your home folder, /tmp or an unknown folder. To sort them, add a rule to projects.yaml:',
+  'Trier ces sessions': 'Sort these sessions',
+  '{count} chats liés': '{count} linked chats',
+  'Aucune conversation observée': 'No observed conversation',
+  'À trier': 'To sort',
+  'Ranger ces sessions': 'Assign these sessions',
+  'Aucune règle, aucun dépôt Git et aucun dossier de projet ne les rattache. Ajoutez une règle dans projects.yaml, dans votre dossier privé Agent Village ; elle est relue automatiquement :': 'No rule, Git repository or project folder places them. Add a rule to projects.yaml in your private Agent Village folder; it is reloaded automatically:',
+  'Règles possibles : sessions, titles (expression régulière), paths, remotes. Les liens de chats Claude app se déclarent au même endroit (links).': 'Available rules: sessions, titles (regular expression), paths, remotes. Claude app chat links are declared in the same file (links).',
+  'Regroupement': 'Grouping',
+  'Liens saisis par vous': 'Links entered by you',
+  'Autre source': 'Other source',
+  'Autre chat': 'Other chat',
+  'Rattachement : {value}': 'Project match: {value}',
+  'Saisis par vous dans projects.yaml. Agent Village ne lit ni ne télécharge ces conversations.': 'Entered by you in projects.yaml. Agent Village never reads or downloads these conversations.',
+  'Saisi par vous': 'Entered by you',
+  'Manifeste projects.yaml : {details}': 'projects.yaml manifest: {details}',
 } as const;
 
 export function translate(language: Language, key: keyof typeof english, values: Record<string, string | number> = {}): string {
@@ -200,6 +233,9 @@ export function translateDiagnostic(language: Language, value: string): string {
     const status = value.slice(prefix.length);
     return translate(language, 'Processus Claude présent · statut déclaré : {status}', { status: status === 'non fourni' ? translate(language, 'non fourni') : status });
   }
+  const manifest = 'Manifeste projects.yaml : ';
+  // Validation details come from the schema in English; only the prefix is localized.
+  if (value.startsWith(manifest)) return translate(language, 'Manifeste projects.yaml : {details}', { details: value.slice(manifest.length) });
   return value;
 }
 

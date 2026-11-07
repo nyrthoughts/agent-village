@@ -211,4 +211,61 @@ it('expires recent helper analytics in the open project during a source outage',
   act(() => vi.advanceTimersByTime(125_000));
   expect(recent.querySelector('dd')).toHaveTextContent('0');
 });
+
+const grouped = () => {
+  const base = { state: 'idle' as const, history: [], lastActivityAt: '2026-09-04T12:00:00Z' };
+  return observedVillage([
+    { ...base, id: 'codex:w1', tool: 'codex', title: 'Recount', projectKey: 'remote:github.com/demo-org/warehouse', project: 'warehouse', matchedBy: 'remote', matchDetail: 'github.com/demo-org/warehouse' },
+    { ...base, id: 'claude:w2', tool: 'claude', title: 'Shelf labels', projectKey: 'remote:github.com/demo-org/warehouse', project: 'warehouse', matchedBy: 'remote', matchVia: 'recorded', matchDetail: 'github.com/demo-org/warehouse' },
+    { ...base, id: 'claude:w3', tool: 'claude', title: 'Pricing notes', projectKey: 'alias:Billing', project: 'Billing', matchedBy: 'rule', matchVia: 'title', matchDetail: '^billing:' },
+    { ...base, id: 'claude:home', tool: 'claude', title: 'Groceries', projectKey: 'unassigned', project: 'Sessions non classées', matchedBy: 'unassigned', matchVia: 'catch-all', matchDetail: '~' },
+  ], ['Manifeste projects.yaml : projects.0.titles.0: invalid regular expression'], [], {}, [
+    { key: 'alias:Billing', name: 'Billing', links: [{ title: 'Pricing brainstorm', url: 'https://claude.ai/chat/demo', source: 'claude-app' }] },
+  ]);
+};
+
+it('keeps unassigned sessions in an inbox with the manifest snippet instead of a building or plan', () => {
+  render(<ObservedProjects village={grouped()} />);
+  expect(screen.getByText('2 projets · 4 sessions')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Ouvrir Sessions non classées' })).toBeNull();
+  expect(screen.queryByRole('option', { name: 'Sessions non classées' })).toBeNull();
+  const inbox = screen.getByRole('region', { name: 'Sessions non classées · 1' });
+  expect(inbox.textContent).toContain('sessions: [claude:home]');
+  fireEvent.click(within(inbox).getByRole('button', { name: 'Trier ces sessions' }));
+  const dialog = screen.getByRole('dialog');
+  expect(within(dialog).getByRole('heading', { name: 'Sessions non classées' })).toBeTruthy();
+  expect(within(dialog).getByRole('heading', { name: 'Ranger ces sessions' })).toBeTruthy();
+  expect(dialog.querySelector('pre')?.textContent).toBe('projects:\n  - name: Mon projet\n    sessions: [claude:home]\n    titles: ["^mon-projet:"]');
+  expect(within(dialog).queryByRole('button', { name: 'Définir l’objectif' })).toBeNull();
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Conversations' }));
+  expect(within(dialog).getByText(/Non classée \(dossier fourre-tout\) · ~/)).toBeTruthy();
+});
+
+it('groups project sessions by source with provenance, and shows owner-entered chat links in both languages', () => {
+  render(<ObservedProjects village={grouped()} />);
+  expect(screen.getByRole('alert').textContent).toContain('Manifeste projects.yaml : projects.0.titles.0');
+  fireEvent.click(screen.getByRole('button', { name: 'Ouvrir warehouse' }));
+  expect(screen.getByRole('region', { name: 'Agents et observations' }).textContent).toContain('Même dépôt distant');
+  fireEvent.click(screen.getByRole('button', { name: 'Conversations' }));
+  const claude = screen.getByRole('region', { name: 'Claude Code CLI' });
+  const codex = screen.getByRole('region', { name: 'Codex' });
+  expect(within(claude).getByRole('heading', { name: 'Claude Code CLI · 1' })).toBeTruthy();
+  expect(claude.textContent).toContain('Rattachement : Même dépôt distant (enregistré par Codex) · github.com/demo-org/warehouse');
+  expect(codex.textContent).toContain('Rattachement : Même dépôt distant · github.com/demo-org/warehouse');
+  expect(codex.textContent).toContain('Sans activité récente');
+  fireEvent.click(screen.getByRole('button', { name: 'Fermer le projet' }));
+
+  fireEvent.change(screen.getByRole('combobox', { name: 'Langue / Language' }), { target: { value: 'en' } });
+  expect(screen.getByRole('alert').textContent).toContain('projects.yaml manifest: projects.0.titles.0');
+  expect(screen.getByRole('region', { name: 'Unassigned sessions · 1' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Open Billing' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Conversations' }));
+  expect(screen.getByRole('region', { name: 'Claude Code CLI' }).textContent).toContain('Project match: Matched by your rule (title) · ^billing:');
+  const links = screen.getByRole('region', { name: 'Claude app' });
+  const link = within(links).getByRole('link', { name: 'Pricing brainstorm' });
+  expect(link).toHaveAttribute('href', 'https://claude.ai/chat/demo');
+  expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  expect(links.textContent).toContain('Entered by you');
+  expect(links.textContent).toContain('never reads or downloads');
+});
 import '@testing-library/jest-dom/vitest';
