@@ -53,7 +53,7 @@ Codex requires no API key. Native mode uses `sqlite3 -readonly` against its exis
 
 The view refreshes every five seconds while visible. It selects up to 60 root sessions per source with a seven-day recency window; running Claude sessions may be older. Codex helpers come from at most 200 parent-child metadata records, depth eight; their transcripts are not read. Claude helper coverage includes only hooks received since startup, retained for thirty minutes. Recent means a signal within two minutes, not continuous activity. Each root transcript read is capped at 4 MiB and displayed history at 24 exchanges. Reasoning and tool payloads are excluded. Original journals remain the history source; no new conversation database is created.
 
-Projects are grouped automatically. `VILLAGE_PROJECT_ALIASES` maps directory paths, session IDs or title prefixes to display names. `VILLAGE_FOCUS_PROJECTS` selects initially displayed project names; search still exposes the rest after login. Keep real path mappings outside the repository.
+Projects are grouped automatically by Git remote (clones merge), Git repository (worktrees merge) and folder; sessions from the home directory or `/tmp` wait in an Unassigned inbox. An optional private `projects.yaml` adds owner rules and links to Claude app chats; see [connections](docs/connections.md#group-projects-and-inspect-sources). `VILLAGE_PROJECT_ALIASES` still maps directory paths, session IDs or title prefixes to display names. `VILLAGE_FOCUS_PROJECTS` selects initially displayed project names; search still exposes the rest after login. Keep real path mappings outside the repository.
 
 Claude and OpenClaw hooks are optional. After first-time `auth:setup`:
 

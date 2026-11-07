@@ -65,7 +65,35 @@ Set `AGENT_VILLAGE_URL` to the server's loopback base URL for a custom port. The
 
 ## Group projects and inspect sources
 
-Native mode groups conversations by local directory and common Git repository. `VILLAGE_PROJECT_ALIASES` can map directories, `session:codex:ID`, `session:claude:ID` or `title:PREFIX` to a shared display name. Keep real path mappings outside the repository. `VILLAGE_FOCUS_PROJECTS` selects displayed project names; authenticated search still exposes others.
+One project often has several agents and chats across tools, folders, worktrees and clones. Native mode resolves every lead session to one project; the first match wins:
+
+1. **Your rule** from `projects.yaml` (below). Within rules: explicit session id, then path prefix (longest wins, so a monorepo subfolder can be its own project), then Git remote, then title regular expression.
+2. **Same Git remote.** The `origin` URL is normalised: `git@github.com:org/repo.git`, `https://github.com/org/repo` and `ssh://git@github.com/org/repo` all become `github.com/org/repo`, so separate clones merge. Credentials and ports are dropped. When the folder no longer exists, Codex's own record is used: the index's `git_origin_url` column when that Codex version has it, or the `session_meta` Git record when it is inside the bounded journal tail.
+3. **Same Git repository.** The common Git directory maps worktrees, including `.claude/worktrees/`, to the main checkout. A removed Claude worktree still maps to its parent.
+4. **Same folder**: the working directory.
+5. **Unassigned.** A session in a catch-all directory (by default `~`, `/tmp` and anything under it, `/private/tmp`) or without a recorded folder goes to an inbox instead of becoming a project. A catch-all directory is never a project, even if it is a Git repository; a real repository under `/tmp` keeps its identity.
+
+Helpers inherit their lead's project and provenance. Sessions known only from lifecycle hooks keep a temporary identity until Codex or Claude reports their folder. Each conversation shows its provenance ("matched by your rule", "same git remote", ...) and the value that matched. Paths are shown relative to `~`.
+
+### Owner manifest
+
+Create `projects.yaml` in the private directory (`VILLAGE_AUTH_DIR`, default `~/.local/share/agent-village`), owned by you and not writable by others (`chmod 600`). It is re-read when it changes. All fields except `name` are optional:
+
+```yaml
+projects:
+  - name: Warehouse
+    remotes: [github.com/demo-org/warehouse]          # host/owner/repo or any clone URL
+    paths: [~/code/monorepo/packages/warehouse]       # absolute or ~/ prefixes
+    titles: ["^warehouse:"]                           # case-insensitive, title or first prompt
+    sessions: [codex:abc123, claude:0000-demo]        # ids shown under each conversation
+    links:                                            # chats the app cannot read; never fetched
+      - { title: Pricing brainstorm, url: "https://claude.ai/chat/...", source: claude-app }
+catchAll: [~, /tmp/**]   # replaces the defaults; `/**` also covers subfolders
+```
+
+`source` is `claude-app`, `chatgpt` or `other`; link URLs must use `https`. A project with only links still appears. A rule on a catch-all directory matches that directory only. An invalid manifest is reported in the warning banner with the failing field; automatic grouping keeps working without it.
+
+`VILLAGE_PROJECT_ALIASES` still works and is migrated into rules after the manifest's: a directory becomes a path rule (now a prefix), `session:codex:ID` or `session:claude:ID` a session rule and `title:PREFIX` an anchored title rule. Saved goals follow a regrouped project when exactly one new project claims them; otherwise they stay visible under their old name. The Unassigned inbox cannot hold a plan. Keep real path mappings outside the repository. `VILLAGE_FOCUS_PROJECTS` selects displayed project names; authenticated search still exposes others.
 
 Each native project opens a private goal/milestone panel, agent counts, a brief, timeline and source conversations. Briefs extract explicit done/next/blocker sections without calling a model or independently verifying claims. Unsupported token counts and duration estimates are labelled unmeasured. Browser storage retains reading-point IDs/timestamps and language, not conversation text, project plans or owner tokens.
 

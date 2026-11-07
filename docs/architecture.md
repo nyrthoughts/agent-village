@@ -10,6 +10,12 @@ No plan means an undefined survey plot. A plan with no validated milestone means
 
 The project set is the union of recent conversations and saved goals. A project keeps its construction when it has no recent activity. Hook-only temporary identities are excluded from plan creation until a native project is identified.
 
+## Project resolution
+
+`projectResolver.ts` decides which project each lead session belongs to and records why (`matchedBy`: `rule`, `remote`, `git-root`, `folder` or `unassigned`, plus the matched value). Resolution is pure: Git facts (common directory, worktree top level, normalised `origin`) come from an injected probe, cached per directory for five minutes. Order, first match wins: owner rule from `projects.yaml` (session id, longest path prefix, remote, title regex), normalised remote (live, else recorded by Codex), Git common directory, working directory, then the Unassigned inbox for catch-all directories and folderless sessions. The manifest format is in [connections](connections.md#owner-manifest).
+
+Grouping is presentation only. It never creates or validates milestones. Saved goals are keyed by project id; when a session's key changes (for example from a clone path to its remote), its plan is moved only when the move is unambiguous. Owner-entered chat links are displayed, never fetched.
+
 ## YAML construction
 
 YAML modes retain `workspace → project → feature → task → subtask`. A task is a building and subtasks are its construction leaves. Zod validates input before deterministic derivation. Empty containers are planned, never verified. The most attention-demanding child status rolls upward; blocked/review states are distinct from physical construction.
