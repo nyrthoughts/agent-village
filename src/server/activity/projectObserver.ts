@@ -1,15 +1,20 @@
 import { createHash } from 'node:crypto';
 import type { Worker, WorkerState } from '../../shared/activity.js';
-import type { ObservedSession, ObservedUpdate } from '../../shared/observation.js';
+import { MATCHED_BY, type ObservedSession, type ObservedUpdate } from '../../shared/observation.js';
 import type { DerivedWorkspace } from '../truth/derive.js';
 import type { ProjectPlansById } from '../../shared/projectPlan.js';
 import { CONSTRUCTION_STAGES } from '../../shared/statuses.js';
+import { normalizeRemote, UNASSIGNED_KEY, type DeclaredProject } from './projectResolver.js';
 
 type Json = Record<string, any>;
 export interface TranscriptSnapshot {
   objective?: string;
   summary?: string;
   cwd?: string;
+  /** First user request in the read window; stable input for title rules. Not exported to the client. */
+  firstRequest?: string;
+  /** Normalised repository URL from Codex session metadata, when present. Not exported to the client. */
+  repository?: string;
   lastActivityAt?: string;
   state: WorkerState;
   history: ObservedUpdate[];
@@ -36,6 +41,10 @@ export function parseTranscript(input: string, tool: 'codex' | 'claude'): Transc
     const at = typeof row.timestamp === 'string' && Number.isFinite(Date.parse(row.timestamp)) ? row.timestamp : undefined;
     if (typeof row.cwd === 'string') result.cwd = row.cwd;
     const payload = row.payload ?? {};
+    if (tool === 'codex' && row.type === 'session_meta' && typeof payload.git?.repository_url === 'string') {
+      // Normalised immediately: a raw clone URL may embed credentials.
+      result.repository = normalizeRemote(payload.git.repository_url) ?? result.repository;
+    }
     if (tool === 'codex' && row.type === 'event_msg') {
       if (payload.type === 'task_started') result.state = 'working';
       if (['task_complete', 'turn_aborted'].includes(payload.type)) result.state = 'waiting';
@@ -50,7 +59,7 @@ export function parseTranscript(input: string, tool: 'codex' | 'claude'): Transc
     const value = text(message.content);
     if (!value || !at) continue;
     const kind = (message.role ?? row.type) === 'user' ? 'request' : 'report';
-    if (kind === 'request') result.objective = value;
+    if (kind === 'request') { result.objective = value; result.firstRequest ??= value.slice(0, 240); }
     else result.summary = value;
     if (tool === 'codex' && kind === 'report' && message.phase === 'final') result.state = 'waiting';
     if (!result.history.some((entry) => entry.kind === kind && entry.text === value && entry.at === at)) result.history.push({ at, kind, text: value });
@@ -76,13 +85,35 @@ export function mergeLiveSessions(sessions: ObservedSession[], hooks: Worker[]):
       const parent = hook.parentId ? entries.get(hook.parentId) : undefined;
       const key = parent?.projectKey ?? `hook:${hook.id}`;
       entries.set(hook.id, { ...hook, projectKey: key, project: parent?.project ?? hook.project,
+        // Helpers inherit their lead's project and its provenance; hook-only leads have none yet.
+        ...(parent ? { matchedBy: parent.matchedBy, matchDetail: parent.matchDetail, matchVia: parent.matchVia } : {}),
         attachedTaskId: parent?.attachedTaskId ?? projectId(key), history: [], sourceNote: 'Événement de cycle de vie local' });
     }
   }
   return [...entries.values()];
 }
 
-export function observedVillage(sessions: ObservedSession[], errors: string[], focusProjects: string[] = [], plans: ProjectPlansById = {}): DerivedWorkspace {
+/**
+ * Saved plans are keyed by project id. When resolution moves sessions to a new key
+ * (for example from a Git root path to its remote), the plan follows only when exactly
+ * one new project claims the old id and the new id has no plan yet.
+ */
+export function planAdoptions(moves: { from: string; to: string }[], planIds: Iterable<string>): { from: string; to: string }[] {
+  const saved = new Set(planIds);
+  const claims = new Map<string, Set<string>>();
+  for (const move of moves) {
+    if (move.to === UNASSIGNED_KEY || move.from === move.to) continue;
+    const from = projectId(move.from);
+    const to = projectId(move.to);
+    if (!saved.has(from) || saved.has(to)) continue;
+    claims.set(from, (claims.get(from) ?? new Set()).add(to));
+  }
+  const unique = [...claims.entries()].filter(([, targets]) => targets.size === 1).map(([from, targets]) => ({ from, to: [...targets][0]! }));
+  // Two old plans cannot both move into one new project.
+  return unique.filter((move) => unique.filter((other) => other.to === move.to).length === 1);
+}
+
+export function observedVillage(sessions: ObservedSession[], errors: string[], focusProjects: string[] = [], plans: ProjectPlansById = {}, declared: DeclaredProject[] = []): DerivedWorkspace {
   const groups = new Map<string, ObservedSession[]>();
   for (const session of sessions) {
     const id = projectId(session.projectKey);
@@ -91,6 +122,10 @@ export function observedVillage(sessions: ObservedSession[], errors: string[], f
     groups.set(id, group);
   }
   for (const id of Object.keys(plans)) if (!groups.has(id)) groups.set(id, []);
+  const declaredById = new Map(declared.map((entry) => [projectId(entry.key), entry]));
+  // A project the owner declared with links only (Claude app chats, for example) is still shown.
+  for (const [id, entry] of declaredById) if (entry.links.length && !groups.has(id)) groups.set(id, []);
+  const unassignedId = projectId(UNASSIGNED_KEY);
   const empty = { verified: 0, total: 0, remaining: 0 };
   const workspace: DerivedWorkspace = {
     version: 1, name: 'Mon village', progress: empty,
@@ -99,7 +134,9 @@ export function observedVillage(sessions: ObservedSession[], errors: string[], f
       entries.sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt));
       const latest = entries[0];
       const plan = plans[id];
-      const name = latest?.project ?? plan?.projectName ?? id;
+      const owner = declaredById.get(id);
+      const name = latest?.project ?? plan?.projectName ?? owner?.name ?? id;
+      const matchedBy = MATCHED_BY.filter((by) => entries.some((entry) => entry.matchedBy === by));
       const total = plan?.milestones.length ?? 0;
       const verified = plan?.milestones.filter((m) => m.validated).length ?? 0;
       const progress = { total, verified, remaining: total - verified };
@@ -109,7 +146,9 @@ export function observedVillage(sessions: ObservedSession[], errors: string[], f
       return {
         id, name, objective: plan?.objective ?? '', plan,
         effectiveStatus, progress, features: [],
-        observation: { sessions: entries, lastActivityAt: latest?.lastActivityAt ?? plan!.updatedAt, buildingFamilyIndex: focusProjects.includes(name) ? focusProjects.indexOf(name) : undefined },
+        observation: { sessions: entries, lastActivityAt: latest?.lastActivityAt ?? plan?.updatedAt ?? '',
+          buildingFamilyIndex: focusProjects.includes(name) ? focusProjects.indexOf(name) : undefined,
+          matchedBy, links: owner?.links ?? [], ...(id === unassignedId ? { unassigned: true } : {}) },
         tasks: [{ id, title: name, effectiveStatus, warnings: [], roof: completed,
           progress: { ...progress, stage: CONSTRUCTION_STAGES[stageIndex]!, stageIndex },
           subtasks: plan?.milestones.map((m) => ({ id: `${id}:${m.id}`, title: m.title,
