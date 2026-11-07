@@ -78,6 +78,28 @@ describe('native owner HTTP boundary', () => {
     expect((await test.post('/api/plan', { ...body, revision: 1 }, { authorization })).status).toBe(200);
     expect((await test.post('/api/plan', { ...body, revision: 1, plan: { ...body.plan, token: 'invalid' } }, { authorization })).status).toBe(422);
   });
+  it('keeps a saved plan when its sessions regroup, refuses plans for the inbox, and accepts declared link-only projects', async () => {
+    const test = await start();
+    const authorization = `Bearer ${await test.enroll()}`;
+    const plan = { objective: 'Ship the warehouse', milestones: [{ id: 'first', title: 'Count stock', validated: false, note: '' }] };
+    const session = (projectKey: string, extra = {}) => ({ id: 'codex:one', tool: 'codex', projectKey, project: 'warehouse', state: 'idle', lastActivityAt: new Date().toISOString(), history: [], ...extra });
+    test.snapshot.mockResolvedValue({ errors: [], sessions: [session('/w/warehouse')] } as never);
+    expect((await test.post('/api/plan', { projectId: projectId('/w/warehouse'), revision: 0, plan }, { authorization })).status).toBe(200);
+    test.snapshot.mockResolvedValue({ errors: [], declared: [], sessions: [session('remote:github.com/demo-org/warehouse', { matchedBy: 'remote' })],
+      moves: [{ from: '/w/warehouse', to: 'remote:github.com/demo-org/warehouse' }] } as never);
+    const village = await fetch(`${test.origin}/api/village`, { headers: { authorization } }).then((r) => r.json()) as import('../truth/derive.js').DerivedWorkspace;
+    expect(village.projects).toHaveLength(1);
+    expect(village.projects[0]).toMatchObject({ id: projectId('remote:github.com/demo-org/warehouse'), objective: 'Ship the warehouse',
+      observation: { matchedBy: ['remote'], links: [] } });
+    expect((await test.post('/api/plan', { projectId: projectId('remote:github.com/demo-org/warehouse'), revision: 1, plan }, { authorization })).status).toBe(200);
+
+    test.snapshot.mockResolvedValue({ errors: [], declared: [{ key: 'alias:Research', name: 'Research', links: [{ title: 'Chat', url: 'https://claude.ai/chat/demo', source: 'claude-app' }] }],
+      sessions: [session('unassigned', { matchedBy: 'unassigned' })], moves: [] } as never);
+    expect((await test.post('/api/plan', { projectId: projectId('unassigned'), revision: 0, plan }, { authorization })).status).toBe(409);
+    const declared = await test.post('/api/plan', { projectId: projectId('alias:Research'), revision: 0, plan }, { authorization });
+    expect(declared.status).toBe(200);
+    expect(await declared.json()).toMatchObject({ projectName: 'Research' });
+  });
   it('refuses to serve private credential files through the static directory', () => {
     const directory = mkdtempSync(join(tmpdir(), 'village-auth-placement-test-')); dirs.push(directory);
     const ownerAuth = new OwnerAuth(directory);

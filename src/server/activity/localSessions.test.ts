@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
@@ -159,4 +159,57 @@ it('caps helper depth and never duplicates a cyclic edge', async () => {
   expect(result.sessions.filter((entry) => entry.role === 'helper')).toHaveLength(8);
   expect(result.sessions.some((entry) => entry.id === 'codex:deep-8')).toBe(false);
   expect(result.coverage).toContain('Codex : couverture des sous-agents limitée par le plafond de collecte.');
+});
+
+it('resolves projects through the owner manifest, recorded Codex remotes and the Unassigned inbox', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'village-resolve-')); directories.push(home);
+  const privateDir = join(home, 'private');
+  await mkdir(join(home, '.codex/sessions'), { recursive: true });
+  await mkdir(join(home, '.claude/projects/project'), { recursive: true });
+  await mkdir(privateDir, { recursive: true, mode: 0o700 });
+  const at = new Date().toISOString();
+  const journal = join(home, '.codex/sessions/clone.jsonl');
+  await writeFile(journal, [
+    { timestamp: at, type: 'session_meta', payload: { id: 'clone', cwd: '/w/removed', git: { repository_url: 'https://demo:fake-token@github.com/demo-org/warehouse.git' } } },
+    { timestamp: at, type: 'response_item', payload: { type: 'message', role: 'user', content: [{ type: 'input_text', text: 'Recount stock' }] } },
+  ].map((row) => JSON.stringify(row)).join('\n'));
+  const database = join(home, '.codex/state_5.sqlite');
+  execFileSync('sqlite3', [database, `
+    CREATE TABLE threads(id,name,title,cwd,rollout_path,updated_at,archived,agent_path,git_origin_url);
+    CREATE TABLE thread_spawn_edges(parent_thread_id TEXT,child_thread_id TEXT PRIMARY KEY,status TEXT);
+    INSERT INTO threads VALUES('indexed','Indexed task','','/w/also-removed','${journal}',strftime('%s','now'),0,NULL,'git@github.com:demo-org/warehouse.git');
+    INSERT INTO threads VALUES('clone','From metadata','','/w/removed','${journal}',strftime('%s','now'),0,NULL,NULL);
+    INSERT INTO threads VALUES('helper','Helper','','/w/other','unused',strftime('%s','now'),0,'/root/helper',NULL);
+    INSERT INTO thread_spawn_edges VALUES('clone','helper','open');
+  `]);
+  const claude = (id: string, cwd: string | undefined, text: string) => writeFile(join(home, '.claude/projects/project', `${id}.jsonl`),
+    JSON.stringify({ ...(cwd ? { cwd } : {}), type: 'user', timestamp: at, message: { role: 'user', content: text } }));
+  await claude('home-chat', home, 'Groceries list');
+  await claude('titled', home, 'Billing: draft invoice email');
+  await claude('nowhere', undefined, 'Which folder am I in?');
+  const manifestPath = join(privateDir, 'projects.yaml');
+  await writeFile(manifestPath, 'projects:\n  - name: Billing\n    titles: ["^billing:"]\n    links:\n      - { title: Pricing brainstorm, url: "https://claude.ai/chat/demo", source: claude-app }\n', { mode: 0o600 });
+
+  const result = await new LocalSessions({ home, manifestPath }).snapshot();
+  const byId = (id: string) => result.sessions.find((entry) => entry.id === id);
+  expect(result.errors.filter((error) => error.startsWith('Manifeste'))).toEqual([]);
+  expect(byId('codex:indexed')).toMatchObject({ projectKey: 'remote:github.com/demo-org/warehouse', project: 'warehouse', matchedBy: 'remote', matchVia: 'recorded' });
+  expect(byId('codex:clone')).toMatchObject({ projectKey: 'remote:github.com/demo-org/warehouse', matchedBy: 'remote', matchVia: 'recorded' });
+  expect(byId('codex:helper')).toMatchObject({ role: 'helper', projectKey: 'remote:github.com/demo-org/warehouse', matchedBy: 'remote' });
+  expect(byId('claude:home-chat')).toMatchObject({ projectKey: 'unassigned', matchedBy: 'unassigned', matchVia: 'catch-all', matchDetail: '~' });
+  expect(byId('claude:nowhere')).toMatchObject({ projectKey: 'unassigned', matchVia: 'no-cwd' });
+  expect(byId('claude:titled')).toMatchObject({ projectKey: 'alias:Billing', project: 'Billing', matchedBy: 'rule', matchVia: 'title' });
+  expect(result.declared).toEqual([{ key: 'alias:Billing', name: 'Billing', links: [{ title: 'Pricing brainstorm', url: 'https://claude.ai/chat/demo', source: 'claude-app' }] }]);
+  expect(result.moves).toEqual(expect.arrayContaining([{ from: '/w/removed', to: 'remote:github.com/demo-org/warehouse' }]));
+  const exported = JSON.stringify(result.sessions);
+  expect(exported).not.toContain('fake-token');
+  expect(exported).not.toContain('repository');
+  expect(exported).not.toContain('firstRequest');
+
+  await writeFile(manifestPath, 'projects:\n  - name: Billing\n    titles: ["(broken"]\n');
+  await utimes(manifestPath, new Date(), new Date(Date.now() + 10_000));
+  const broken = await new LocalSessions({ home, manifestPath }).snapshot();
+  expect(broken.errors).toContain('Manifeste projects.yaml : projects.0.titles.0: invalid regular expression');
+  expect(broken.sessions.find((entry) => entry.id === 'claude:titled')?.projectKey).toBe('unassigned');
+  expect(broken.sessions.find((entry) => entry.id === 'codex:indexed')?.matchedBy).toBe('remote');
 });
