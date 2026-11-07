@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Mobile</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ui.css">
+<style>
+  .phones { display: flex; gap: 46px; margin-top: 30px; }
+  .ph { width: 414px; }
+  .dev { width: 414px; height: 868px; border-radius: 54px; border: 12px solid #1a1b1e; background: #000; overflow: hidden; position: relative; box-shadow: 0 0 0 1px #2b2d31; }
+  .scr { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  .sb { height: 44px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 26px; font: 600 14px var(--sans); }
+  .mt { height: 50px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+  .mt h1 { font: 700 18px var(--sans); }
+  .mt .need { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 16px; background: var(--text); color: #0f1419; font: 600 13.5px var(--sans); }
+  .mt .need svg.i { width: 15px; height: 15px; stroke-width: 2.2; }
+  .strip { height: 46px; flex: none; display: flex; align-items: stretch; gap: 0; overflow: hidden; border-bottom: 1px solid var(--line); padding-left: 4px; }
+  .strip span { display: flex; align-items: center; gap: 6px; padding: 0 12px; white-space: nowrap; color: var(--muted); font-size: 14px; position: relative; }
+  .strip span.on { color: var(--text); font-weight: 600; }
+  .strip span.on::after { content: ''; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 3px; border-radius: 2px; background: var(--input); }
+  .mstage { position: relative; flex: 1; overflow: hidden; background: var(--stage); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line-2); border-radius: 14px 14px 0 0; z-index: 40; }
+  .sheet .grab { width: 38px; height: 4px; border-radius: 2px; background: var(--line-2); margin: 8px auto 4px; }
+  .sheet .ask { border-bottom: 0; }
+  .sheet .sh { display: flex; align-items: baseline; justify-content: space-between; padding: 6px 18px 2px; }
+  .sheet .sh h2 { font: 700 18px var(--sans); }
+  .full { position: absolute; left: 0; right: 0; bottom: 0; top: 140px; background: var(--bg); border-top: 1px solid var(--line-2); border-radius: 14px 14px 0 0; z-index: 40; overflow: hidden; }
+  .full .inner { position: absolute; left: 0; right: 0; }
+  .ph h3 { font: 600 16px var(--sans); margin-top: 18px; }
+  .ph p { color: var(--soft); font-size: 14px; line-height: 1.45; margin-top: 4px; }
+  .dimmed { position: absolute; inset: 0; background: rgba(0,0,0,.55); z-index: 35; }
+  .mstage .note .nm { font-size: 14px; }
+  .home { position: absolute; bottom: 8px; left: 50%; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px; background: #e7e9ea; z-index: 60; }
+</style>
+</head>
+<body>
+<div class="board" id="b"></div>
+<script src="data.js"></script>
+<script>window.NO_MAIN = true</script>
+<script src="app.js"></script>
+<script>
+(async () => {
+  const J = await (await fetch('../renders/zoom/zoom.json')).json();
+  J.tag = 'zoom';
+  const top = `<div class="sb"><span>14:32</span><span>●●● ▮</span></div>
+    <div class="mt">${I('logo')}<h1>Village</h1><span class="tag demo">Demo</span><span class="need">${I('bell')}Needs you · 5</span></div>
+    <div class="strip">${D.projects.map(p => { const c = projectCounts(J, p.id); return `<span class="${p.id === 'warehouse' ? 'on' : ''}">${p.name}${counts(c)}</span>`; }).join('')}</div>`;
+  document.getElementById('b').innerHTML = `<div class="eyebrow">Agent Village · step 2, v2 · mobile 390 × 844 · demo data</div>
+  <h1>Mobile: one room at a time</h1>
+  <p class="lede">At 390 px the whole floor would shrink each bot to about 14 px. The phone frames one room with the same render, scaled up. Swipe or tap the project strip to change room. "Needs you" stays one tap away in a bottom sheet.</p>
+  <div class="phones">
+    <div class="ph"><div class="dev"><div class="scr">${top}<div class="mstage" id="s1"></div></div><span class="home"></span></div>
+      <h3>1. Room view</h3><p>Warehouse framed. The peek sheet shows the most urgent request across all projects.</p></div>
+    <div class="ph"><div class="dev"><div class="scr">${top}<div class="mstage" id="s2"></div></div><span class="home"></span></div>
+      <h3>2. Needs you, open</h3><p>Same groups and order as desktop: errors, approvals, questions. Each row opens the source in its own tool.</p></div>
+    <div class="ph"><div class="dev"><div class="scr">${top}<div class="mstage" id="s3"></div></div><span class="home"></span></div>
+      <h3>3. Project context</h3><p>Same blocks as the desktop drawer, stacked, each with its provenance.</p></div>
+  </div>`;
+  for (const id of ['s1', 's2', 's3']) {
+    const st = document.getElementById(id);
+    const T = placeScene(st, J, { fit: 0.66, dx: 6, dy: id === 's1' ? -70 : -150 });
+    overlays(st, J, T, { only: 'warehouse', leader: 30 });
+  }
+  const urgent = D.asks[0];
+  const ub = J.bots[urgent.bot] || { source: 'cli', project: 'connector' };
+  document.getElementById('s1').insertAdjacentHTML('beforeend', `<div class="sheet"><div class="grab"></div>
+    <div class="sh"><h2>Needs you</h2><span class="muted" style="font-size:13px">5 waiting · oldest 41 min</span></div>
+    <div class="ask error"><span class="bar"></span><div><div class="top">${I('error')}<span class="who">${urgent.bot}</span><span class="muted">Connector Lab</span><span class="age">${urgent.age}</span></div>
+    <div class="txt">${urgent.text}</div><div class="ft"><span class="srcl">${I('cli')}Claude Code CLI</span><span class="btn">${urgent.open}${I('out')}</span></div></div></div></div>`);
+  // sheet 2: full needs-you list, reusing the desktop column markup
+  const fake = { bots: { 'tool-schema': { source: 'cli', project: 'connector' }, 'model-refresh': { source: 'cli', project: 'warehouse' }, 'entity-audit': { source: 'codex', project: 'atlas' }, 'privacy-guard': { source: 'cli', project: 'privacy' }, 'outreach-copy': { source: 'codex', project: 'launch' } } };
+  const nc = document.createElement('div'); nc.innerHTML = needsCol(fake);
+  const inner2 = nc.querySelector('.inner').innerHTML;
+  document.getElementById('s2').insertAdjacentHTML('beforeend', `<div class="dimmed"></div><div class="full" style="top:40px"><div class="grab" style="width:38px;height:4px;border-radius:2px;background:var(--line-2);margin:8px auto 0"></div><div class="inner" style="top:14px">${inner2}</div></div>`);
+  const pc = document.createElement('div'); pc.innerHTML = projectCol(J, 'warehouse', 0);
+  document.getElementById('s3').insertAdjacentHTML('beforeend', `<div class="dimmed"></div><div class="full" style="top:40px"><div class="grab" style="width:38px;height:4px;border-radius:2px;background:var(--line-2);margin:8px auto 0"></div><div class="inner" style="top:6px">${pc.querySelector('.inner').innerHTML}</div></div>`);
+  await Promise.all([...document.images].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; })));
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

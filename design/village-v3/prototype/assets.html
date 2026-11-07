@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Asset sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ui.css">
+<style>
+  h3 { font: 600 17px var(--sans); margin: 34px 0 12px; display: flex; align-items: baseline; gap: 12px; }
+  h3 small { font: 500 12px var(--mono); color: var(--muted); }
+  .row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .cell { border: 1px solid var(--line); border-radius: 5px; overflow: hidden; background: var(--surface); }
+  .pv { position: relative; height: 230px; background:
+      linear-gradient(45deg, #101114 25%, transparent 25%, transparent 75%, #101114 75%) 0 0 / 16px 16px,
+      linear-gradient(45deg, #101114 25%, #0b0c0e 25%, #0b0c0e 75%, #101114 75%) 8px 8px / 16px 16px; }
+  .pv .wrap { position: absolute; left: 50%; bottom: 22px; }
+  .pv img { position: absolute; display: block; }
+  .pv .x { position: absolute; width: 11px; height: 11px; transform: translate(-5px, -5px); }
+  .pv .x::before, .pv .x::after { content: ''; position: absolute; background: #ff4d5a; }
+  .pv .x::before { left: 5px; top: 0; width: 1px; height: 11px; }
+  .pv .x::after { top: 5px; left: 0; height: 1px; width: 11px; }
+  .meta { padding: 10px 12px 12px; border-top: 1px solid var(--line); }
+  .meta b { font: 600 12.5px var(--mono); display: block; }
+  .meta span { font: 500 11.5px var(--mono); color: var(--muted); display: block; margin-top: 3px; }
+  .pipe { display: grid; grid-template-columns: 1fr 40px 1fr 40px 1fr; align-items: center; margin-top: 26px; border: 1px solid var(--line); border-radius: 6px; padding: 18px; gap: 0; }
+  .pipe figure { text-align: center; }
+  .pipe .box { height: 260px; position: relative; overflow: hidden; border-radius: 4px; background: #08090a; }
+  .pipe .box img { position: absolute; }
+  .pipe figcaption { font: 500 12px var(--mono); color: var(--soft); margin-top: 8px; }
+  .pipe .op { text-align: center; font: 600 22px var(--sans); color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="board" id="b"></div>
+<script src="data.js"></script>
+<script>window.NO_MAIN = true</script>
+<script src="app.js"></script>
+<script>
+(async () => {
+  const props = await (await fetch('../renders/props/props.json')).json();
+  const J = await (await fetch('../renders/scene/scene.json')).json();
+  const by = Object.fromEntries(props.map(p => [p.file.replace('.webp', ''), p]));
+  const groups = [
+    ['Shared furniture', 'every room draws from these', ['desk', 'task-lamp', 'floor-lamp', 'plant-floor', 'plant-desk', 'filing-cabinet']],
+    ['Signature props', 'one set per project', ['shelving-archive', 'pinboard', 'lockers', 'safe', 'workbench', 'server-rack']],
+    ['More signature props', 'Warehouse, Launch Studio, Connector Lab, Atlas', ['pallet-rack', 'whiteboard', 'sofa', 'coffee-table', 'shelving-bins', 'reading-table']],
+    ['Machines and state props', 'bots shown at working f0; full frames on the states board', ['bot-cli', 'bot-codex', 'bot-app-dock', 'warning-triangle', 'cable-spool', 'shredder']]
+  ];
+  const SUB = { 'desk': 'oak top, sled base, monitor', 'task-lamp': 'emits light in the render', 'floor-lamp': 'paper shade, warm', 'plant-floor': '1.5 m, ceramic pot', 'plant-desk': '0.45 m, clay pot', 'filing-cabinet': '4 drawers, labels blank',
+    'shelving-archive': 'Atlas · galvanised, binders', 'pinboard': 'Atlas · cards and thread', 'lockers': 'Privacy Desk', 'safe': 'Privacy Desk', 'workbench': 'Connector Lab · pegboard', 'server-rack': 'Warehouse · 42U',
+    'pallet-rack': 'Warehouse · cartons', 'whiteboard': 'Launch Studio · on wheels', 'sofa': 'Launch Studio', 'coffee-table': 'Launch Studio', 'shelving-bins': 'Connector Lab · parts bins', 'reading-table': 'Atlas · walnut',
+    'bot-cli': 'Claude Code CLI · cart', 'bot-codex': 'Codex · column', 'bot-app-dock': 'Claude app · covered dock', 'warning-triangle': 'error state prop', 'cable-spool': 'Connector Lab', 'shredder': 'Privacy Desk' };
+  const k = 0.5; // show @2x files at 1x
+  const cell = n => {
+    const p = by[n];
+    const [w, h] = p.size_2x, [ax, ay] = p.anchor_2x;
+    const fit = Math.min(1, 200 / (h * k), 270 / (w * k));
+    const s = k * fit;
+    return `<div class="cell"><div class="pv"><div class="wrap"><img src="../renders/props/${n}.png" style="width:${w * s}px;left:${-ax * s}px;top:${-ay * s}px"><span class="x" style="left:0;top:0"></span></div></div>
+      <div class="meta"><b>${n}.webp</b><span>${SUB[n] || ''}</span><span>${w} × ${h} px @2x${fit < 1 ? ` · shown at ${Math.round(fit * 100)} %` : ''}</span></div></div>`;
+  };
+  const L = J.layers.find(l => l.id === 'model-refresh');
+  const cx = L.x + L.w / 2, cy = L.y + L.h / 2, z = 0.62;
+  const crop = (src, x, y, w) => `<img src="${src}" style="width:${w * z}px;left:${(x - cx) * z + 150}px;top:${(y - cy) * z + 130}px">`;
+  const base = crop('../renders/scene/scene-base.png', 0, 0, J.frame[0]);
+  const lay = crop('../renders/scene/' + L.file, L.x, L.y, L.w);
+  let h = `<div class="eyebrow">Agent Village · step 2, v2 · draft assets · transparent backgrounds</div>
+  <h1>Asset sheet</h1>
+  <p class="lede">Every object is modelled in a scripted Blender scene (<span class="mono">blender/av.py</span>) and rendered with Cycles through one orthographic camera: 2:1 isometric, 30° elevation, 1 m tile = 64 × 32 px at 1x. No image model, no downloaded asset. Red cross = floor anchor. Rows are at the same scale unless noted.</p>
+  <div class="pipe">
+    <figure><div class="box">${base}</div><figcaption>room base layer · static</figcaption></figure><div class="op">+</div>
+    <figure><div class="box" style="background:#08090a">${lay}</div><figcaption>bot layer · scene as shadow catcher</figcaption></figure><div class="op">=</div>
+    <figure><div class="box">${base}${lay}</div><figcaption>composite in the browser · HTML on top</figcaption></figure>
+  </div>`;
+  for (const [t, sub, list] of groups) h += `<h3>${t}<small>${sub}</small></h3><div class="row">${list.map(cell).join('')}</div>`;
+  document.getElementById('b').innerHTML = h;
+  await Promise.all([...document.images].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; })));
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

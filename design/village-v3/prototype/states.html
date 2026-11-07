@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agent states and motion</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ui.css">
+<style>
+  .grid { display: grid; grid-template-columns: 190px repeat(6, 1fr); margin-top: 28px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .grid > div { border-top: 1px solid var(--line); border-left: 1px solid var(--line); padding: 14px; min-width: 0; }
+  .grid > .rh { border-left: 0; }
+  .grid > .hd { border-top: 0; }
+  .rh b { display: block; font: 600 14px var(--sans); }
+  .rh span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+  .hd { display: flex; align-items: center; gap: 8px; font: 600 12px var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+  .hd svg.i { width: 15px; height: 15px; stroke-width: 2; }
+  .st-img { display: block; width: 100%; height: 190px; object-fit: contain; }
+  .gray img { filter: grayscale(1) contrast(1.05); }
+  .pair { display: flex; gap: 4px; }
+  .pair img { width: 50%; height: 120px; object-fit: contain; }
+  .frames { display: flex; gap: 2px; }
+  .frames figure { flex: 1; text-align: center; }
+  .frames img { width: 100%; aspect-ratio: 1; object-fit: cover; object-position: 50% 62%; background: var(--surface); border-radius: 3px; }
+  .frames figcaption { font: 500 10.5px var(--mono); color: var(--muted); margin-top: 3px; }
+  .t { font-size: 13px; line-height: 1.5; color: var(--soft); }
+  .t b { color: var(--text); font-weight: 600; }
+  .ui { position: relative; min-height: 120px; }
+  .ui .call, .ui .callx { position: static; transform: none; display: inline-flex; }
+  .ui .callx { display: block; width: auto; margin-top: 10px; }
+  .ui .call::after, .ui .callx .lead { display: none; }
+  .ui .chip { position: static; transform: none; display: inline-block; }
+  .tok { display: flex; align-items: center; gap: 8px; font: 500 12px var(--mono); color: var(--soft); }
+  .sw { width: 16px; height: 16px; border-radius: 3px; }
+  .rules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 26px; border: 1px solid var(--line); border-radius: 6px; }
+  .rules div { padding: 14px 16px; border-left: 1px solid var(--line); font-size: 13.5px; color: var(--soft); line-height: 1.45; }
+  .rules div:first-child { border-left: 0; }
+  .rules h4 { font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="board" id="b"></div>
+<script src="data.js"></script>
+<script>window.NO_MAIN = true</script>
+<script src="app.js"></script>
+<script>
+const S = ['working', 'idle', 'approval', 'input', 'error', 'offline'];
+const glyph = { approval: 'approval', input: 'input', error: 'error' };
+const POSE = {
+  working: 'Head down over the desk, arm forward. Monitor shows scrolling text.',
+  idle: 'Arm parked upright, body turned off the desk. Monitor dimmed.',
+  approval: 'Arm raised, head turned round to face you. Monitor shows a two-button dialog.',
+  input: 'Head turned to the aisle and tilted. Monitor shows an open text field.',
+  error: 'Arm dropped, head slumped, warning triangle on the floor. Monitor shows a red banner.',
+  offline: 'Dust cover on. Monitor off. No light.'
+};
+const MOTION = {
+  working: '<b>Loop</b> f0 to f3, 180 ms per frame: the head nods 4°. Status strip steady.',
+  idle: '<b>Loop</b> f0 to f3 at 900 ms: slow look-around. May walk an aisle at 0.8 m/s.',
+  approval: '<b>Once</b> f0 to f2 over 540 ms, then hold f2. Every 4 s, f3 then f2 (a small lift). Call-out fades in over 200 ms.',
+  input: '<b>Ping-pong</b> f0 to f3, 650 ms per frame: the head tilts toward the aisle.',
+  error: '<b>On entry</b> f1, f2, f1, f2 at 120 ms (a shake), then f0, still. Repeats every 6 s. No flashing.',
+  offline: '<b>None.</b> Single frame.'
+};
+const REDUCED = {
+  working: 'f0 only. The monitor and status strip carry the state.',
+  idle: 'f0 only. No walking: the bot waits at its station.',
+  approval: 'f2 held. Call-out appears without fade.',
+  input: 'f2 held. Call-out appears without fade.',
+  error: 'f0 only. No shake. Triangle and pose carry the state.',
+  offline: 'Same as normal.'
+};
+const UI = {
+  working: '<span class="chip"><b>segment-models</b> · working · 1 min</span><p class="t" style="margin-top:8px">Name chip on hover or keyboard focus only. Nothing waits for you.</p>',
+  idle: '<span class="chip"><b>warehouse-qa</b> · idle · 32 min</span><p class="t" style="margin-top:8px">Hover or focus only. Idle after 2 min without a signal.</p>',
+  offline: '<span class="chip"><b>storyboard</b> · offline · source unavailable</span><p class="t" style="margin-top:8px">Hover or focus only.</p>'
+};
+const ask = t => D.asks.find(a => a.type === t);
+let h = `<div class="eyebrow">Agent Village · step 2, v2 · demo data</div>
+<h1>Six agent states</h1>
+<p class="lede">Each state is carried by four separate signals: the bot's pose, what its desk monitor shows, a status light, and the HTML layer for the three states that need you. The grayscale row is the same render with colour removed: pose and monitor alone still tell the states apart. Bots have no faces.</p>
+<div class="grid"><div class="rh hd"></div>`;
+h += S.map(s => `<div class="hd" style="color:var(--${s})">${glyph[s] ? I(glyph[s]) : `<span class="dot" style="background:var(--${s})"></span>`}${s === 'approval' ? 'Approval needed' : s === 'input' ? 'Input needed' : s}</div>`).join('');
+h += `<div class="rh"><b>Claude Code CLI</b><span>Cart on casters, one arm with a sensor head. Terracotta.</span></div>` + S.map(s => `<div><img class="st-img" src="../renders/states/station-cli-${s}.png"></div>`).join('');
+h += `<div class="rh"><b>Codex</b><span>Weighted column, telescoping mast, scanner bar. Porcelain blue.</span></div>` + S.map(s => `<div><img class="st-img" src="../renders/states/station-codex-${s}.png"></div>`).join('');
+h += `<div class="rh"><b>Grayscale check</b><span>Same renders, colour removed. Needs no colour vision and no motion.</span></div>` + S.map(s => `<div class="gray pair"><img src="../renders/states/station-cli-${s}.png"><img src="../renders/states/station-codex-${s}.png"></div>`).join('');
+h += `<div class="rh"><b>What reads</b><span>Without colour or motion</span></div>` + S.map(s => `<div class="t">${POSE[s]}</div>`).join('');
+h += `<div class="rh"><b>Sprite frames</b><span>CLI. Same camera, scale and anchor in every frame. 280 × 280 px @2x.</span></div>` + S.map(s => `<div class="frames">${(s === 'offline' ? [0] : [0, 1, 2, 3]).map(f => `<figure><img src="../renders/states/frame-cli-${s}-f${f}.png"><figcaption>f${f}</figcaption></figure>`).join('')}</div>`).join('');
+h += `<div class="rh"><b>HTML layer</b><span>Drawn over the scene, never baked into a sprite.</span></div>` + S.map(s => {
+  const a = ask(s);
+  if (!a) return `<div class="ui">${UI[s]}</div>`;
+  return `<div class="ui"><span class="call ${s}">${I(s)}<span class="who">${a.bot}</span></span><div class="callx ${s}"><div class="k">${I(s)}${s === 'approval' ? 'Approval needed' : s === 'input' ? 'Input needed' : 'Error'}</div><div class="t">${a.text}</div><div class="m">${a.bot} · ${a.age}</div></div></div>`;
+}).join('');
+h += `<div class="rh"><b>Motion</b><span>Sprite frame swaps plus CSS opacity. Target 60 fps, not measured.</span></div>` + S.map(s => `<div class="t">${MOTION[s]}</div>`).join('');
+h += `<div class="rh"><b>Reduced motion</b><span>prefers-reduced-motion, or the Motion control in the scene.</span></div>` + S.map(s => `<div class="t">${REDUCED[s]}</div>`).join('');
+h += `<div class="rh"><b>Token</b><span>Colour is reserved for state. Decor never uses it.</span></div>` + S.map(s => `<div class="tok"><span class="sw" style="background:var(--${s})"></span>${getComputedStyle(document.documentElement).getPropertyValue('--' + s).trim().toUpperCase()}</div>`).join('');
+h += `</div>
+<div class="rules">
+  <div><h4>Channel: project</h4>A room. Its signature props say what the project does: archive, lockers, workbench, racks, whiteboards.</div>
+  <div><h4>Channel: source</h4>The machine's silhouette and body colour. Cart = Claude Code CLI. Column = Codex. Covered dock = Claude app.</div>
+  <div><h4>Channel: state</h4>Pose, monitor, status light, HTML call-out. Never the body colour.</div>
+  <div><h4>Claude app</h4>No verified source, so its dock stays covered and its state stays offline. No other frames are budgeted.</div>
+</div>`;
+document.getElementById('b').innerHTML = h;
+Promise.all([...document.images].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; }))).then(() => document.body.dataset.ready = '1');
+</script>
+</body>
+</html>
