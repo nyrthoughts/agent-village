@@ -1,0 +1,578 @@
+{
+  "version": "design-draft-2026-11-07",
+  "status": "proposal, not validated",
+  "projection": {
+    "type": "isometric 2:1",
+    "tile_px_1x": [
+      64,
+      32
+    ],
+    "z_px_per_unit_1x": 38,
+    "formula": "screen = ((x - y) * 32, (x + y) * 16 - z * 38)"
+  },
+  "export": {
+    "format": "WebP with alpha, @2x, sRGB",
+    "rules": [
+      "no baked text",
+      "no secrets or transcripts",
+      "constant camera and scale",
+      "no magenta halo: premultiplied alpha, transparent background from source"
+    ]
+  },
+  "assets": [
+    {
+      "file": "pavilion-floor.webp",
+      "group": "structure",
+      "role": "Pavilion floor slab 6x5 + plinth",
+      "size_1x": [
+        372,
+        202
+      ],
+      "size_2x": [
+        744,
+        404
+      ],
+      "anchor_px_1x": [
+        170,
+        10
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "pavilion-wall-back.webp",
+      "group": "structure",
+      "role": "Back wall, trim tinted in code",
+      "size_1x": [
+        209,
+        190
+      ],
+      "size_2x": [
+        418,
+        380
+      ],
+      "anchor_px_1x": [
+        9,
+        92
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "pavilion-wall-left.webp",
+      "group": "structure",
+      "role": "Left wall",
+      "size_1x": [
+        171,
+        171
+      ],
+      "size_2x": [
+        342,
+        342
+      ],
+      "anchor_px_1x": [
+        169,
+        89
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "desk.webp",
+      "group": "structure",
+      "role": "Desk + monitor back; screen glow and LED are a separate state layer",
+      "size_1x": [
+        68,
+        85
+      ],
+      "size_2x": [
+        136,
+        170
+      ],
+      "anchor_px_1x": [
+        24,
+        51
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "lamp.webp",
+      "group": "structure",
+      "role": "Floor lamp; halo is an additive layer",
+      "size_1x": [
+        36,
+        76
+      ],
+      "size_2x": [
+        72,
+        152
+      ],
+      "anchor_px_1x": [
+        18,
+        69
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "plant.webp",
+      "group": "structure",
+      "role": "Potted plant",
+      "size_1x": [
+        31,
+        54
+      ],
+      "size_2x": [
+        62,
+        108
+      ],
+      "anchor_px_1x": [
+        16,
+        47
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "prop-shelf.webp",
+      "group": "signature:atlas",
+      "role": "Atlas bookshelf",
+      "size_1x": [
+        102,
+        126
+      ],
+      "size_2x": [
+        204,
+        252
+      ],
+      "anchor_px_1x": [
+        86,
+        75
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "prop-graph-board.webp",
+      "group": "signature:atlas",
+      "role": "Atlas wall graph board (wall decal)",
+      "size_1x": [
+        126,
+        96
+      ],
+      "size_2x": [
+        252,
+        192
+      ],
+      "anchor_px_1x": [
+        2,
+        33
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "prop-lockers.webp",
+      "group": "signature:privacy",
+      "role": "Privacy Desk lockers x3",
+      "size_1x": [
+        55,
+        96
+      ],
+      "size_2x": [
+        110,
+        192
+      ],
+      "anchor_px_1x": [
+        18,
+        68
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "prop-safe.webp",
+      "group": "signature:privacy",
+      "role": "Privacy Desk safe",
+      "size_1x": [
+        56,
+        62
+      ],
+      "size_2x": [
+        112,
+        124
+      ],
+      "anchor_px_1x": [
+        28,
+        35
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "prop-pegboard.webp",
+      "group": "signature:connector",
+      "role": "Connector Lab pegboard (wall decal)",
+      "size_1x": [
+        129,
+        97
+      ],
+      "size_2x": [
+        258,
+        194
+      ],
+      "anchor_px_1x": [
+        2,
+        33
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "prop-bench.webp",
+      "group": "signature:connector",
+      "role": "Connector Lab workbench",
+      "size_1x": [
+        88,
+        73
+      ],
+      "size_2x": [
+        176,
+        146
+      ],
+      "anchor_px_1x": [
+        66,
+        30
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "prop-spool.webp",
+      "group": "signature:connector",
+      "role": "Cable spool",
+      "size_1x": [
+        32,
+        35
+      ],
+      "size_2x": [
+        64,
+        70
+      ],
+      "anchor_px_1x": [
+        16,
+        26
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "prop-rack.webp",
+      "group": "signature:warehouse",
+      "role": "Warehouse server rack; LEDs are a separate blink layer",
+      "size_1x": [
+        50,
+        99
+      ],
+      "size_2x": [
+        100,
+        198
+      ],
+      "anchor_px_1x": [
+        24,
+        77
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "prop-vat.webp",
+      "group": "signature:warehouse",
+      "role": "Warehouse vat",
+      "size_1x": [
+        36,
+        48
+      ],
+      "size_2x": [
+        72,
+        96
+      ],
+      "anchor_px_1x": [
+        18,
+        38
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "prop-whiteboard.webp",
+      "group": "signature:launch",
+      "role": "Launch Studio whiteboard on easel",
+      "size_1x": [
+        50,
+        78
+      ],
+      "size_2x": [
+        100,
+        156
+      ],
+      "anchor_px_1x": [
+        12,
+        55
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "prop-couch.webp",
+      "group": "signature:launch",
+      "role": "Launch Studio couch",
+      "size_1x": [
+        77,
+        71
+      ],
+      "size_2x": [
+        154,
+        142
+      ],
+      "anchor_px_1x": [
+        26,
+        34
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "prop-spotlight.webp",
+      "group": "signature:launch",
+      "role": "Launch Studio spotlight on tripod",
+      "size_1x": [
+        68,
+        113
+      ],
+      "size_2x": [
+        136,
+        226
+      ],
+      "anchor_px_1x": [
+        44,
+        72
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "tree.webp",
+      "group": "exterior",
+      "role": "Low-poly tree",
+      "size_1x": [
+        45,
+        105
+      ],
+      "size_2x": [
+        90,
+        210
+      ],
+      "anchor_px_1x": [
+        23,
+        93
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "lamp-post.webp",
+      "group": "exterior",
+      "role": "Path lamp post",
+      "size_1x": [
+        50,
+        91
+      ],
+      "size_2x": [
+        100,
+        182
+      ],
+      "anchor_px_1x": [
+        25,
+        85
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "cone.webp",
+      "group": "exterior",
+      "role": "Cone, empty lot",
+      "size_1x": [
+        20,
+        23
+      ],
+      "size_2x": [
+        40,
+        46
+      ],
+      "anchor_px_1x": [
+        10,
+        20
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "crate.webp",
+      "group": "exterior",
+      "role": "Crate, empty lot",
+      "size_1x": [
+        41,
+        37
+      ],
+      "size_2x": [
+        82,
+        74
+      ],
+      "anchor_px_1x": [
+        21,
+        18
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "beanbag.webp",
+      "group": "structure",
+      "role": "Beanbag (idle seat)",
+      "size_1x": [
+        44,
+        34
+      ],
+      "size_2x": [
+        88,
+        68
+      ],
+      "anchor_px_1x": [
+        22,
+        24
+      ],
+      "anchor_rule": "world origin (0,0,0) of the prop",
+      "frames": 1
+    },
+    {
+      "file": "bot-cli.webp",
+      "group": "bot",
+      "role": "Sprite sheet for source Claude Code CLI",
+      "frame_size_1x": [
+        56,
+        96
+      ],
+      "frame_size_2x": [
+        112,
+        192
+      ],
+      "sheet_layout": "4 columns (f0-f3) x 6 rows (working, idle, approval, input, error, offline)",
+      "sheet_size_2x": [
+        448,
+        1152
+      ],
+      "anchor_px_1x": [
+        28,
+        90
+      ],
+      "anchor_rule": "ground contact point, bottom centre. Body floats 12 px above it. Frame height covers capsule antenna (74 px above ground) + 7 px hop + shadow.",
+      "frames": {
+        "working": 4,
+        "idle": 4,
+        "approval": 4,
+        "input": 4,
+        "error": 4,
+        "offline": 1
+      },
+      "measured_body_bbox_1x": [
+        34,
+        36
+      ]
+    },
+    {
+      "file": "bot-codex.webp",
+      "group": "bot",
+      "role": "Sprite sheet for source Codex",
+      "frame_size_1x": [
+        56,
+        96
+      ],
+      "frame_size_2x": [
+        112,
+        192
+      ],
+      "sheet_layout": "4 columns (f0-f3) x 6 rows (working, idle, approval, input, error, offline)",
+      "sheet_size_2x": [
+        448,
+        1152
+      ],
+      "anchor_px_1x": [
+        28,
+        90
+      ],
+      "anchor_rule": "ground contact point, bottom centre. Body floats 12 px above it. Frame height covers capsule antenna (74 px above ground) + 7 px hop + shadow.",
+      "frames": {
+        "working": 4,
+        "idle": 4,
+        "approval": 4,
+        "input": 4,
+        "error": 4,
+        "offline": 1
+      },
+      "measured_body_bbox_1x": [
+        26,
+        53
+      ]
+    },
+    {
+      "file": "bot-app.webp",
+      "group": "bot",
+      "role": "Sprite sheet for source App Claude",
+      "frame_size_1x": [
+        56,
+        96
+      ],
+      "frame_size_2x": [
+        112,
+        192
+      ],
+      "sheet_layout": "1 frame (offline) until App Claude has a verified source",
+      "sheet_size_2x": [
+        112,
+        192
+      ],
+      "anchor_px_1x": [
+        28,
+        90
+      ],
+      "anchor_rule": "ground contact point, bottom centre. Body floats 12 px above it. Frame height covers capsule antenna (74 px above ground) + 7 px hop + shadow.",
+      "frames": {
+        "offline": 1
+      },
+      "measured_body_bbox_1x": [
+        36,
+        36
+      ]
+    },
+    {
+      "file": "ring-{state}.svg",
+      "group": "ui-svg",
+      "role": "State rings (working, approval, input, error, offline). SVG, never raster.",
+      "size_1x": [
+        50,
+        25
+      ],
+      "anchor_rule": "ellipse centre = bot ground point",
+      "frames": "CSS animated"
+    },
+    {
+      "file": "bubbles, plates, chips",
+      "group": "ui-html",
+      "role": "HTML/CSS overlay positioned from scene anchors. Never in images.",
+      "frames": "CSS"
+    }
+  ]
+}
