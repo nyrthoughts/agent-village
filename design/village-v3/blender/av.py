@@ -43,6 +43,7 @@ def lin(h):
 
 def reset():
     bpy.ops.wm.read_factory_settings(use_empty=True)
+    _M.clear()
     for c in ("env", "bots", "lights", "fx"):
         col = bpy.data.collections.new(c)
         bpy.context.scene.collection.children.link(col)
@@ -1145,6 +1146,7 @@ def camera(center, res_1x):
     fwd = co.rotation_euler.to_matrix() @ Vector((0, 0, -1))
     co.location = Vector(center) - fwd * 60
     sc.camera = co
+    bpy.context.view_layer.update()
     return co
 
 
@@ -1180,6 +1182,8 @@ def render_to(path, border=None):
         x0, y0, x1, y1 = border
         x0, y0 = max(0, int(x0)), max(0, int(y0))
         x1, y1 = min(W, int(x1) + 1), min(H, int(y1) + 1)
+        if x1 - x0 < 8 or y1 - y0 < 8:
+            return None  # outside the frame
         r.use_border = True
         r.use_crop_to_border = True
         r.border_min_x, r.border_max_x = x0 / W, x1 / W

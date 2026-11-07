@@ -70,13 +70,14 @@ function placeScene(stage, J, o = {}) {
   const fw = J.frame[0] / S, fh = J.frame[1] / S;
   const W = stage.clientWidth, H = stage.clientHeight;
   const s = o.fit || Math.min(W / fw, H / fh);
-  const ox = (W - fw * s) / 2 + (o.dx || 0), oy = (H - fh * s) / 2 + (o.dy || 0);
   const k = s / S; // image px -> screen px
+  let ox = (W - fw * s) / 2 + (o.dx || 0), oy = (H - fh * s) / 2 + (o.dy || 0);
+  if (o.focus) { ox = W / 2 - o.focus[0] * k + (o.dx || 0); oy = H * (o.fy || 0.5) - o.focus[1] * k + (o.dy || 0); }
   const sc = document.createElement('div');
   sc.className = 'scene';
   sc.style.cssText = `left:${ox}px;top:${oy}px;width:${J.frame[0]}px;height:${J.frame[1]}px;transform:scale(${k})`;
   const tag = J.tag;
-  let html = `<img src="../renders/${tag}/${tag}-base.png" style="left:0;top:0;width:${J.frame[0]}px">`;
+  let html = `<img src="../renders/${tag}/${tag}-base.webp" style="left:0;top:0;width:${J.frame[0]}px">`;
   const layers = J.layers.filter(l => !(o.hide || []).includes(l.id)).concat(o.extra || []).sort((a, b) => a.depth - b.depth);
   for (const l of layers) html += `<img src="../renders/${l.dir || tag}/${l.file}" style="left:${l.x}px;top:${l.y}px;width:${l.w}px;height:${l.h}px">`;
   sc.innerHTML = html;
@@ -108,11 +109,11 @@ function overlays(stage, J, T, o = {}) {
     const [u, v] = NOTE_AT[p.id];
     const q = a.poly;
     const fp = [q[0][0] + u * (q[1][0] - q[0][0]) + v * (q[3][0] - q[0][0]), q[0][1] + u * (q[1][1] - q[0][1]) + v * (q[3][1] - q[0][1])];
-    const [x, y] = T.pt(fp);
+    const [x, y] = T.pt(o.only ? a.plate : fp);
     const c = projectCounts(J, p.id);
     const lead = o.leader || 1.7 * 39.19 * J.scale * T.k;
     const sel = o.only === p.id;
-    h += `<div class="note ${sel ? 'sel' : ''}" style="left:${x}px;top:${y}px"><div class="lbl"><span class="nm">${p.name}</span>${sel ? `<span class="meta">${c.n} agents · ${c.working} working · ${p.last}</span>` : ''}<span class="ct">${counts(c)}</span></div><div class="leader" style="height:${lead}px;--h:${lead}px"></div></div>`;
+    h += `<div class="note ${sel ? 'sel' : ''}" style="left:${x}px;top:${y}px"><div class="lbl"><span class="nm">${p.name}</span>${sel && !o.compact ? `<span class="meta">${c.n} agents · ${c.working} working · ${p.last}</span>` : ''}<span class="ct">${counts(c)}</span></div><div class="leader" style="height:${lead}px;--h:${lead}px"></div></div>`;
   }
   for (const a of D.asks) {
     const b = J.bots[a.bot];
@@ -126,9 +127,13 @@ function overlays(stage, J, T, o = {}) {
     }
   }
   if (o.chips) {
+    const placed = [];
     for (const [id, b] of Object.entries(J.bots)) {
       if (b.project !== o.only || ASKS.includes(b.state)) continue;
-      const [x, y] = T.pt(b.head);
+      let [x, y] = T.pt(b.foot);
+      const w = 8 * (id.length + 22);
+      while (placed.some(p => Math.abs(p[0] - x) < (p[2] + w) / 2 && Math.abs(p[1] - y) < 28)) y += 28;
+      placed.push([x, y, w]);
       h += `<div class="chip" style="left:${x}px;top:${y}px"><b>${id}</b> · ${STATE[b.state].toLowerCase()} · ${D.bots[id].last}</div>`;
     }
   }
@@ -196,7 +201,7 @@ function projectCol(J, pid, scroll) {
   const C = D.context[pid];
   const c = projectCounts(J, pid);
   const bots = Object.entries(J.bots).filter(([, b]) => b.project === pid);
-  const agent = ([id, b]) => `<div class="agent"><span class="av"><img src="../renders/avatars/${b.source}-${b.state}.png" onerror="this.remove()"></span>
+  const agent = ([id, b]) => `<div class="agent"><span class="av"><img src="../renders/avatars/${b.source}-${b.state}.webp"></span>
       <div><div class="nm">${id}</div><div class="ln"><span class="stt ${b.state}">${STATE[b.state]}</span><span>${I(b.source)}</span><span>${SRC[b.source]} · ${D.bots[id].last}</span></div></div><span class="open">${I('out')}</span></div>`;
   return `<div class="ctabs"><button>Needs you <span class="badge">${D.asks.length}</span></button><button class="on">Project · ${p.name}</button></div>
   <div class="scroll"><div class="inner" style="top:${-scroll}px">

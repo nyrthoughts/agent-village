@@ -14,13 +14,14 @@
   .rh span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
   .hd { display: flex; align-items: center; gap: 8px; font: 600 12px var(--mono); letter-spacing: .05em; text-transform: uppercase; }
   .hd svg.i { width: 15px; height: 15px; stroke-width: 2; }
-  .st-img { display: block; width: 100%; height: 190px; object-fit: contain; }
+  .st-img { display: block; width: 100%; height: 200px; object-fit: contain; }
   .gray img { filter: grayscale(1) contrast(1.05); }
   .pair { display: flex; gap: 4px; }
-  .pair img { width: 50%; height: 120px; object-fit: contain; }
+  .pair img { width: 50%; height: 130px; object-fit: contain; }
   .frames { display: flex; gap: 2px; }
-  .frames figure { flex: 1; text-align: center; }
-  .frames img { width: 100%; aspect-ratio: 1; object-fit: cover; object-position: 50% 62%; background: var(--surface); border-radius: 3px; }
+  .frames figure { flex: 0 0 calc(25% - 2px); text-align: center; }
+  .frames .fw { overflow: hidden; border-radius: 3px; background: var(--surface); aspect-ratio: 0.8; position: relative; }
+  .frames img { position: absolute; width: 230%; left: -65%; top: -48%; }
   .frames figcaption { font: 500 10.5px var(--mono); color: var(--muted); margin-top: 3px; }
   .t { font-size: 13px; line-height: 1.5; color: var(--soft); }
   .t b { color: var(--text); font-weight: 600; }
@@ -72,7 +73,7 @@ const REDUCED = {
 const UI = {
   working: '<span class="chip"><b>segment-models</b> · working · 1 min</span><p class="t" style="margin-top:8px">Name chip on hover or keyboard focus only. Nothing waits for you.</p>',
   idle: '<span class="chip"><b>warehouse-qa</b> · idle · 32 min</span><p class="t" style="margin-top:8px">Hover or focus only. Idle after 2 min without a signal.</p>',
-  offline: '<span class="chip"><b>storyboard</b> · offline · source unavailable</span><p class="t" style="margin-top:8px">Hover or focus only.</p>'
+  offline: '<span class="chip"><b>storyboard</b> · offline</span><p class="t" style="margin-top:8px">Hover or focus only.</p>'
 };
 const ask = t => D.asks.find(a => a.type === t);
 let h = `<div class="eyebrow">Agent Village · step 2, v2 · demo data</div>
@@ -80,11 +81,11 @@ let h = `<div class="eyebrow">Agent Village · step 2, v2 · demo data</div>
 <p class="lede">Each state is carried by four separate signals: the bot's pose, what its desk monitor shows, a status light, and the HTML layer for the three states that need you. The grayscale row is the same render with colour removed: pose and monitor alone still tell the states apart. Bots have no faces.</p>
 <div class="grid"><div class="rh hd"></div>`;
 h += S.map(s => `<div class="hd" style="color:var(--${s})">${glyph[s] ? I(glyph[s]) : `<span class="dot" style="background:var(--${s})"></span>`}${s === 'approval' ? 'Approval needed' : s === 'input' ? 'Input needed' : s}</div>`).join('');
-h += `<div class="rh"><b>Claude Code CLI</b><span>Cart on casters, one arm with a sensor head. Terracotta.</span></div>` + S.map(s => `<div><img class="st-img" src="../renders/states/station-cli-${s}.png"></div>`).join('');
-h += `<div class="rh"><b>Codex</b><span>Weighted column, telescoping mast, scanner bar. Porcelain blue.</span></div>` + S.map(s => `<div><img class="st-img" src="../renders/states/station-codex-${s}.png"></div>`).join('');
-h += `<div class="rh"><b>Grayscale check</b><span>Same renders, colour removed. Needs no colour vision and no motion.</span></div>` + S.map(s => `<div class="gray pair"><img src="../renders/states/station-cli-${s}.png"><img src="../renders/states/station-codex-${s}.png"></div>`).join('');
+h += `<div class="rh"><b>Claude Code CLI</b><span>Cart on casters, one arm with a sensor head. Terracotta.</span></div>` + S.map(s => `<div><img class="st-img" src="../renders/states/station-cli-${s}.webp"></div>`).join('');
+h += `<div class="rh"><b>Codex</b><span>Weighted column, telescoping mast, scanner bar. Porcelain blue.</span></div>` + S.map(s => `<div><img class="st-img" src="../renders/states/station-codex-${s}.webp"></div>`).join('');
+h += `<div class="rh"><b>Grayscale check</b><span>Same renders, colour removed. Needs no colour vision and no motion.</span></div>` + S.map(s => `<div class="gray pair"><img src="../renders/states/station-cli-${s}.webp"><img src="../renders/states/station-codex-${s}.webp"></div>`).join('');
 h += `<div class="rh"><b>What reads</b><span>Without colour or motion</span></div>` + S.map(s => `<div class="t">${POSE[s]}</div>`).join('');
-h += `<div class="rh"><b>Sprite frames</b><span>CLI. Same camera, scale and anchor in every frame. 280 × 280 px @2x.</span></div>` + S.map(s => `<div class="frames">${(s === 'offline' ? [0] : [0, 1, 2, 3]).map(f => `<figure><img src="../renders/states/frame-cli-${s}-f${f}.png"><figcaption>f${f}</figcaption></figure>`).join('')}</div>`).join('');
+h += `<div class="rh"><b>Sprite frames</b><span>CLI. Same camera, scale and anchor in every frame. 280 × 280 px @2x.</span></div>` + S.map(s => `<div class="frames">${(s === 'offline' ? [0] : [0, 1, 2, 3]).map(f => `<figure><div class="fw"><img src="../renders/states/frame-cli-${s}-f${f}.webp"></div><figcaption>f${f}</figcaption></figure>`).join('')}</div>`).join('');
 h += `<div class="rh"><b>HTML layer</b><span>Drawn over the scene, never baked into a sprite.</span></div>` + S.map(s => {
   const a = ask(s);
   if (!a) return `<div class="ui">${UI[s]}</div>`;

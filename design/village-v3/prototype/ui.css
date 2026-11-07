@@ -97,7 +97,7 @@ svg.i { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-widt
 .callx.approval { --c: var(--approval); } .callx.input { --c: var(--input); } .callx.error { --c: var(--error); }
 .callx .lead { position: absolute; left: -18px; bottom: 10px; width: 18px; height: 1px; background: var(--c); }
 
-.chip { position: absolute; z-index: 24; transform: translate(-50%, calc(-100% - 6px)); font: 500 11.5px var(--mono); padding: 3px 7px; background: rgba(12, 13, 15, 0.9); border: 1px solid var(--line); border-radius: 3px; white-space: nowrap; color: var(--soft); }
+.chip { position: absolute; z-index: 24; transform: translate(-50%, 10px); font: 500 11.5px var(--mono); padding: 3px 7px; background: rgba(12, 13, 15, 0.9); border: 1px solid var(--line); border-radius: 3px; white-space: nowrap; color: var(--soft); }
 .chip b { color: var(--text); font-weight: 500; }
 
 /* HUD */
@@ -175,7 +175,7 @@ svg.i { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-widt
 .agent { display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
 .agent:first-of-type { border-top: 0; }
 .agent .av { width: 34px; height: 34px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; display: grid; place-items: center; }
-.agent .av img { width: 34px; height: 34px; object-fit: cover; object-position: 50% 30%; }
+.agent .av img { width: 34px; height: 34px; object-fit: contain; }
 .agent .nm { font: 600 13.5px var(--mono); }
 .agent .ln { display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
 .stt { font: 600 11px var(--mono); color: var(--c); display: inline-flex; align-items: center; gap: 5px; }

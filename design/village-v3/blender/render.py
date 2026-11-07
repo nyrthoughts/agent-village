@@ -47,6 +47,7 @@ def autoframe(objs, margin=24, scale=1.0):
     m = cam.matrix_world.to_3x3()
     cam.location += (m @ Vector((1, 0, 0))) * dx / av.PX_PER_M + (m @ Vector((0, -1, 0))) * dy / av.PX_PER_M
     w, h = int(x1 - x0 + 2 * margin), int(y1 - y0 + 2 * margin)
+    bpy.context.view_layer.update()
     return w, h
 
 
@@ -119,9 +120,9 @@ def layered(tag, scale, focus=None, zoom=1.0, overrides=None, walker=True):
         tgt = Vector(((x0 + x1) / 2 + 0.4, (y0 + y1) / 2 + 0.2, 0.9))
         fwd = cam.matrix_world.to_3x3() @ Vector((0, 0, -1))
         cam.location = tgt - fwd * 60
-        w, h = int(w / zoom), int(h / zoom)
         w, h = focus_size
     set_frame(w, h, scale)
+    bpy.context.view_layer.update()  # refresh camera matrix before projecting anchors
     # lit screens belong to bot layers
     lit = {}
     for bid, (b, proj, src, state, st) in placed.items():
@@ -137,7 +138,8 @@ def layered(tag, scale, focus=None, zoom=1.0, overrides=None, walker=True):
     for bid in lit:
         for o in lit[bid]:
             o.hide_render = True
-    av.render_to(OUT / f"{tag}-base.png")
+    if not (OUT / f"{tag}-base.png").exists() or "rebase" in sys.argv:
+        av.render_to(OUT / f"{tag}-base.png")
     # one layer per bot, cropped to its box; its lit screen rides along
     for bid, (b, proj, src, state, st) in placed.items():
         mode_layer(b.e)
@@ -151,6 +153,8 @@ def layered(tag, scale, focus=None, zoom=1.0, overrides=None, walker=True):
         box[0] -= 20 * scale
         box[2] += 20 * scale
         crop = av.render_to(OUT / f"{tag}-bot-{bid}.png", box)
+        if crop is None:
+            continue
         meta["layers"].append({"id": bid, "file": f"{tag}-bot-{bid}.png", "x": crop[0], "y": crop[1], "w": crop[2], "h": crop[3],
                                "depth": meta["bots"][bid]["depth"]})
     (OUT / f"{tag}.json").write_text(json.dumps(meta, indent=1))
@@ -218,6 +222,7 @@ def fixed_cam(px=140):
     set_frame(px, px, 2.0)
 
 
+ONLY = dict(a.split("=") for a in sys.argv[3:] if "=" in a).get("only")
 STATES = ["working", "idle", "approval", "input", "error", "offline"]
 
 if JOB == "parked":  # reduced motion: the walker waits at its station instead of walking
@@ -239,15 +244,17 @@ elif JOB == "states":
     for src in ("cli", "codex"):
         for st in STATES:
             # full station: floor patch, desk, monitor, bot
-            w = studio(catcher=False)
+            w = studio(catcher=False, size=(2.3, 2.1))
             d = av.desk(w, "desk", (0, 0, 0), 0, seed=3)
             av.task_lamp(w, "lamp", (-0.62, -0.2, 0.74), 40)
             av.set_screen(d, st)
             b = av.BOT_FN[src](w, "bot", (0, 0.82, 0), 180, st)
             if st == "error":
                 av.warn_triangle(b, "warn", (0.5, -0.1, 0), 140)
-            frame_on(meshes(w), 2.0, 10)
+            frame_on(meshes(w), 3.5, 6)
             av.render_to(OUT / f"station-{src}-{st}.png")
+            if ONLY == "stations":
+                continue
             # frames: bot alone over a shadow catcher
             for f in range(1 if st == "offline" else 4):
                 w = studio(catcher=True, size=(1.6, 1.6))
@@ -256,10 +263,11 @@ elif JOB == "states":
                     av.warn_triangle(b, "warn", (0.5, -0.1, 0), 140)
                 fixed_cam()
                 av.render_to(OUT / f"frame-{src}-{st}-f{f}.png")
-    w = studio(catcher=True, size=(1.6, 1.6))
-    b = av.bot_app(w, "bot", (0, 0.3, 0), 200)
-    fixed_cam()
-    av.render_to(OUT / "frame-app-offline-f0.png")
+    if ONLY != "stations":
+        w = studio(catcher=True, size=(1.6, 1.6))
+        av.bot_app(w, "bot", (0, 0.3, 0), 200)
+        fixed_cam()
+        av.render_to(OUT / "frame-app-offline-f0.png")
 
 elif JOB == "props":
     items = [
@@ -292,9 +300,9 @@ elif JOB == "props":
     for name, fn in items:
         w = studio(catcher=True, size=(4.0, 3.0))
         g = fn(w)
-        frame_on(meshes(g), 2.0, 10)
+        frame_on(meshes(g), 4.0, 6)
         a = av.project((g.e.matrix_world.translation.x, g.e.matrix_world.translation.y, 0))
         av.render_to(OUT / f"{name}.png")
         sc = bpy.context.scene.render
-        meta.append({"file": f"{name}.webp", "size_2x": [sc.resolution_x, sc.resolution_y], "anchor_2x": a})
+        meta.append({"file": f"{name}.webp", "scale": 4, "size_px": [sc.resolution_x, sc.resolution_y], "anchor_px": a})
     (OUT / "props.json").write_text(json.dumps(meta, indent=1))
