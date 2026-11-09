@@ -149,7 +149,7 @@ export const geminiSource: SessionSource = {
     const sessions = new Map<string, CollectedLead>();
     for (const file of files) {
       let chats: GeminiChat[];
-      try { chats = await readGeminiFile(file); } catch { if (!result.errors.includes(UNREADABLE)) result.errors.push(UNREADABLE); continue; }
+      try { chats = await context.journals.file(file.path, file, () => readGeminiFile(file)); } catch { if (!result.errors.includes(UNREADABLE)) result.errors.push(UNREADABLE); continue; }
       for (const chat of chats) {
         const sessionId = chat.sessionId ?? file.path.split('/').at(-1)!.replace(/\.json$/, '');
         if (!SAFE_ID.test(sessionId)) continue;

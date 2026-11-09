@@ -39,7 +39,19 @@ export async function readHeadLine(path: string, limit = HEAD_BYTES): Promise<st
 /** Parsed journal tails, reused while a file's size and modification time are unchanged. */
 export class JournalCache {
   private readonly entries = new Map<string, { signature: string; data: TranscriptSnapshot }>();
+  private readonly other = new Map<string, { signature: string; data: unknown }>();
   constructor(private readonly limit = 200) {}
+
+  /** Any other parsed file (Gemini chats), recomputed only when its size or modification time changes. */
+  async file<T>(path: string, info: { mtimeMs: number; size: number }, load: () => Promise<T>): Promise<T> {
+    const signature = `${info.mtimeMs}:${info.size}`;
+    const cached = this.other.get(path);
+    if (cached?.signature === signature) return cached.data as T;
+    const data = await load();
+    this.other.set(path, { signature, data });
+    if (this.other.size > this.limit) this.other.delete(this.other.keys().next().value!);
+    return data;
+  }
 
   async transcript(path: string, tool: 'codex' | 'claude'): Promise<TranscriptSnapshot> {
     const info = await stat(path);

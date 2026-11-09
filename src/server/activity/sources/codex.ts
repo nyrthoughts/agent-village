@@ -55,6 +55,7 @@ async function indexed(root: string): Promise<Candidate[] | undefined> {
 
 async function scanned(root: string, now: number): Promise<Candidate[] | undefined> {
   try { if (!(await stat(join(root, 'sessions'))).isDirectory()) return undefined; } catch { return undefined; }
+  // Resumed sessions append to their original day folder, so every day is listed; only the file time counts.
   const files = await findFiles(join(root, 'sessions'), (name) => ROLLOUT.test(name));
   return files.filter((file) => now - file.mtimeMs < WEEK_MS).map((file) => {
     const uuid = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/i.exec(file.path)?.[1];
