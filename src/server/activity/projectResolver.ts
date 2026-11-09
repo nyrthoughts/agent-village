@@ -82,7 +82,8 @@ export function normalizeRemote(value: string | undefined): string | undefined {
     try { url = new URL(raw); } catch { return undefined; }
     if (!['ssh:', 'git+ssh:', 'ssh+git:', 'https:', 'http:', 'git:'].includes(url.protocol)) return undefined;
     host = url.hostname;
-    path = decodeURIComponent(url.pathname);
+    // A malformed escape (`/org/%`) must reject this remote, not the whole session or manifest.
+    try { path = decodeURIComponent(url.pathname); } catch { return undefined; }
   } else if (scp && !raw.startsWith('/') && !raw.startsWith('.')) {
     host = scp[1]!;
     path = scp[2]!;

@@ -39,7 +39,9 @@ describe('normalizeRemote', () => {
   it('keeps nested groups', () => expect(normalizeRemote('git@gitlab.example:team/sub/tool.git')).toBe('gitlab.example/team/sub/tool'));
 
   it.each(['', '   ', '/srv/git/warehouse.git', './warehouse', '../warehouse.git', 'file:///srv/git/warehouse.git',
-    'https://github.com', 'git@host:a/../b', 'not a url', 'javascript:alert(1)'])('rejects %j', (url) => {
+    'https://github.com', 'git@host:a/../b', 'not a url', 'javascript:alert(1)',
+    // A malformed percent escape must not throw (it would drop the session or break manifest validation).
+    'https://example.com/org/%', 'https://example.com/org/%zz.git'])('rejects %j', (url) => {
     expect(normalizeRemote(url)).toBeUndefined();
   });
 });

@@ -50,6 +50,15 @@ describe('private project observer', () => {
     expect(JSON.stringify(parsed)).not.toMatch(/SECRET|PRIVATE|partial/);
   });
 
+  it('keeps a Codex session whose recorded remote has a malformed escape', () => {
+    const parsed = parseTranscript([
+      line('session_meta', { id: 'x', git: { repository_url: 'https://example.com/org/%' } }),
+      line('response_item', { type: 'message', role: 'user', content: [{ type: 'input_text', text: 'Still readable' }] }),
+    ].join('\n'), 'codex');
+    expect(parsed.repository).toBeUndefined();
+    expect(parsed.objective).toBe('Still readable');
+  });
+
   it('uses actual lifecycle events for Codex state', () => {
     expect(parseTranscript(line('event_msg', { type: 'task_started' }), 'codex').state).toBe('working');
     expect(parseTranscript(line('event_msg', { type: 'task_complete' }), 'codex').state).toBe('waiting');
