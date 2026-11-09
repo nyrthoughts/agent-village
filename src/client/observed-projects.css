@@ -92,6 +92,14 @@
 .observed-evolution ol,.observed-session ol { padding-left:20px; }
 .observed-evolution li { padding:15px 0; border-bottom:1px solid #d7ddca; }
 .observed-new { color:#9c703d; font-size:10px; font-weight:600; }
+.observed-attention { color:#a1452f; font-weight:700; }
+.observed-projects .observed-attention { font-size:10px; }
+.observed-origin { padding:0 5px; border:1px solid #b5c1a6; background:#f2f1e6; color:#365543; font-weight:600; letter-spacing:.04em; }
+.observed-source-status { display:flex; flex-wrap:wrap; gap:4px 12px; margin:6px 0 0; padding:0; list-style:none; color:var(--journal-muted); font-size:11px; }
+.observed-source-status li::before { content:''; display:inline-block; width:7px; height:7px; margin-right:5px; background:#718759; }
+.observed-source-status--experimental::before { background:#c49a52 !important; }
+.observed-source-status--unavailable { opacity:.7; }
+.observed-source-status--unavailable::before { background:#b9bdb2 !important; }
 .observed-explanation { color:#6e7c65; }
 .observed-session { padding:20px 0; border-bottom:1px solid #d4dbc9; }
 .observed-session h3 { margin:8px 0; }

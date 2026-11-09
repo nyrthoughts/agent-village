@@ -24,7 +24,7 @@ test('groups sessions by project, explains each match and keeps unassigned sessi
   await page.getByRole('button', { name: 'Ouvrir warehouse', exact: true }).click();
   await page.getByRole('button', { name: 'Conversations', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Codex · 1' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Claude Code CLI · 1' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Claude Code · 1' })).toBeVisible();
   await expect(page.getByText('Rattachement : Même dépôt distant · github.com/demo-org/warehouse').first()).toBeVisible();
   await page.getByRole('button', { name: 'Fermer le projet' }).click();
   await page.getByRole('button', { name: 'Ouvrir Billing', exact: true }).click();

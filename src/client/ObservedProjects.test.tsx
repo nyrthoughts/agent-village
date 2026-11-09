@@ -247,9 +247,9 @@ it('groups project sessions by source with provenance, and shows owner-entered c
   fireEvent.click(screen.getByRole('button', { name: 'Ouvrir warehouse' }));
   expect(screen.getByRole('region', { name: 'Agents et observations' }).textContent).toContain('Même dépôt distant');
   fireEvent.click(screen.getByRole('button', { name: 'Conversations' }));
-  const claude = screen.getByRole('region', { name: 'Claude Code CLI' });
+  const claude = screen.getByRole('region', { name: 'Claude Code' });
   const codex = screen.getByRole('region', { name: 'Codex' });
-  expect(within(claude).getByRole('heading', { name: 'Claude Code CLI · 1' })).toBeTruthy();
+  expect(within(claude).getByRole('heading', { name: 'Claude Code · 1' })).toBeTruthy();
   expect(claude.textContent).toContain('Rattachement : Même dépôt distant (enregistré par Codex) · github.com/demo-org/warehouse');
   expect(codex.textContent).toContain('Rattachement : Même dépôt distant · github.com/demo-org/warehouse');
   expect(codex.textContent).toContain('Sans activité récente');
@@ -260,12 +260,51 @@ it('groups project sessions by source with provenance, and shows owner-entered c
   expect(screen.getByRole('region', { name: 'Unassigned sessions · 1' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Open Billing' }));
   fireEvent.click(screen.getByRole('button', { name: 'Conversations' }));
-  expect(screen.getByRole('region', { name: 'Claude Code CLI' }).textContent).toContain('Project match: Matched by your rule (title) · ^billing:');
+  expect(screen.getByRole('region', { name: 'Claude Code' }).textContent).toContain('Project match: Matched by your rule (title) · ^billing:');
   const links = screen.getByRole('region', { name: 'Claude app' });
   const link = within(links).getByRole('link', { name: 'Pricing brainstorm' });
   expect(link).toHaveAttribute('href', 'https://claude.ai/chat/demo');
   expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   expect(links.textContent).toContain('Entered by you');
   expect(links.textContent).toContain('never reads or downloads');
+});
+
+it('shows sessions by source with origin tags, needs-you signals and source status in both languages', () => {
+  const base = { state: 'idle' as const, history: [], lastActivityAt: '2026-09-04T12:00:00Z', projectKey: '/w/app', project: 'app', matchedBy: 'folder' as const, matchDetail: '/w/app' };
+  const village = observedVillage([
+    { ...base, id: 'codex:cli', tool: 'codex', title: 'Terminal task', origin: 'cli' },
+    { ...base, id: 'codex:desk', tool: 'codex', title: 'Desktop task', origin: 'desktop', attention: { kind: 'approval', at: '2026-09-04T12:00:00Z', source: 'codex-journal' } },
+    { ...base, id: 'claude:ide', tool: 'claude', title: 'Editor task', origin: 'ide', state: 'waiting', attention: { kind: 'input', at: '2026-09-04T12:00:00Z', source: 'claude-hook' } },
+    { ...base, id: 'gemini:g1', tool: 'gemini', title: 'Gemini chat', origin: 'cli' },
+    { ...base, id: 'claude:unknown', tool: 'claude', title: 'Untagged', origin: 'unknown' },
+  ], []);
+  village.observation!.sources = [
+    { id: 'codex', label: 'Codex', status: 'supported', experimental: false, rootsFound: 2, rootsChecked: 2, sessions: 2 },
+    { id: 'claude', label: 'Claude Code', status: 'supported', experimental: false, rootsFound: 1, rootsChecked: 1, sessions: 2 },
+    { id: 'gemini', label: 'Gemini CLI', status: 'experimental', experimental: true, rootsFound: 1, rootsChecked: 1, sessions: 1 },
+  ];
+  render(<ObservedProjects village={village} />);
+  const status = screen.getByRole('list', { name: 'Sources locales' });
+  expect(status.textContent).toBe('Codex · pris en chargeClaude Code · pris en chargeGemini CLI · expérimental');
+  expect(screen.getAllByText('2 vous attendent')).toHaveLength(2);
+  fireEvent.click(screen.getByRole('button', { name: 'Ouvrir app' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Conversations' }));
+  const codex = screen.getByRole('region', { name: 'Codex' });
+  expect(within(codex).getByRole('heading', { name: 'Codex · 2' })).toBeTruthy();
+  expect(codex.textContent).toContain('CODEX · CLI · Conversation principale · Sans activité récente');
+  expect(codex.textContent).toMatch(/CODEX · App de bureau · Conversation principale · Approbation demandée ·/);
+  const claude = screen.getByRole('region', { name: 'Claude Code' });
+  expect(claude.textContent).toMatch(/CLAUDE · IDE · Conversation principale · Réponse attendue ·/);
+  expect(claude.textContent).toContain('CLAUDE · Conversation principale · Sans activité récente');
+  expect(within(screen.getByRole('region', { name: 'Gemini CLI (expérimental)' })).getByRole('heading', { name: 'Gemini CLI (expérimental) · 1' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Fermer le projet' }));
+
+  fireEvent.change(screen.getByRole('combobox', { name: 'Langue / Language' }), { target: { value: 'en' } });
+  expect(screen.getByRole('list', { name: 'Local sources' }).textContent).toBe('Codex · supportedClaude Code · supportedGemini CLI · experimental');
+  fireEvent.click(screen.getByRole('button', { name: 'Open app' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Conversations' }));
+  expect(screen.getByRole('region', { name: 'Codex' }).textContent).toMatch(/CODEX · Desktop app · Lead conversation · Approval requested ·/);
+  expect(screen.getByRole('region', { name: 'Claude Code' }).textContent).toMatch(/Input requested/);
+  expect(screen.getByRole('region', { name: 'Gemini CLI (experimental)' })).toBeTruthy();
 });
 import '@testing-library/jest-dom/vitest';
