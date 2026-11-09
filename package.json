@@ -17,6 +17,7 @@
     "auth:setup": "tsx scripts/auth-setup.ts",
     "connect:claude": "tsx scripts/connect-claude.ts",
     "disconnect:claude": "tsx scripts/connect-claude.ts --remove",
+    "sources:doctor": "tsx scripts/sources-doctor.ts",
     "prebuild": "tsx scripts/export-demo.ts",
     "build": "vite build",
     "e2e": "playwright test",

@@ -26,7 +26,7 @@ describe('origin mapping', () => {
   });
 
   it.each([['cli', 'cli'], ['claude-desktop', 'desktop'], ['claude-vscode', 'ide'], ['sdk-ts', 'exec'], ['sdk-cli', 'exec'],
-    ['remote', 'cloud'], ['something-new', 'unknown'], [undefined, 'unknown']] as const)('maps Claude entrypoint %j to %s', (entrypoint, origin) => {
+    ['remote', 'cloud'], ['remote_desktop', 'cloud'], ['local_desktop', 'desktop'], ['something-new', 'unknown'], [undefined, 'unknown']] as const)('maps Claude entrypoint %j to %s', (entrypoint, origin) => {
     expect(claudeOrigin(entrypoint)).toBe(origin);
   });
 });

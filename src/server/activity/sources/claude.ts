@@ -1,5 +1,6 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import { clientValue } from '../projectObserver.js';
 import { claudeOrigin } from './origin.js';
 import { buildRoots, recent, SESSION_LIMIT, WEEK_MS, type SessionSource, type SourceCollection, type SourceContext } from './types.js';
 
@@ -84,7 +85,7 @@ export const claudeSource: SessionSource = {
           facts: { id, cwd, titles: [typeof live?.name === 'string' ? live.name : '', firstRequest ?? ''] },
           session: { ...parsed, id, tool: 'claude', role: 'lead',
             title: String(live?.name ?? parsed.objective ?? 'Claude Code').slice(0, 120), lastActivityAt,
-            origin: claudeOrigin(client?.entrypoint),
+            origin: claudeOrigin(client?.entrypoint ?? clientValue(live?.entrypoint)),
             state: live ? freshProcess ? live.status === 'busy' ? 'working' : live.status === 'idle' ? 'waiting' : 'unknown' : 'unknown' : 'idle',
             activityEvidence: freshProcess
               // Process presence is checked now; the declared state retains its own timestamp.

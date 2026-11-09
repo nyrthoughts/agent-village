@@ -35,7 +35,7 @@ export interface TranscriptSnapshot {
 export const CODEX_APPROVAL_EVENTS = ['exec_approval_request', 'apply_patch_approval_request'] as const;
 
 /** Short, printable client identifier; anything else is reduced to a placeholder. */
-function clientValue(value: unknown): string | undefined {
+export function clientValue(value: unknown): string | undefined {
   const raw = typeof value === 'string' ? value
     : value && typeof value === 'object' && !Array.isArray(value) ? Object.keys(value)[0] : undefined;
   if (!raw) return undefined;
