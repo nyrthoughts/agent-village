@@ -96,13 +96,16 @@ export function mergeLiveSessions(sessions: ObservedSession[], hooks: Worker[]):
 /**
  * Saved plans are keyed by project id. When resolution moves sessions to a new key
  * (for example from a Git root path to its remote), the plan follows only when exactly
- * one new project claims the old id and the new id has no plan yet.
+ * one new project claims the old id, the new id has no plan yet and no session still
+ * resolves to the old key (an owner rule that splits one session out of a folder project
+ * must not take the plan away from the sessions that stay).
  */
-export function planAdoptions(moves: { from: string; to: string }[], planIds: Iterable<string>): { from: string; to: string }[] {
+export function planAdoptions(moves: { from: string; to: string }[], planIds: Iterable<string>, currentKeys: Iterable<string> = []): { from: string; to: string }[] {
   const saved = new Set(planIds);
+  const stillUsed = new Set(currentKeys);
   const claims = new Map<string, Set<string>>();
   for (const move of moves) {
-    if (move.to === UNASSIGNED_KEY || move.from === move.to) continue;
+    if (move.to === UNASSIGNED_KEY || move.from === move.to || stillUsed.has(move.from)) continue;
     const from = projectId(move.from);
     const to = projectId(move.to);
     if (!saved.has(from) || saved.has(to)) continue;

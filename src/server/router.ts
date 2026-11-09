@@ -226,7 +226,7 @@ export function createRouter(options: RouterOptions) {
         try {
           saved = plans?.read() ?? {};
           // Regrouping (a new remote match or owner rule) carries an unambiguous saved plan along.
-          const adoptions = plans ? planAdoptions(snapshot.moves ?? [], Object.keys(saved)) : [];
+          const adoptions = plans ? planAdoptions(snapshot.moves ?? [], Object.keys(saved), snapshot.sessions.map((session) => session.projectKey)) : [];
           let adopted = false;
           for (const move of adoptions) adopted = plans!.adopt(move.from, move.to) || adopted;
           if (adopted) saved = plans!.read();

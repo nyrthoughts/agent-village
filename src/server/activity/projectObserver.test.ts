@@ -140,6 +140,15 @@ describe('private project observer', () => {
     expect(planAdoptions([{ from: '/w/one', to: 'remote:x/y/z' }, { from: '/w/two', to: 'remote:x/y/z' }], [projectId('/w/one'), projectId('/w/two')])).toEqual([]);
   });
 
+  it('keeps the plan with the folder project when an owner rule splits only one session out of it', () => {
+    // Two sessions in /w/notes: one is pinned to a rule, the other stays a folder project.
+    const moves = [{ from: '/w/notes', to: 'alias:Side project' }];
+    expect(planAdoptions(moves, [projectId('/w/notes')], ['/w/notes', 'alias:Side project'])).toEqual([]);
+    // Once no session resolves to the old key, the move is unambiguous again.
+    expect(planAdoptions(moves, [projectId('/w/notes')], ['alias:Side project']))
+      .toEqual([{ from: projectId('/w/notes'), to: projectId('alias:Side project') }]);
+  });
+
   it('groups conversations into one building without claiming verified progress', () => {
     const base = { tool: 'codex' as const, state: 'working' as const, projectKey: '/repo/a', project: 'Project A', title: 'Build', lastActivityAt: '2026-09-04T12:00:00Z', history: [] };
     const village = observedVillage([{ ...base, id: 'codex:1' }, { ...base, id: 'codex:2', tool: 'claude' }], []);
