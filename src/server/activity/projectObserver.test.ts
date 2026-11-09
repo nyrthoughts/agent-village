@@ -24,6 +24,15 @@ describe('private project observer', () => {
     expect(new Set(village.projects.map((project) => project.observation?.buildingFamilyIndex)).size).toBe(6);
     expect(observedVillage([sessions[4]!], [], names).projects[0]?.observation?.buildingFamilyIndex).toBe(4);
   });
+  it('carries a newer hook attention signal onto the journal session and lets a later hook clear it', () => {
+    const sessions = [{ id: 'claude:a', tool: 'claude' as const, state: 'idle' as const, projectKey: 'repo', project: 'Project', history: [], lastActivityAt: '2026-09-04T12:00:00Z' }];
+    const asked = mergeLiveSessions(sessions, [{ id: 'claude:a', tool: 'claude', state: 'waiting', lastActivityAt: '2026-09-04T12:01:00Z',
+      attention: { kind: 'approval', at: '2026-09-04T12:01:00Z', source: 'claude-hook' } }]);
+    expect(asked[0]).toMatchObject({ state: 'waiting', attention: { kind: 'approval' } });
+    const answered = mergeLiveSessions(asked, [{ id: 'claude:a', tool: 'claude', state: 'working', lastActivityAt: '2026-09-04T12:02:00Z' }]);
+    expect(answered[0]?.attention).toBeUndefined();
+  });
+
   it('attaches helpers to the project and applies newer hooks without losing reports', () => {
     const sessions = [{ id: 'claude:a', tool: 'claude' as const, state: 'unknown' as const, projectKey: 'repo', project: 'Project', attachedTaskId: 'building', history: [], summary: 'Built parser.', lastActivityAt: '2026-09-04T12:00:00Z' }];
     const result = mergeLiveSessions(sessions, [

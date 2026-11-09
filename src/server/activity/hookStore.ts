@@ -1,17 +1,26 @@
 import { basename } from 'node:path';
 import { z } from 'zod';
-import type { Worker, WorkerState } from '../../shared/activity.js';
+import type { Worker, WorkerAttention, WorkerState } from '../../shared/activity.js';
 import { redactTitle } from './redact.js';
 
 const sessionId = z.string().regex(/^[A-Za-z0-9._:-]{1,120}$/);
-export const CLAUDE_HOOK_EVENTS = ['SessionStart', 'UserPromptSubmit', 'PostToolUse', 'PostToolUseFailure',
-  'Notification', 'Stop', 'SubagentStart', 'SubagentStop', 'SessionEnd'] as const;
+export const CLAUDE_HOOK_EVENTS = ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure',
+  'Notification', 'PermissionRequest', 'Stop', 'SubagentStart', 'SubagentStop', 'SessionEnd'] as const;
+type ClaudeHookEvent = typeof CLAUDE_HOOK_EVENTS[number];
+/** Claude `Notification` types that mean the session waits for the owner. Other types change nothing. */
+const NOTIFICATION_ATTENTION: Record<string, WorkerAttention['kind']> = {
+  permission_prompt: 'approval', idle_prompt: 'input', elicitation_dialog: 'input',
+};
+/** Later events of the same session that answer or supersede a pending request. */
+const CLEARS_ATTENTION: readonly ClaudeHookEvent[] = ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'Stop', 'SessionEnd'];
 const claudeEvent = z.object({
   session_id: sessionId,
   hook_event_name: z.enum(CLAUDE_HOOK_EVENTS),
   cwd: z.string().min(1).max(2_048),
   agent_id: sessionId.optional(),
   agent_type: z.string().min(1).max(120).optional(),
+  // Only the notification type is kept; `message` and any other text are stripped.
+  notification_type: z.string().max(64).optional(),
 }); // Claude sends extra fields; Zod strips them rather than retaining prompt/tool contents.
 const openClawEvent = z.object({
   sessionId,
@@ -23,7 +32,7 @@ const openClawEvent = z.object({
 interface StoredWorker extends Worker { seenAt: number }
 
 function claudeState(event: string): WorkerState {
-  if (event === 'Stop' || event === 'Notification') return 'waiting';
+  if (event === 'Stop' || event === 'Notification' || event === 'PermissionRequest') return 'waiting';
   if (event === 'SessionEnd') return 'idle';
   return 'working';
 }
@@ -75,6 +84,11 @@ export class HookActivityStore {
     }
     const id = parsed.data.hook_event_name === 'SubagentStart' ? helperId : leadId;
     const previous = this.#records.get(id);
+    const event = parsed.data.hook_event_name;
+    const kind = event === 'PermissionRequest' ? 'approval' as const
+      : event === 'Notification' ? NOTIFICATION_ATTENTION[parsed.data.notification_type ?? ''] : undefined;
+    const attention: WorkerAttention | undefined = kind ? { kind, at: current.toISOString(), source: 'claude-hook' }
+      : CLEARS_ATTENTION.includes(event) ? undefined : previous?.attention;
     this.reserve(id);
     this.#records.set(id, {
       id,
@@ -91,6 +105,7 @@ export class HookActivityStore {
       firstSeenAt: previous?.firstSeenAt ?? current.toISOString(),
       lastActivityAt: current.toISOString(),
       activityEvidence: { level: 'recent', source: 'claude-hook', observedAt: current.toISOString() },
+      ...(attention && event !== 'SubagentStart' ? { attention } : {}),
       seenAt: current.getTime(),
     });
     return true;
