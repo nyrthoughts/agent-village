@@ -248,8 +248,11 @@ export class ProjectResolver {
 
   async resolve(session: SessionFacts, config: ResolverConfig): Promise<ProjectResolution> {
     const cwd = session.cwd ? expandHome(session.cwd, config.home) : undefined;
-    // Session-id rules and catch-all directories never need Git.
-    if (!cwd || config.rules.some((rule) => rule.sessions.includes(session.id)) || catchAllMatch(cwd, config.catchAll, true)) {
+    if (!cwd) return resolveProject(session, undefined, config);
+    // Git is probed before rule matching: a `remotes:` rule can claim a catch-all directory that is
+    // itself that repository, and the legacy key of a rule match is the Git root, not the raw cwd.
+    // Only a catch-all directory with no remote rule to try can skip the probe.
+    if (catchAllMatch(cwd, config.catchAll, true) && !config.rules.some((rule) => rule.remotes.length > 0)) {
       return resolveProject(session, undefined, config);
     }
     let git = await this.facts(cwd);

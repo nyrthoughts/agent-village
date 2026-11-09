@@ -181,7 +181,7 @@ describe('alias migration', () => {
 });
 
 describe('ProjectResolver', () => {
-  it('probes each directory once and skips Git for session rules and catch-all directories', async () => {
+  it('probes each directory once and skips Git only for catch-all directories when no remote rule exists', async () => {
     const probe = vi.fn(async (directory: string) => directory === '/w/app' ? { root: '/w/app', toplevel: '/w/app', remote: WAREHOUSE } : undefined);
     const resolver = new ProjectResolver(probe);
     const rules = config([rule('Pinned', { sessions: ['codex:pinned'] })]);
@@ -189,7 +189,22 @@ describe('ProjectResolver', () => {
     expect((await resolver.resolve({ id: 'codex:2', cwd: '/w/app' }, rules)).key).toBe(remoteKey(WAREHOUSE));
     expect((await resolver.resolve({ id: 'codex:pinned', cwd: '/w/other' }, rules)).name).toBe('Pinned');
     expect((await resolver.resolve({ id: 'codex:3', cwd: HOME }, rules)).key).toBe(UNASSIGNED_KEY);
-    expect(probe.mock.calls.map(([directory]) => directory)).toEqual(['/w/app']);
+    expect(probe.mock.calls.map(([directory]) => directory)).toEqual(['/w/app', '/w/other']);
+  });
+
+  it('lets a remote rule claim a session whose cwd is a catch-all directory that is that repository', async () => {
+    const probe = vi.fn(async (directory: string) => directory === HOME ? { root: HOME, toplevel: HOME, remote: 'github.com/demo/dotfiles' } : undefined);
+    const resolver = new ProjectResolver(probe);
+    expect(await resolver.resolve({ id: 'codex:1', cwd: HOME }, config([rule('Dotfiles', { remotes: ['github.com/demo/dotfiles'] })])))
+      .toMatchObject({ key: ruleKey('Dotfiles'), matchedBy: 'rule', matchVia: 'remote' });
+    // Without a matching remote rule, home stays a catch-all even though it is a repository.
+    expect((await resolver.resolve({ id: 'codex:2', cwd: HOME }, config([rule('Other', { remotes: [WAREHOUSE] })]))).key).toBe(UNASSIGNED_KEY);
+  });
+
+  it('computes the legacy key of a session-id rule match from the Git root, not the raw cwd', async () => {
+    const probe = vi.fn(async (directory: string) => directory === '/w/app/src' ? { root: '/w/app', toplevel: '/w/app' } : undefined);
+    const result = await new ProjectResolver(probe).resolve({ id: 'codex:pinned', cwd: '/w/app/src' }, config([rule('Pinned', { sessions: ['codex:pinned'] })]));
+    expect(result).toMatchObject({ key: ruleKey('Pinned'), matchVia: 'session', legacyKey: '/w/app' });
   });
 
   it('falls back to the main checkout when a Claude worktree folder was removed', async () => {
