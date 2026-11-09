@@ -49,7 +49,7 @@ Native workers gather near the common house because the sources identify their p
 
 ## Connect existing work
 
-Codex requires no API key. Native mode uses `sqlite3 -readonly` against its existing local index, then reads bounded transcript tails. Claude sessions come from existing journals and process metadata, including tmux when present. Nothing starts or instructs an agent.
+Codex requires no API key. Native mode uses `sqlite3 -readonly` against its existing local index, then reads bounded transcript tails. Claude sessions come from existing journals and process metadata, including tmux when present. Gemini CLI chats are read experimentally. Codex and Claude sessions from the CLI, desktop app and IDE are tagged by origin when the tool records it. Extra data folders can be added per tool; `npm run sources:doctor` prints what each source finds, without any conversation text. Nothing starts or instructs an agent.
 
 The view refreshes every five seconds while visible. It selects up to 60 root sessions per source with a seven-day recency window; running Claude sessions may be older. Codex helpers come from at most 200 parent-child metadata records, depth eight; their transcripts are not read. Claude helper coverage includes only hooks received since startup, retained for thirty minutes. Recent means a signal within two minutes, not continuous activity. Each root transcript read is capped at 4 MiB and displayed history at 24 exchanges. Reasoning and tool payloads are excluded. Original journals remain the history source; no new conversation database is created.
 
