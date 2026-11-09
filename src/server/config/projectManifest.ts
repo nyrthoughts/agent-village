@@ -26,38 +26,39 @@ const pathRef = z.preprocess((value) => value === null ? '~' : value, z.string()
 const remoteRef = z.string().trim().min(1).max(512).transform((value, context) => {
   // `host/owner/repo` is the documented short form; clone URLs are accepted too.
   const normalized = normalizeRemote(value) ?? (/^[a-z0-9.-]+\.[a-z]+\//i.test(value) ? normalizeRemote(`https://${value}`) : undefined);
-  if (!normalized) { context.addIssue({ code: z.ZodIssueCode.custom, message: 'not a recognised Git remote (expected host/owner/repo or a clone URL)' }); return z.NEVER; }
+  if (!normalized) { context.addIssue({ code: 'custom', message: 'not a recognised Git remote (expected host/owner/repo or a clone URL)' }); return z.NEVER; }
   return normalized;
 });
 const titleRef = z.string().min(1).max(200).transform((value, context) => {
   try { return new RegExp(value, 'i'); } catch {
-    context.addIssue({ code: z.ZodIssueCode.custom, message: 'invalid regular expression' });
+    context.addIssue({ code: 'custom', message: 'invalid regular expression' });
     return z.NEVER;
   }
 });
 const sessionRef = z.string().regex(/^(?:codex|claude|openclaw):[A-Za-z0-9._:-]{1,120}$/, 'expected source:id, such as codex:abc123');
-const link = z.object({
+const link = z.strictObject({
   title: z.string().trim().min(1).max(160),
   // https only: owner links become clickable anchors and must never carry javascript: or data: URLs.
-  url: z.string().max(2048).url().refine((value) => new URL(value).protocol === 'https:', 'links must use https'),
+  // zod 4 runs refinements after a failed format check, so the protocol is checked by the URL format itself.
+  url: z.url({ protocol: /^https$/, error: 'links must be valid https URLs' }).max(2048),
   source: z.enum(['claude-app', 'chatgpt', 'other']).default('other'),
-}).strict();
-const project = z.object({
+});
+const project = z.strictObject({
   name: z.string().trim().min(1).max(80),
   remotes: z.array(remoteRef).max(20).default([]),
   paths: z.array(pathRef).max(20).default([]),
   titles: z.array(titleRef).max(20).default([]),
   sessions: z.array(sessionRef).max(200).default([]),
   links: z.array(link).max(50).default([]),
-}).strict();
-export const projectManifestSchema = z.object({
+});
+export const projectManifestSchema = z.strictObject({
   projects: z.array(project).max(200).default([]),
   catchAll: z.array(pathRef).max(20).optional(),
-}).strict().superRefine((value, context) => {
+}).superRefine((value, context) => {
   const seen = new Set<string>();
   value.projects.forEach((entry, index) => {
     const name = entry.name.toLowerCase();
-    if (seen.has(name)) context.addIssue({ code: z.ZodIssueCode.custom, path: ['projects', index, 'name'], message: 'duplicate project name' });
+    if (seen.has(name)) context.addIssue({ code: 'custom', path: ['projects', index, 'name'], message: 'duplicate project name' });
     seen.add(name);
   });
 });

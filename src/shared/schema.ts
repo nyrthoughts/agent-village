@@ -96,7 +96,7 @@ export const workspaceSchema = z
     const check = (id: string, path: (string | number)[]) => {
       if (seen.has(id)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           message: `duplicate id "${id}"`,
           path,
         });

@@ -37,7 +37,7 @@ const threadSchema = z.object({
     z.object({ type: z.literal('active'), activeFlags: z.array(z.string()) }),
     z.object({ type: z.enum(['idle', 'notLoaded', 'systemError']) }),
   ]),
-  source: z.union([z.string(), z.record(z.unknown())]).optional(),
+  source: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
 });
 const threadListSchema = z.object({ data: z.array(threadSchema) });
 

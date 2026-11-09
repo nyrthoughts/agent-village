@@ -45,6 +45,7 @@ describe('parseProjectManifest', () => {
     ['projects:\n  - name: A\n    sessions: [abc123]', 'projects.0.sessions.0', 'source:id'],
     ['projects:\n  - name: A\n    links: [{ title: X, url: "javascript:alert(1)" }]', 'projects.0.links.0.url', ''],
     ['projects:\n  - name: A\n    links: [{ title: X, url: "http://example.invalid/chat" }]', 'projects.0.links.0.url', 'https'],
+    ['projects:\n  - name: A\n    links: [{ title: X, url: "not a url" }]', 'projects.0.links.0.url', 'https'],
     ['projects:\n  - name: A\n  - name: a', 'projects.1.name', 'duplicate'],
     ['projects:\n  - name: A\n    remote: [github.com/x/y]', 'projects.0', 'Unrecognized key'],
     ['project: []', '', 'Unrecognized key'],
