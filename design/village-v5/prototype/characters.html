@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Villager generator</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ui.css">
+<style>
+  .hero { margin-top: 26px; border: 2px solid var(--edge); border-radius: 8px; overflow: hidden; background: #83c450; }
+  .hero img { display: block; width: 100%; height: 470px; object-fit: cover; object-position: 50% 62%; }
+  .two .hero img { height: 100%; min-height: 380px; object-position: 50% 30%; }
+  .two .hero { display: flex; }
+  .two { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; margin-top: 18px; }
+  .rules { padding: 16px 18px; }
+  .rules h3 { font: 400 17px var(--sans); color: var(--approval); margin-bottom: 8px; }
+  .rules p, .rules li { font-size: 15px; line-height: 1.5; color: var(--soft); }
+  .rules ul { margin: 6px 0 12px 18px; }
+  .rules b { color: var(--text); font-weight: 400; }
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; }
+  .card { padding: 12px 14px; }
+  .card .id { font: 400 15px var(--sans); }
+  .card .g { font: 400 12.5px var(--sans); color: var(--muted); margin: 2px 0 8px; }
+  .card .row { display: flex; gap: 6px; flex-wrap: wrap; font-size: 13px; color: var(--soft); }
+  .card .t { padding: 1px 7px; border-radius: 4px; box-shadow: inset 0 0 0 2px var(--line-2); }
+  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; box-shadow: 0 0 0 1px #000; }
+</style>
+</head>
+<body>
+<div class="board" id="b"></div>
+<script src="data.js"></script>
+<script>window.NO_MAIN = true</script>
+<script src="app.js"></script>
+<script>
+(async () => {
+  const P = await (await fetch('../renders/personas.json')).json();
+  const fam = { human: 'Human', elf: 'Elf', dwarf: 'Dwarf', halfling: 'Halfling', beastfolk: 'Beastfolk' };
+  const guild = s => s === 'cli' ? 'Artisans guild · Claude Code CLI' : 'Scholars guild · Codex';
+  const card = p => `<div class="card win"><div class="id">${nm(p.id)}</div><div class="g">${guild(p.source)}</div>
+    <div class="row"><span class="t">${fam[p.family]}${p.ears ? ' · ' + p.ears + ' ears' : ''}</span><span class="t"><i class="sw" style="background:${p.skin}"></i>${p.family === 'beastfolk' ? 'fur' : 'skin'}</span>
+    <span class="t"><i class="sw" style="background:${p.hair_color}"></i>${p.hair}</span>${p.beard ? `<span class="t">${p.beard} beard</span>` : ''}
+    <span class="t"><i class="sw" style="background:${p.coat}"></i>${p.source === 'cli' ? 'vest' : 'robe'}</span><span class="t">${p.hat === 'none' ? 'no hat' : p.hat}</span><span class="t">${p.tool}</span>
+    ${p.glasses ? '<span class="t">glasses</span>' : ''}${p.scarf ? '<span class="t">scarf</span>' : ''}${p.satchel ? '<span class="t">satchel</span>' : ''}${p.freckles ? '<span class="t">freckles</span>' : ''}</div></div>`;
+  document.getElementById('b').innerHTML = `<div class="eyebrow">Agent Village · step 2, detailed RPG village · demo data</div>
+  <h1>Villager generator</h1>
+  <p class="lede">Every agent gets its own villager, drawn from its id: the same agent always looks the same, and a new agent gets a new face. Families, skin or fur, hair, beards, eyes, accessories and outfits are combined from a seed, so a village of fifty agents stays varied. Generated from code in <span class="mono">blender/characters.py</span>; every design is original.</p>
+  <div class="hero"><img src="../renders/lineup.webp"></div>
+  <div class="two">
+    <div class="hero" style="margin-top:0"><img src="../renders/lineup-close.webp"></div>
+    <div class="rules win"><h3>What carries meaning</h3>
+      <ul><li><b>Guild = source.</b> Artisans (warm vest, apron, tool belt, hammer, wrench or tongs) are Claude Code CLI. Scholars (cool robe, mantle, staff or book) are Codex.</li>
+      <li><b>Workstation = project.</b> A villager works in the yard of its project's house.</li>
+      <li><b>Pose, crystal and emote = state.</b> Unchanged from the states board.</li></ul>
+      <h3>What is decoration only</h3>
+      <ul><li>Family: human, elf, dwarf, halfling, beastfolk. Skin or fur tone, hair, beard, eyes, glasses, scarf, satchel, freckles, earrings.</li>
+      <li>None of it encodes data, so it can never mislead.</li></ul>
+      <h3>Owner controls (proposed)</h3>
+      <ul><li><b>Re-roll</b> a villager you do not like, or <b>pin</b> one you do. The choice is saved with the agent's id.</li></ul></div>
+  </div>
+  <h3 style="font:400 20px var(--sans);margin-top:26px">The twelve demo agents</h3>
+  <div class="cards">${P.demo.map(card).join('')}</div>`;
+  await Promise.all([...document.images].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; })));
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

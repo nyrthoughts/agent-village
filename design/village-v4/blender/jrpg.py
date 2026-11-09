@@ -645,8 +645,8 @@ def ground(world):
         c, b = Vector((px, py, 0)), Vector((ex, ey, 0))
         a = c + (b - c).normalized() * 3.35  # start beyond the plaza: no overlapping surfaces
         d = b - a
-        o = g.box(f"path{i}", (1.5, d.length + 0.8, 0.02), (0, 0, -0.008), PAL["path"], 0)  # no bevel: thin slabs bevel into broken faces
-        o.location = ((a + b) / 2).to_tuple()
+        o = g.box(f"path{i}", (1.5, d.length, 0.02), (0, 0, -0.008), PAL["path"], 0)  # no bevel: thin slabs bevel into broken faces
+        o.location = ((a + b) / 2 + Vector((0, 0, -0.006))).to_tuple()  # bottom below the grass top: no coplanar faces
         o.rotation_euler = (0, 0, math.atan2(d.y, d.x) - math.pi / 2)
     for k, v in PROJECTS.items():  # a dirt yard in front of each door, where the stations stand
         x, y = v["at"]

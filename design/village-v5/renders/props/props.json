@@ -1,0 +1,254 @@
+[
+ {
+  "file": "house-atlas.webp",
+  "scale": 3,
+  "size_px": [
+   912,
+   1197
+  ],
+  "anchor_px": [
+   456.0,
+   978.8
+  ]
+ },
+ {
+  "file": "house-privacy.webp",
+  "scale": 3,
+  "size_px": [
+   837,
+   900
+  ],
+  "anchor_px": [
+   418.5,
+   701.1
+  ]
+ },
+ {
+  "file": "house-connector.webp",
+  "scale": 3,
+  "size_px": [
+   855,
+   909
+  ],
+  "anchor_px": [
+   427.5,
+   705.6
+  ]
+ },
+ {
+  "file": "house-warehouse.webp",
+  "scale": 3,
+  "size_px": [
+   972,
+   990
+  ],
+  "anchor_px": [
+   485.9,
+   757.9
+  ]
+ },
+ {
+  "file": "house-launch.webp",
+  "scale": 3,
+  "size_px": [
+   894,
+   1188
+  ],
+  "anchor_px": [
+   447.0,
+   974.4
+  ]
+ },
+ {
+  "file": "well.webp",
+  "scale": 3,
+  "size_px": [
+   333,
+   483
+  ],
+  "anchor_px": [
+   166.5,
+   387.0
+  ]
+ },
+ {
+  "file": "tree-round.webp",
+  "scale": 3,
+  "size_px": [
+   339,
+   438
+  ],
+  "anchor_px": [
+   174.6,
+   377.1
+  ]
+ },
+ {
+  "file": "tree-pine.webp",
+  "scale": 3,
+  "size_px": [
+   444,
+   516
+  ],
+  "anchor_px": [
+   221.9,
+   455.5
+  ]
+ },
+ {
+  "file": "bush-flowers.webp",
+  "scale": 3,
+  "size_px": [
+   204,
+   207
+  ],
+  "anchor_px": [
+   120.8,
+   128.7
+  ]
+ },
+ {
+  "file": "lantern.webp",
+  "scale": 3,
+  "size_px": [
+   108,
+   345
+  ],
+  "anchor_px": [
+   54.0,
+   319.4
+  ]
+ },
+ {
+  "file": "bench.webp",
+  "scale": 3,
+  "size_px": [
+   204,
+   177
+  ],
+  "anchor_px": [
+   102.0,
+   120.4
+  ]
+ },
+ {
+  "file": "crate.webp",
+  "scale": 3,
+  "size_px": [
+   153,
+   165
+  ],
+  "anchor_px": [
+   76.5,
+   114.9
+  ]
+ },
+ {
+  "file": "barrel.webp",
+  "scale": 3,
+  "size_px": [
+   171,
+   195
+  ],
+  "anchor_px": [
+   85.5,
+   144.5
+  ]
+ },
+ {
+  "file": "sack.webp",
+  "scale": 3,
+  "size_px": [
+   141,
+   162
+  ],
+  "anchor_px": [
+   70.5,
+   110.3
+  ]
+ },
+ {
+  "file": "station-desk.webp",
+  "scale": 3,
+  "size_px": [
+   213,
+   216
+  ],
+  "anchor_px": [
+   106.4,
+   155.7
+  ]
+ },
+ {
+  "file": "station-lectern.webp",
+  "scale": 3,
+  "size_px": [
+   168,
+   195
+  ],
+  "anchor_px": [
+   97.1,
+   158.2
+  ]
+ },
+ {
+  "file": "station-anvil.webp",
+  "scale": 3,
+  "size_px": [
+   168,
+   195
+  ],
+  "anchor_px": [
+   97.1,
+   147.4
+  ]
+ },
+ {
+  "file": "villager-cli.webp",
+  "scale": 3,
+  "size_px": [
+   120,
+   252
+  ],
+  "anchor_px": [
+   64.1,
+   218.0
+  ]
+ },
+ {
+  "file": "villager-codex.webp",
+  "scale": 3,
+  "size_px": [
+   177,
+   318
+  ],
+  "anchor_px": [
+   92.3,
+   241.3
+  ]
+ },
+ {
+  "file": "stall-claude-app.webp",
+  "scale": 3,
+  "size_px": [
+   267,
+   438
+  ],
+  "anchor_px": [
+   139.7,
+   361.3
+  ]
+ },
+ {
+  "file": "signs.webp",
+  "scale": 3,
+  "size_px": [
+   459,
+   315
+  ],
+  "anchor_px": [
+   27.7,
+   153.8
+  ]
+ }
+]
