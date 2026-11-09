@@ -13,7 +13,7 @@ import type { MatchedBy, MatchVia, ObservedSession, OwnerLink } from '../shared/
 const states = { working: 'En cours', waiting: 'En attente', idle: 'Sans activité récente', unknown: 'État non confirmé' } as const;
 const matchLabels = { rule: 'Rangé par votre règle', remote: 'Même dépôt distant', 'git-root': 'Même dépôt Git', folder: 'Même dossier', unassigned: 'Non classée' } as const satisfies Record<MatchedBy, string>;
 const viaLabels = { session: 'identifiant de session', path: 'chemin', remote: 'dépôt distant', title: 'titre', recorded: 'enregistré par Codex',
-  'claude-worktree': 'worktree Claude', 'catch-all': 'dossier fourre-tout', 'no-cwd': 'aucun dossier enregistré' } as const satisfies Record<MatchVia, string>;
+  'claude-worktree': 'worktree Claude', 'catch-all': 'dossier fourre-tout', 'no-cwd': 'aucun dossier enregistré', 'unknown-hash': 'dossier Gemini non retrouvé' } as const satisfies Record<MatchVia, string>;
 // Product names are not translated.
 const sourceGroups = [['claude', 'Claude Code CLI'], ['codex', 'Codex'], ['openclaw', 'OpenClaw'], ['other', '']] as const;
 const linkSources = { 'claude-app': 'Claude app', chatgpt: 'ChatGPT', other: '' } as const satisfies Record<OwnerLink['source'], string>;

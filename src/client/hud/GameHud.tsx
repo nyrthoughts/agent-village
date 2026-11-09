@@ -6,6 +6,7 @@ interface GameHudProps { village: DerivedWorkspace; activity?: ActivitySnapshot 
 const toolMarks: Record<WorkerTool, string> = {
   codex: 'C',
   claude: 'A',
+  gemini: 'G',
   openclaw: 'O',
   other: '•',
 };

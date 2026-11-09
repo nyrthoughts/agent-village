@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { Worker, WorkerState } from '../../shared/activity.js';
+import type { Worker, WorkerAttention, WorkerState } from '../../shared/activity.js';
 import { MATCHED_BY, type ObservedSession, type ObservedUpdate } from '../../shared/observation.js';
 import type { DerivedWorkspace } from '../truth/derive.js';
 import type { ProjectPlansById } from '../../shared/projectPlan.js';
@@ -18,9 +18,31 @@ export interface TranscriptSnapshot {
   lastActivityAt?: string;
   state: WorkerState;
   history: ObservedUpdate[];
+  /**
+   * Raw client identifiers recorded by the source (Codex `originator`/`source`, Claude `entrypoint`).
+   * Used to derive `origin` and shown only by the sources doctor. Not exported to the client.
+   */
+  client?: { originator?: string; source?: string; entrypoint?: string };
+  /** Session id recorded inside the journal itself (Codex `session_meta`). */
+  sessionId?: string;
+  /** Pending approval request from a structured Codex event with no later activity. */
+  attention?: WorkerAttention;
+  /** Number of Codex approval-request events seen in the read window (doctor only). */
+  approvalEvents?: number;
 }
 
-function text(content: unknown): string {
+/** Codex rollout events that ask the owner to approve a command or a patch. Unverified on live installs. */
+export const CODEX_APPROVAL_EVENTS = ['exec_approval_request', 'apply_patch_approval_request'] as const;
+
+/** Short, printable client identifier; anything else is reduced to a placeholder. */
+function clientValue(value: unknown): string | undefined {
+  const raw = typeof value === 'string' ? value
+    : value && typeof value === 'object' && !Array.isArray(value) ? Object.keys(value)[0] : undefined;
+  if (!raw) return undefined;
+  return /^[\w .:@/+-]{1,60}$/.test(raw) ? raw : '(other)';
+}
+
+export function text(content: unknown): string {
   const raw = typeof content === 'string' ? content : Array.isArray(content)
     ? content.filter((item) => ['text', 'input_text', 'output_text'].includes(item?.type)).map((item) => item.text ?? '').join('\n') : '';
   // Read only ordinary conversation text; never export tools, reasoning or injected context.
@@ -41,9 +63,22 @@ export function parseTranscript(input: string, tool: 'codex' | 'claude'): Transc
     const at = typeof row.timestamp === 'string' && Number.isFinite(Date.parse(row.timestamp)) ? row.timestamp : undefined;
     if (typeof row.cwd === 'string') result.cwd = row.cwd;
     const payload = row.payload ?? {};
-    if (tool === 'codex' && row.type === 'session_meta' && typeof payload.git?.repository_url === 'string') {
+    if (tool === 'codex' && row.type === 'session_meta') {
       // Normalised immediately: a raw clone URL may embed credentials.
-      result.repository = normalizeRemote(payload.git.repository_url) ?? result.repository;
+      if (typeof payload.git?.repository_url === 'string') result.repository = normalizeRemote(payload.git.repository_url) ?? result.repository;
+      if (typeof payload.cwd === 'string' && payload.cwd) result.cwd = payload.cwd;
+      if (typeof payload.id === 'string' && /^[A-Za-z0-9._:-]{1,120}$/.test(payload.id)) result.sessionId = payload.id;
+      const originator = clientValue(payload.originator);
+      const source = clientValue(payload.source);
+      if (originator || source) result.client = { ...result.client, ...(originator ? { originator } : {}), ...(source ? { source } : {}) };
+    }
+    if (tool === 'claude' && typeof row.entrypoint === 'string') result.client = { ...result.client, entrypoint: clientValue(row.entrypoint) };
+    if (tool === 'codex' && (row.type === 'response_item' || (row.type === 'event_msg' && payload.type !== 'token_count'))) {
+      // A structured approval request stays pending only until any later activity is recorded.
+      if (row.type === 'event_msg' && (CODEX_APPROVAL_EVENTS as readonly string[]).includes(payload.type)) {
+        result.approvalEvents = (result.approvalEvents ?? 0) + 1;
+        if (at) result.attention = { kind: 'approval', at, source: 'codex-journal' };
+      } else if (result.attention) result.attention = undefined;
     }
     if (tool === 'codex' && row.type === 'event_msg') {
       if (payload.type === 'task_started') result.state = 'working';
@@ -79,8 +114,9 @@ export function mergeLiveSessions(sessions: ObservedSession[], hooks: Worker[]):
     if (previous) {
       const hookAt = Date.parse(hook.lastActivityAt);
       const previousAt = Date.parse(previous.activityEvidence?.observedAt ?? previous.lastActivityAt);
+      // A newer hook also carries the current "needs you" signal: absent means a later event cleared it.
       if (hookAt >= previousAt) entries.set(hook.id, { ...previous, state: hook.state, lastActivityAt: hook.lastActivityAt,
-        role: previous.role ?? hook.role, activityEvidence: hook.activityEvidence ?? previous.activityEvidence });
+        role: previous.role ?? hook.role, activityEvidence: hook.activityEvidence ?? previous.activityEvidence, attention: hook.attention });
     } else {
       const parent = hook.parentId ? entries.get(hook.parentId) : undefined;
       const key = parent?.projectKey ?? `hook:${hook.id}`;

@@ -6,11 +6,12 @@ import './worker-activity.css';
 const TOOL_LABELS: Record<WorkerTool, string> = {
   codex: 'Codex',
   claude: 'Claude',
+  gemini: 'Gemini',
   openclaw: 'OpenClaw',
   other: 'Other',
 };
 
-const TOOL_MARKS: Record<WorkerTool, string> = { codex: 'C', claude: 'A', openclaw: 'O', other: '•' };
+const TOOL_MARKS: Record<WorkerTool, string> = { codex: 'C', claude: 'A', gemini: 'G', openclaw: 'O', other: '•' };
 
 interface PixelWorkerProps {
   worker: Worker;

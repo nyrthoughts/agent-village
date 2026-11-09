@@ -198,6 +198,7 @@ const english = {
   'worktree Claude': 'Claude worktree',
   'dossier fourre-tout': 'catch-all folder',
   'aucun dossier enregistré': 'no folder recorded',
+  'dossier Gemini non retrouvé': 'Gemini folder not found',
   'Sessions non classées': 'Unassigned sessions',
   'Signal de cycle de vie seul · projet à identifier': 'Lifecycle signal only · project not identified yet',
   'Mon projet': 'My project',

@@ -246,6 +246,12 @@ export class ProjectResolver {
     return facts;
   }
 
+  /** Repository roots and worktree tops already probed; candidates for sources that record only a folder hash. */
+  async knownDirectories(): Promise<string[]> {
+    const facts = await Promise.all([...this.cache.values()].map((entry) => entry.facts));
+    return facts.flatMap((entry) => [entry?.root, entry?.toplevel].filter((path): path is string => Boolean(path)));
+  }
+
   async resolve(session: SessionFacts, config: ResolverConfig): Promise<ProjectResolution> {
     const cwd = session.cwd ? expandHome(session.cwd, config.home) : undefined;
     if (!cwd) return resolveProject(session, undefined, config);

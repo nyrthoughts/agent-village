@@ -233,6 +233,7 @@ export function createRouter(options: RouterOptions) {
         } catch { errors.push('Objectifs privés illisibles. Aucune progression déduite.'); }
         const village = observedVillage(snapshot.sessions, errors, options.focusProjects, saved, snapshot.declared);
         if ('coverage' in snapshot) village.observation!.coverage = snapshot.coverage as string[];
+        if (snapshot.sources) village.observation!.sources = snapshot.sources;
         json(response, 200, village); return;
       }
       const loaded = loadWorkspace(options.villagePath);

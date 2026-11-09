@@ -9,7 +9,12 @@ export interface ObservedUpdate {
 export const MATCHED_BY = ['rule', 'remote', 'git-root', 'folder', 'unassigned'] as const;
 export type MatchedBy = typeof MATCHED_BY[number];
 /** Refines `matchedBy`: which rule field matched, or which fallback applied. */
-export type MatchVia = 'session' | 'path' | 'remote' | 'title' | 'recorded' | 'claude-worktree' | 'catch-all' | 'no-cwd';
+export type MatchVia = 'session' | 'path' | 'remote' | 'title' | 'recorded' | 'claude-worktree' | 'catch-all' | 'no-cwd' | 'unknown-hash';
+export type SourceId = 'codex' | 'claude' | 'gemini';
+/** supported: tested reader; experimental: format assumed from public behaviour; unavailable: no root found. */
+export type SourceStatus = 'supported' | 'experimental' | 'unavailable';
+/** What a local source reader found in this snapshot. Paths are never exported. */
+export interface ObservedSource { id: SourceId; label: string; status: SourceStatus; experimental: boolean; rootsFound: number; rootsChecked: number; sessions: number }
 export type OwnerLinkSource = 'claude-app' | 'chatgpt' | 'other';
 /** A chat the app cannot read, entered by the owner in projects.yaml. Never fetched. */
 export interface OwnerLink { title: string; url: string; source: OwnerLinkSource }

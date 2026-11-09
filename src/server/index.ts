@@ -55,7 +55,7 @@ async function main(): Promise<void> {
     amcEndpoint: process.env.AMC_ENDPOINT,
     demoActivityPath: resolve(process.env.AMC_FIXTURE ?? 'fixtures/amc/dashboard.nominal.json'),
     nativeActivity: mode === 'native' ? nativeActivity : undefined,
-    localSessions: mode === 'native' ? new LocalSessions({ aliases: JSON.parse(process.env.VILLAGE_PROJECT_ALIASES ?? '{}'),
+    localSessions: mode === 'native' ? new LocalSessions({ env: process.env, aliases: JSON.parse(process.env.VILLAGE_PROJECT_ALIASES ?? '{}'),
       manifestPath: join(process.env.VILLAGE_AUTH_DIR ?? DEFAULT_AUTH_DIRECTORY, MANIFEST_FILE) }) : undefined,
     focusProjects: JSON.parse(process.env.VILLAGE_FOCUS_PROJECTS ?? '[]'),
   });

@@ -34,6 +34,16 @@ describe('parseProjectManifest', () => {
     ]);
   });
 
+  it('reads extra local source roots and accepts Gemini session ids', () => {
+    const result = parseProjectManifest('projects:\n  - name: A\n    sessions: [gemini:abc-1]\nsources:\n  codex: { homes: [~/alt/.codex] }\n  claude: { dirs: [/srv/claude] }\n  gemini: { dirs: [] }\n', HOME);
+    if (!result.ok) throw new Error(JSON.stringify(result.errors));
+    expect(result.manifest.sources).toEqual({ codex: [`${HOME}/alt/.codex`], claude: ['/srv/claude'] });
+    expect(result.manifest.rules[0]?.sessions).toEqual(['gemini:abc-1']);
+    const bad = parseProjectManifest('sources:\n  codex: { dirs: [~/x] }\n', HOME);
+    expect(bad.ok).toBe(false);
+    if (!bad.ok) expect(bad.errors[0]).toMatchObject({ path: 'sources.codex' });
+  });
+
   it('accepts an empty file and leaves catch-all defaults to the caller', () => {
     expect(parseProjectManifest('', HOME)).toEqual({ ok: true, manifest: { rules: [], catchAll: undefined, declared: [] } });
   });

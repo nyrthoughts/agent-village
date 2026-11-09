@@ -23,7 +23,21 @@ it('discovers an existing Claude tmux session without waiting for a new hook', a
   expect(session?.state).toBe('working');
   expect(session?.project).toBe('Product Feedback');
   expect(session?.activityEvidence).toMatchObject({ level: 'confirmed', source: 'claude-process' });
+  // A tool that is not installed is reported as an unavailable source, not as an error.
+  expect(result.errors).toEqual([]);
+  expect(result.sources).toEqual([
+    expect.objectContaining({ id: 'codex', status: 'unavailable', rootsFound: 0, rootsChecked: 1, sessions: 0 }),
+    expect.objectContaining({ id: 'claude', status: 'supported', rootsFound: 1, sessions: 1 }),
+    expect.objectContaining({ id: 'gemini', status: 'unavailable', experimental: true }),
+  ]);
+});
+
+it('reports an existing Codex root whose index and rollouts are both unreadable', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'village-codex-empty-')); directories.push(home);
+  await mkdir(join(home, '.codex'), { recursive: true });
+  const result = await new LocalSessions({ home }).snapshot();
   expect(result.errors).toContain('Codex : index local inaccessible');
+  expect(result.sources[0]).toMatchObject({ id: 'codex', status: 'supported', rootsFound: 1 });
 });
 
 it('reads real Codex index rows read-only and restores history after observer restart', async () => {

@@ -3,6 +3,7 @@ import { parse } from 'yaml';
 import { z } from 'zod';
 import { expandHome, normalizeRemote, ruleKey, type DeclaredProject, type ProjectRule } from '../activity/projectResolver.js';
 import type { LoadError } from './load.js';
+import type { SourceId } from '../../shared/observation.js';
 
 /**
  * Optional owner file `projects.yaml` in the private directory (VILLAGE_AUTH_DIR).
@@ -15,6 +16,10 @@ import type { LoadError } from './load.js';
  *     sessions: [codex:abc123]
  *     links: [{ title: Pricing brainstorm, url: "https://claude.ai/chat/...", source: claude-app }]
  * catchAll: [~, /tmp, /tmp/**]
+ * sources:                       # extra local roots to read, besides the defaults
+ *   codex: { homes: [~/alt/.codex] }
+ *   claude: { dirs: [~/alt/.claude] }
+ *   gemini: { dirs: [~/alt/.gemini] }
  */
 export const MANIFEST_FILE = 'projects.yaml';
 export const MANIFEST_ERROR_PREFIX = 'Manifeste projects.yaml : ';
@@ -35,7 +40,7 @@ const titleRef = z.string().min(1).max(200).transform((value, context) => {
     return z.NEVER;
   }
 });
-const sessionRef = z.string().regex(/^(?:codex|claude|openclaw):[A-Za-z0-9._:-]{1,120}$/, 'expected source:id, such as codex:abc123');
+const sessionRef = z.string().regex(/^(?:codex|claude|gemini|openclaw):[A-Za-z0-9._:-]{1,120}$/, 'expected source:id, such as codex:abc123');
 const link = z.strictObject({
   title: z.string().trim().min(1).max(160),
   // https only: owner links become clickable anchors and must never carry javascript: or data: URLs.
@@ -51,9 +56,16 @@ const project = z.strictObject({
   sessions: z.array(sessionRef).max(200).default([]),
   links: z.array(link).max(50).default([]),
 });
+const roots = z.array(pathRef).max(20).default([]);
+const sources = z.strictObject({
+  codex: z.strictObject({ homes: roots }).optional(),
+  claude: z.strictObject({ dirs: roots }).optional(),
+  gemini: z.strictObject({ dirs: roots }).optional(),
+});
 export const projectManifestSchema = z.strictObject({
   projects: z.array(project).max(200).default([]),
   catchAll: z.array(pathRef).max(20).optional(),
+  sources: sources.optional(),
 }).superRefine((value, context) => {
   const seen = new Set<string>();
   value.projects.forEach((entry, index) => {
@@ -63,7 +75,13 @@ export const projectManifestSchema = z.strictObject({
   });
 });
 
-export interface LoadedManifest { rules: ProjectRule[]; catchAll?: string[]; declared: DeclaredProject[] }
+export interface LoadedManifest {
+  rules: ProjectRule[];
+  catchAll?: string[];
+  declared: DeclaredProject[];
+  /** Extra local roots per source, expanded. Absent when the manifest declares none. */
+  sources?: Partial<Record<SourceId, string[]>>;
+}
 export type ManifestResult = { ok: true; manifest: LoadedManifest } | { ok: false; errors: LoadError[] };
 
 /** Pure: YAML text to resolver rules. Paths are expanded against `home`. */
@@ -74,12 +92,16 @@ export function parseProjectManifest(text: string, home: string): ManifestResult
   }
   const result = projectManifestSchema.safeParse(raw ?? {});
   if (!result.success) return { ok: false, errors: result.error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message })) };
-  const { projects, catchAll } = result.data;
+  const { projects, catchAll, sources: extra } = result.data;
+  const expand = (paths: string[] | undefined) => paths?.length ? paths.map((path) => expandHome(path, home)) : undefined;
+  const sourceRoots = Object.fromEntries(Object.entries({ codex: expand(extra?.codex?.homes), claude: expand(extra?.claude?.dirs),
+    gemini: expand(extra?.gemini?.dirs) }).filter(([, paths]) => paths)) as Partial<Record<SourceId, string[]>>;
   return { ok: true, manifest: {
     rules: projects.map((entry) => ({ name: entry.name, sessions: entry.sessions, remotes: entry.remotes,
       paths: entry.paths.map((path) => expandHome(path, home)), titles: entry.titles })),
     catchAll: catchAll?.map((path) => expandHome(path, home)),
     declared: projects.map((entry) => ({ key: ruleKey(entry.name), name: entry.name, links: entry.links })),
+    ...(Object.keys(sourceRoots).length ? { sources: sourceRoots } : {}),
   } };
 }
 
