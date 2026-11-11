@@ -1,0 +1,793 @@
+{
+ "version": "design-v2-2026-11-07",
+ "status": "proposal, not validated",
+ "source": "blender/av.py + blender/render.py (Blender 5.2, Cycles). No image model, no downloaded asset.",
+ "projection": {
+  "type": "orthographic 2:1 isometric",
+  "camera_rotation_deg": [
+   60,
+   0,
+   135
+  ],
+  "elevation_deg": 30,
+  "tile_px_1x": [
+   64,
+   32
+  ],
+  "px_per_m_screen_1x": 45.25,
+  "z_px_per_m_1x": 39.19,
+  "formula": "screen = ((y - x) * 32, (x + y) * 16 - z * 39.19), world origin at the floor's back corner"
+ },
+ "export": {
+  "format": "WebP with alpha, quality 90, @2x (zoom @3x), sRGB",
+  "rules": [
+   "no baked text: monitors show abstract bars",
+   "no secrets or transcripts",
+   "constant camera and scale",
+   "bot layers rendered against the scene as a shadow catcher",
+   "painter order: ascending depth = x + y"
+  ]
+ },
+ "assets": [
+  {
+   "file": "renders/scene/scene-base.webp",
+   "group": "layer",
+   "role": "Whole floor, no bots, monitors off",
+   "size_2x": [
+    2338,
+    1462
+   ],
+   "anchor_rule": "frame origin = top-left of the scene",
+   "frames": 1
+  },
+  {
+   "file": "renders/scene/scene-bot-graph-map.webp",
+   "group": "bot layer",
+   "role": "graph-map \u00b7 cli \u00b7 working \u00b7 demo",
+   "size_2x": [
+    250,
+    225
+   ],
+   "offset_2x": [
+    911,
+    239
+   ],
+   "anchor_2x": [
+    1009.6,
+    400.0
+   ],
+   "depth": 2.99,
+   "frames": 1
+  },
+  {
+   "file": "renders/scene/scene-bot-entity-audit.webp",
+   "group": "bot layer",
+   "role": "entity-audit \u00b7 codex \u00b7 working \u00b7 demo",
+   "size_2x": [
+    241,
+    236
+   ],
+   "offset_2x": [
+    1023,
+    291
+   ],
+   "anchor_2x": [
+    1124.8,
+    457.6
+   ],
+   "depth": 4.79,
+   "frames": 1
+  },
+  {
+   "file": "renders/scene/scene-bot-privacy-guard.webp",
+   "group": "bot layer",
+   "role": "privacy-guard \u00b7 cli \u00b7 input \u00b7 demo",
+   "size_2x": [
+    249,
+    226
+   ],
+   "offset_2x": [
+    1304,
+    435
+   ],
+   "anchor_2x": [
+    1403.2,
+    596.8
+   ],
+   "depth": 9.14,
+   "frames": 1
+  },
+  {
+   "file": "renders/scene/scene-bot-redaction-check.webp",
+   "group": "bot layer",
+   "role": "redaction-check \u00b7 codex \u00b7 working \u00b7 demo",
+   "size_2x": [
+    252,
+    231
+   ],
+   "offset_2x": [
+    1397,
+    483
+   ],
+   "anchor_2x": [
+    1499.2,
+    644.8
+   ],
+   "depth": 10.64,
+   "frames": 1
+  },
+  {
+   "file": "renders/scene/scene-bot-partner-connector.webp",
+   "group": "bot layer",
+   "role": "partner-connector \u00b7 cli \u00b7 working \u00b7 demo",
+   "size_2x": [
+    238,
+    244
+   ],
+   "offset_2x": [
+    1645,
+    589
+   ],
+   "anchor_2x": [
+    1743.7,
+    768.9
+   ],
+   "depth": 14.52,
+   "frames": 1
+  },
+  {
+   "file": "renders/scene/scene-bot-tool-schema.webp",
+   "group": "bot layer",
+   "role": "tool-schema \u00b7 cli \u00b7 error \u00b7 demo",
+   "size_2x": [
+    237,
+    260
+   ],
+   "offset_2x": [
+    1742,
+    637
+   ],
+   "anchor_2x": [
+    1839.7,
+    816.9
+   ],
+   "depth": 16.02,
+   "frames": 1
+  },
+  {
+   "file": "renders/scene/scene-bot-model-refresh.webp",
+   "group": "bot layer",
+   "role": "model-refresh \u00b7 cli \u00b7 approval \u00b7 demo",
+   "size_2x": [
+    246,
+    228
+   ],
+   "offset_2x": [
+    562,
+    518
+   ],
+   "anchor_2x": [
+    709.5,
+    682.5
+   ],
+   "depth": 11.82,
+   "frames": 1
+  },
+  {
+   "file": "renders/scene/scene-bot-segment-models.webp",
+   "group": "bot layer",
+   "role": "segment-models \u00b7 codex \u00b7 working \u00b7 demo",
+   "size_2x": [
+    252,
+    230
+   ],
+   "offset_2x": [
+    444,
+    579
+   ],
+   "anchor_2x": [
+    594.3,
+    740.1
+   ],
+   "depth": 13.62,
+   "frames": 1
+  },
+  {
+   "file": "renders/scene/scene-bot-warehouse-qa.webp",
+   "group": "bot layer",
+   "role": "warehouse-qa \u00b7 cli \u00b7 input \u00b7 demo",
+   "size_2x": [
+    249,
+    225
+   ],
+   "offset_2x": [
+    744,
+    569
+   ],
+   "anchor_2x": [
+    842.6,
+    729.9
+   ],
+   "depth": 13.3,
+   "frames": 1
+  },
+  {
+   "file": "renders/scene/scene-bot-landing-review.webp",
+   "group": "bot layer",
+   "role": "landing-review \u00b7 cli \u00b7 working \u00b7 demo",
+   "size_2x": [
+    246,
+    226
+   ],
+   "offset_2x": [
+    1017,
+    734
+   ],
+   "anchor_2x": [
+    1163.9,
+    896.9
+   ],
+   "depth": 18.52,
+   "frames": 1
+  },
+  {
+   "file": "renders/scene/scene-bot-outreach-copy.webp",
+   "group": "bot layer",
+   "role": "outreach-copy \u00b7 codex \u00b7 input \u00b7 demo",
+   "size_2x": [
+    247,
+    242
+   ],
+   "offset_2x": [
+    891,
+    788
+   ],
+   "anchor_2x": [
+    1035.9,
+    960.9
+   ],
+   "depth": 20.52,
+   "frames": 1
+  },
+  {
+   "file": "renders/scene/scene-bot-claude-app.webp",
+   "group": "bot layer",
+   "role": "claude-app \u00b7 app \u00b7 offline \u00b7 demo",
+   "size_2x": [
+    228,
+    179
+   ],
+   "offset_2x": [
+    529,
+    398
+   ],
+   "anchor_2x": [
+    660.2,
+    510.7
+   ],
+   "depth": 6.45,
+   "frames": 1
+  },
+  {
+   "file": "renders/scene/scene-bot-release-notes.webp",
+   "group": "bot layer",
+   "role": "release-notes \u00b7 codex \u00b7 idle \u00b7 demo",
+   "size_2x": [
+    197,
+    213
+   ],
+   "offset_2x": [
+    1179,
+    674
+   ],
+   "anchor_2x": [
+    1277.8,
+    819.5
+   ],
+   "depth": 16.1,
+   "frames": 1
+  },
+  {
+   "file": "renders/props/desk.webp",
+   "group": "prop",
+   "role": "desk",
+   "size_2x": [
+    176,
+    180
+   ],
+   "anchor_2x": [
+    88.0,
+    132.4
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/task-lamp.webp",
+   "group": "prop",
+   "role": "task-lamp",
+   "size_2x": [
+    68,
+    60
+   ],
+   "anchor_2x": [
+    18.9,
+    44.6
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/floor-lamp.webp",
+   "group": "prop",
+   "role": "floor-lamp",
+   "size_2x": [
+    74,
+    176
+   ],
+   "anchor_2x": [
+    37.0,
+    154.3
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/plant-floor.webp",
+   "group": "prop",
+   "role": "plant-floor",
+   "size_2x": [
+    72,
+    158
+   ],
+   "anchor_2x": [
+    35.9,
+    135.8
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/plant-desk.webp",
+   "group": "prop",
+   "role": "plant-desk",
+   "size_2x": [
+    44,
+    58
+   ],
+   "anchor_2x": [
+    22.4,
+    42.0
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/shelving-archive.webp",
+   "group": "prop",
+   "role": "shelving-archive",
+   "size_2x": [
+    182,
+    266
+   ],
+   "anchor_2x": [
+    92.4,
+    215.3
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/shelving-bins.webp",
+   "group": "prop",
+   "role": "shelving-bins",
+   "size_2x": [
+    174,
+    220
+   ],
+   "anchor_2x": [
+    90.2,
+    172.7
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/pinboard.webp",
+   "group": "prop",
+   "role": "pinboard",
+   "size_2x": [
+    154,
+    166
+   ],
+   "anchor_2x": [
+    77.0,
+    200.6
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/lockers.webp",
+   "group": "prop",
+   "role": "lockers",
+   "size_2x": [
+    158,
+    242
+   ],
+   "anchor_2x": [
+    79.0,
+    196.7
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/filing-cabinet.webp",
+   "group": "prop",
+   "role": "filing-cabinet",
+   "size_2x": [
+    92,
+    162
+   ],
+   "anchor_2x": [
+    46.0,
+    132.8
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/safe.webp",
+   "group": "prop",
+   "role": "safe",
+   "size_2x": [
+    102,
+    136
+   ],
+   "anchor_2x": [
+    51.0,
+    105.2
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/shredder.webp",
+   "group": "prop",
+   "role": "shredder",
+   "size_2x": [
+    68,
+    98
+   ],
+   "anchor_2x": [
+    34.0,
+    75.6
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/workbench.webp",
+   "group": "prop",
+   "role": "workbench",
+   "size_2x": [
+    224,
+    276
+   ],
+   "anchor_2x": [
+    111.9,
+    215.3
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/cable-spool.webp",
+   "group": "prop",
+   "role": "cable-spool",
+   "size_2x": [
+    74,
+    106
+   ],
+   "anchor_2x": [
+    38.8,
+    78.2
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/server-rack.webp",
+   "group": "prop",
+   "role": "server-rack",
+   "size_2x": [
+    126,
+    234
+   ],
+   "anchor_2x": [
+    63.0,
+    198.0
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/pallet-rack.webp",
+   "group": "prop",
+   "role": "pallet-rack",
+   "size_2x": [
+    208,
+    296
+   ],
+   "anchor_2x": [
+    103.9,
+    238.1
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/whiteboard.webp",
+   "group": "prop",
+   "role": "whiteboard",
+   "size_2x": [
+    168,
+    240
+   ],
+   "anchor_2x": [
+    84.1,
+    192.6
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/sofa.webp",
+   "group": "prop",
+   "role": "sofa",
+   "size_2x": [
+    208,
+    162
+   ],
+   "anchor_2x": [
+    104.1,
+    109.5
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/coffee-table.webp",
+   "group": "prop",
+   "role": "coffee-table",
+   "size_2x": [
+    132,
+    108
+   ],
+   "anchor_2x": [
+    66.0,
+    72.5
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/reading-table.webp",
+   "group": "prop",
+   "role": "reading-table",
+   "size_2x": [
+    196,
+    164
+   ],
+   "anchor_2x": [
+    98.0,
+    114.2
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/warning-triangle.webp",
+   "group": "prop",
+   "role": "warning-triangle",
+   "size_2x": [
+    40,
+    54
+   ],
+   "anchor_2x": [
+    18.8,
+    37.5
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/bot-cli.webp",
+   "group": "prop",
+   "role": "bot-cli",
+   "size_2x": [
+    114,
+    156
+   ],
+   "anchor_2x": [
+    67.2,
+    130.9
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/bot-codex.webp",
+   "group": "prop",
+   "role": "bot-codex",
+   "size_2x": [
+    100,
+    178
+   ],
+   "anchor_2x": [
+    50.0,
+    146.6
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/props/bot-app-dock.webp",
+   "group": "prop",
+   "role": "bot-app-dock",
+   "size_2x": [
+    132,
+    132
+   ],
+   "anchor_2x": [
+    44.3,
+    103.0
+   ],
+   "anchor_rule": "floor point under the prop origin",
+   "frames": 1
+  },
+  {
+   "file": "renders/states/frame-cli-working-f[0-3].webp",
+   "group": "sprite frames",
+   "role": "cli \u00b7 working",
+   "size_2x": [
+    280,
+    280
+   ],
+   "anchor_2x": "fixed: same camera target for every frame",
+   "frames": 4
+  },
+  {
+   "file": "renders/states/frame-cli-idle-f[0-3].webp",
+   "group": "sprite frames",
+   "role": "cli \u00b7 idle",
+   "size_2x": [
+    280,
+    280
+   ],
+   "anchor_2x": "fixed: same camera target for every frame",
+   "frames": 4
+  },
+  {
+   "file": "renders/states/frame-cli-approval-f[0-3].webp",
+   "group": "sprite frames",
+   "role": "cli \u00b7 approval",
+   "size_2x": [
+    280,
+    280
+   ],
+   "anchor_2x": "fixed: same camera target for every frame",
+   "frames": 4
+  },
+  {
+   "file": "renders/states/frame-cli-input-f[0-3].webp",
+   "group": "sprite frames",
+   "role": "cli \u00b7 input",
+   "size_2x": [
+    280,
+    280
+   ],
+   "anchor_2x": "fixed: same camera target for every frame",
+   "frames": 4
+  },
+  {
+   "file": "renders/states/frame-cli-error-f[0-3].webp",
+   "group": "sprite frames",
+   "role": "cli \u00b7 error",
+   "size_2x": [
+    280,
+    280
+   ],
+   "anchor_2x": "fixed: same camera target for every frame",
+   "frames": 4
+  },
+  {
+   "file": "renders/states/frame-cli-offline-f[0-0].webp",
+   "group": "sprite frames",
+   "role": "cli \u00b7 offline",
+   "size_2x": [
+    280,
+    280
+   ],
+   "anchor_2x": "fixed: same camera target for every frame",
+   "frames": 1
+  },
+  {
+   "file": "renders/states/frame-codex-working-f[0-3].webp",
+   "group": "sprite frames",
+   "role": "codex \u00b7 working",
+   "size_2x": [
+    280,
+    280
+   ],
+   "anchor_2x": "fixed: same camera target for every frame",
+   "frames": 4
+  },
+  {
+   "file": "renders/states/frame-codex-idle-f[0-3].webp",
+   "group": "sprite frames",
+   "role": "codex \u00b7 idle",
+   "size_2x": [
+    280,
+    280
+   ],
+   "anchor_2x": "fixed: same camera target for every frame",
+   "frames": 4
+  },
+  {
+   "file": "renders/states/frame-codex-approval-f[0-3].webp",
+   "group": "sprite frames",
+   "role": "codex \u00b7 approval",
+   "size_2x": [
+    280,
+    280
+   ],
+   "anchor_2x": "fixed: same camera target for every frame",
+   "frames": 4
+  },
+  {
+   "file": "renders/states/frame-codex-input-f[0-3].webp",
+   "group": "sprite frames",
+   "role": "codex \u00b7 input",
+   "size_2x": [
+    280,
+    280
+   ],
+   "anchor_2x": "fixed: same camera target for every frame",
+   "frames": 4
+  },
+  {
+   "file": "renders/states/frame-codex-error-f[0-3].webp",
+   "group": "sprite frames",
+   "role": "codex \u00b7 error",
+   "size_2x": [
+    280,
+    280
+   ],
+   "anchor_2x": "fixed: same camera target for every frame",
+   "frames": 4
+  },
+  {
+   "file": "renders/states/frame-codex-offline-f[0-0].webp",
+   "group": "sprite frames",
+   "role": "codex \u00b7 offline",
+   "size_2x": [
+    280,
+    280
+   ],
+   "anchor_2x": "fixed: same camera target for every frame",
+   "frames": 1
+  },
+  {
+   "file": "renders/states/frame-app-offline-f0.webp",
+   "group": "sprite frames",
+   "role": "Claude app dock \u00b7 offline only",
+   "size_2x": [
+    280,
+    280
+   ],
+   "frames": 1
+  }
+ ]
+}

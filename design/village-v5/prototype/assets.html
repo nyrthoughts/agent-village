@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Asset sheet</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ui.css">
+<style>
+  h3 { font: 600 17px var(--sans); margin: 34px 0 12px; display: flex; align-items: baseline; gap: 12px; }
+  h3 small { font: 500 12px var(--mono); color: var(--muted); }
+  .row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .cell { border: 1px solid var(--line); border-radius: 5px; overflow: hidden; background: var(--surface); }
+  .pv { position: relative; height: 230px; overflow: hidden; background:
+      linear-gradient(45deg, #6fa046 25%, transparent 25%, transparent 75%, #6fa046 75%) 0 0 / 16px 16px,
+      linear-gradient(45deg, #6fa046 25%, #7aad4e 25%, #7aad4e 75%, #6fa046 75%) 8px 8px / 16px 16px; }
+  .pv .wrap { position: absolute; left: 50%; bottom: 22px; }
+  .pv img { position: absolute; display: block; }
+  .pv .x { position: absolute; width: 11px; height: 11px; transform: translate(-5px, -5px); }
+  .pv .x::before, .pv .x::after { content: ''; position: absolute; background: #ff4d5a; }
+  .pv .x::before { left: 5px; top: 0; width: 1px; height: 11px; }
+  .pv .x::after { top: 5px; left: 0; height: 1px; width: 11px; }
+  .meta { padding: 10px 12px 12px; border-top: 1px solid var(--line); }
+  .meta b { font: 600 12.5px var(--mono); display: block; }
+  .meta span { font: 500 11.5px var(--mono); color: var(--muted); display: block; margin-top: 3px; }
+  .pipe { display: grid; grid-template-columns: 1fr 40px 1fr 40px 1fr; align-items: center; margin-top: 26px; border: 1px solid var(--line); border-radius: 6px; padding: 18px; gap: 0; }
+  .pipe figure { text-align: center; }
+  .pipe .box { height: 260px; position: relative; overflow: hidden; border-radius: 4px; background: #08090a; }
+  .pipe .box img { position: absolute; }
+  .pipe figcaption { font: 500 12px var(--mono); color: var(--soft); margin-top: 8px; }
+  .pipe .op { text-align: center; font: 600 22px var(--sans); color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="board" id="b"></div>
+<script src="data.js"></script>
+<script>window.NO_MAIN = true</script>
+<script src="app.js"></script>
+<script>
+(async () => {
+  const props = await (await fetch('../renders/props/props.json')).json();
+  const J = await (await fetch('../renders/scene/scene.json')).json();
+  const by = Object.fromEntries(props.map(p => [p.file.replace('.webp', ''), p]));
+  const groups = [
+    ['Houses', 'one per project: roof colour and sign set the identity', ['house-atlas', 'house-privacy', 'house-connector', 'house-warehouse', 'house-launch']],
+    ['Villagers and the Claude app stall', 'shown idle at f0; all frames on the states board', ['villager-cli', 'villager-codex', 'stall-claude-app', 'station-anvil', 'station-lectern', 'station-desk']],
+    ['Village props', 'shared by every project', ['well', 'tree-round', 'tree-pine', 'bush-flowers', 'lantern', 'bench']],
+    ['Yard props', 'stacked by the warehouse and the workshop', ['crate', 'barrel', 'sack']]
+  ];
+  const SUB = { 'house-atlas': 'Atlas · stone, blue roof, 2 floors', 'house-privacy': 'Privacy Desk · stone, green roof', 'house-connector': 'Connector Lab · plaster, orange roof',
+    'house-warehouse': 'Warehouse · planks, red roof', 'house-launch': 'Launch Studio · plaster, purple roof', 'signs': 'book · key · gear · sack · flag, no text',
+    'villager-cli': 'Claude Code CLI · artisan, generated', 'villager-codex': 'Codex · scholar, generated', 'stall-claude-app': 'Claude app · closed until a source exists',
+    'station-anvil': 'workstation + state crystal', 'station-lectern': 'workstation + state crystal', 'station-desk': 'workstation + state crystal',
+    'well': 'plaza centrepiece', 'tree-round': 'border and scatter', 'tree-pine': 'border and scatter', 'bush-flowers': 'three flower colours', 'lantern': 'plaza', 'bench': 'plaza',
+    'crate': 'yard', 'barrel': 'yard', 'sack': 'yard' };
+  const k = 0.66; // 3x renders shown at 2x the 1x size
+  const cell = n => {
+    const p = by[n];
+    const [w, h] = p.size_px, [ax, ay] = p.anchor_px;
+    const fit = Math.min(1, 196 / (h * k), 236 / (w * k));
+    const s = k * fit;
+    return `<div class="cell"><div class="pv"><div class="wrap"><img src="../renders/props/${n}.webp" style="width:${w * s}px;left:${-ax * s}px;top:${-ay * s}px"><span class="x" style="left:0;top:0"></span></div></div>
+      <div class="meta"><b>${n}.webp</b><span>${SUB[n] || ''}</span><span>${Math.round(w * 2 / 3)} × ${Math.round(h * 2 / 3)} px @2x${fit < 1 ? ` · shown at ${Math.round(fit * 100)} %` : ''}</span></div></div>`;
+  };
+  const L = J.layers.find(l => l.id === 'model-refresh');
+  const cx = L.x + L.w / 2, cy = L.y + L.h / 2, z = 0.62;
+  const crop = (src, x, y, w) => `<img src="${src}" style="width:${w * z}px;left:${(x - cx) * z + 150}px;top:${(y - cy) * z + 130}px">`;
+  const base = crop('../renders/scene/scene-base.webp', 0, 0, J.frame[0]);
+  const lay = crop('../renders/scene/' + L.file, L.x, L.y, L.w);
+  let h = `<div class="eyebrow">Agent Village · step 2, detailed RPG village · draft assets · transparent backgrounds</div>
+  <h1>Asset sheet</h1>
+  <p class="lede">Every object is modelled in a scripted Blender scene (<span class="mono">blender/village5.py</span>, <span class="mono">characters.py</span>), with procedural brick, stone, wood and tile detail and a thin ink outline, and rendered with Cycles through one orthographic camera: 2:1 isometric, 1 m tile = 64 × 32 px at 1x. No image model, no downloaded asset, nothing taken from an existing game. Red cross = floor anchor. Shown at twice the 1x size; rows share one scale unless noted.</p>
+  <div class="pipe">
+    <figure><div class="box">${base}</div><figcaption>room base layer · static</figcaption></figure><div class="op">+</div>
+    <figure><div class="box" style="background:#08090a">${lay}</div><figcaption>bot layer · scene as shadow catcher</figcaption></figure><div class="op">=</div>
+    <figure><div class="box">${base}${lay}</div><figcaption>composite in the browser · HTML on top</figcaption></figure>
+  </div>`;
+  for (const [t, sub, list] of groups) h += `<h3>${t}<small>${sub}</small></h3><div class="row">${list.map(cell).join('')}</div>`;
+  document.getElementById('b').innerHTML = h;
+  await Promise.all([...document.images].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; })));
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

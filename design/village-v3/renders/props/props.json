@@ -1,0 +1,290 @@
+[
+ {
+  "file": "desk.webp",
+  "scale": 4,
+  "size_px": [
+   352,
+   360
+  ],
+  "anchor_px": [
+   176.0,
+   264.8
+  ]
+ },
+ {
+  "file": "task-lamp.webp",
+  "scale": 4,
+  "size_px": [
+   136,
+   120
+  ],
+  "anchor_px": [
+   37.7,
+   89.2
+  ]
+ },
+ {
+  "file": "floor-lamp.webp",
+  "scale": 4,
+  "size_px": [
+   148,
+   352
+  ],
+  "anchor_px": [
+   74.0,
+   308.6
+  ]
+ },
+ {
+  "file": "plant-floor.webp",
+  "scale": 4,
+  "size_px": [
+   144,
+   316
+  ],
+  "anchor_px": [
+   71.7,
+   271.7
+  ]
+ },
+ {
+  "file": "plant-desk.webp",
+  "scale": 4,
+  "size_px": [
+   88,
+   116
+  ],
+  "anchor_px": [
+   44.7,
+   84.1
+  ]
+ },
+ {
+  "file": "shelving-archive.webp",
+  "scale": 4,
+  "size_px": [
+   364,
+   532
+  ],
+  "anchor_px": [
+   184.8,
+   430.6
+  ]
+ },
+ {
+  "file": "shelving-bins.webp",
+  "scale": 4,
+  "size_px": [
+   348,
+   440
+  ],
+  "anchor_px": [
+   180.3,
+   345.4
+  ]
+ },
+ {
+  "file": "pinboard.webp",
+  "scale": 4,
+  "size_px": [
+   308,
+   332
+  ],
+  "anchor_px": [
+   154.0,
+   401.2
+  ]
+ },
+ {
+  "file": "lockers.webp",
+  "scale": 4,
+  "size_px": [
+   316,
+   484
+  ],
+  "anchor_px": [
+   157.9,
+   393.4
+  ]
+ },
+ {
+  "file": "filing-cabinet.webp",
+  "scale": 4,
+  "size_px": [
+   184,
+   324
+  ],
+  "anchor_px": [
+   91.9,
+   265.6
+  ]
+ },
+ {
+  "file": "safe.webp",
+  "scale": 4,
+  "size_px": [
+   204,
+   272
+  ],
+  "anchor_px": [
+   102.0,
+   210.4
+  ]
+ },
+ {
+  "file": "shredder.webp",
+  "scale": 4,
+  "size_px": [
+   136,
+   196
+  ],
+  "anchor_px": [
+   68.0,
+   151.2
+  ]
+ },
+ {
+  "file": "workbench.webp",
+  "scale": 4,
+  "size_px": [
+   448,
+   552
+  ],
+  "anchor_px": [
+   223.8,
+   430.6
+  ]
+ },
+ {
+  "file": "cable-spool.webp",
+  "scale": 4,
+  "size_px": [
+   148,
+   212
+  ],
+  "anchor_px": [
+   77.5,
+   156.5
+  ]
+ },
+ {
+  "file": "server-rack.webp",
+  "scale": 4,
+  "size_px": [
+   252,
+   468
+  ],
+  "anchor_px": [
+   125.9,
+   396.0
+  ]
+ },
+ {
+  "file": "pallet-rack.webp",
+  "scale": 4,
+  "size_px": [
+   416,
+   592
+  ],
+  "anchor_px": [
+   207.8,
+   476.2
+  ]
+ },
+ {
+  "file": "whiteboard.webp",
+  "scale": 4,
+  "size_px": [
+   336,
+   480
+  ],
+  "anchor_px": [
+   168.2,
+   385.2
+  ]
+ },
+ {
+  "file": "sofa.webp",
+  "scale": 4,
+  "size_px": [
+   416,
+   324
+  ],
+  "anchor_px": [
+   208.2,
+   219.1
+  ]
+ },
+ {
+  "file": "coffee-table.webp",
+  "scale": 4,
+  "size_px": [
+   264,
+   216
+  ],
+  "anchor_px": [
+   132.0,
+   145.1
+  ]
+ },
+ {
+  "file": "reading-table.webp",
+  "scale": 4,
+  "size_px": [
+   392,
+   328
+  ],
+  "anchor_px": [
+   196.1,
+   228.5
+  ]
+ },
+ {
+  "file": "warning-triangle.webp",
+  "scale": 4,
+  "size_px": [
+   80,
+   108
+  ],
+  "anchor_px": [
+   37.5,
+   75.0
+  ]
+ },
+ {
+  "file": "bot-cli.webp",
+  "scale": 4,
+  "size_px": [
+   228,
+   312
+  ],
+  "anchor_px": [
+   134.3,
+   261.9
+  ]
+ },
+ {
+  "file": "bot-codex.webp",
+  "scale": 4,
+  "size_px": [
+   200,
+   356
+  ],
+  "anchor_px": [
+   100.0,
+   293.1
+  ]
+ },
+ {
+  "file": "bot-app-dock.webp",
+  "scale": 4,
+  "size_px": [
+   264,
+   264
+  ],
+  "anchor_px": [
+   88.6,
+   205.9
+  ]
+ }
+]

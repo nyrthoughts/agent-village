@@ -1,0 +1,42 @@
+@import url('app.css');
+body.board { background: #050506; padding: 40px 48px 48px; height: auto; min-height: 100%; }
+.board h1 { font-size: 30px; font-weight: 800; margin: 0; letter-spacing: -.02em; }
+.board .lede { color: var(--soft); font-size: 15px; margin: 8px 0 28px; max-width: 980px; line-height: 1.5; }
+.board .kick { font: 600 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.board .note { color: var(--muted); font-size: 13px; line-height: 1.45; }
+.phones { display: flex; gap: 36px; align-items: flex-start; }
+.phone { width: 390px; }
+.phone .frame { width: 390px; height: 844px; border-radius: 46px; overflow: hidden; border: 1px solid #2F3336; box-shadow: 0 0 0 10px #111216, 0 0 0 11px #2F3336, 0 30px 80px rgba(0,0,0,.6); background: #000; }
+.phone iframe { width: 390px; height: 844px; border: 0; display: block; }
+.phone .cap { margin-top: 26px; }
+.phone .cap b { display: block; font-size: 15px; margin-bottom: 4px; }
+.grid { display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.grid > div { background: #08090B; padding: 14px; }
+.grid .gh { background: #0E0F12; font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; }
+.grid .rh { background: #0E0F12; font-size: 13px; font-weight: 700; color: var(--soft); display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.grid .rh small { font-weight: 400; color: var(--muted); font-size: 12px; line-height: 1.35; }
+.cell svg { display: block; }
+.spec { font: 12px/1.5 var(--mono); color: var(--soft); }
+.spec b { color: var(--text); font-weight: 600; }
+.sw-row { display: flex; gap: 8px; align-items: center; font: 12px var(--mono); color: var(--soft); }
+.sw-row i { width: 18px; height: 18px; border-radius: 5px; display: inline-block; }
+.ref { background: #0B0C0F; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+.ref img { width: 100%; height: 230px; object-fit: cover; display: block; border-bottom: 1px solid var(--border); }
+.ref .bd { padding: 14px 16px 16px; }
+.ref .t { display: flex; align-items: baseline; gap: 8px; }
+.ref .t b { font-size: 15px; }
+.ref .t span { font: 12px var(--mono); color: var(--muted); }
+.ref .role { display: inline-block; margin: 8px 0 10px; font: 600 11px var(--mono); letter-spacing: .06em; padding: 3px 7px; border-radius: 5px; }
+.ref ul { margin: 0; padding-left: 0; list-style: none; font-size: 13.5px; line-height: 1.45; }
+.ref li { padding-left: 18px; position: relative; margin-bottom: 4px; }
+.ref li::before { position: absolute; left: 0; font: 700 12px var(--mono); }
+.ref li.take::before { content: '+'; color: var(--working); }
+.ref li.drop::before { content: '−'; color: var(--error); }
+.dir { margin-top: 26px; display: grid; grid-template-columns: 1.25fr 1fr; gap: 24px; }
+.dir .box { background: #0B0C0F; border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; }
+.dir h2 { margin: 0 0 10px; font-size: 18px; }
+.dir ol, .dir ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.55; }
+.dir li { margin-bottom: 4px; }
+
+.grid > div { min-width: 0; overflow-wrap: anywhere; }
+.ui .chip { white-space: normal; flex-wrap: wrap; }

@@ -1,0 +1,417 @@
+{
+ "frame": [
+  1860,
+  1680
+ ],
+ "scale": 3.0,
+ "px_per_m_1x": 45.2548,
+ "layers": [
+  {
+   "id": "graph-map",
+   "file": "zoom-bot-graph-map.webp",
+   "x": 1373,
+   "y": 198,
+   "w": 375,
+   "h": 337,
+   "depth": 2.99
+  },
+  {
+   "id": "entity-audit",
+   "file": "zoom-bot-entity-audit.webp",
+   "x": 1542,
+   "y": 275,
+   "w": 318.0,
+   "h": 354,
+   "depth": 4.79
+  },
+  {
+   "id": "model-refresh",
+   "file": "zoom-bot-model-refresh.webp",
+   "x": 850,
+   "y": 616,
+   "w": 369,
+   "h": 341,
+   "depth": 11.82
+  },
+  {
+   "id": "segment-models",
+   "file": "zoom-bot-segment-models.webp",
+   "x": 673,
+   "y": 708,
+   "w": 378,
+   "h": 345,
+   "depth": 13.62
+  },
+  {
+   "id": "warehouse-qa",
+   "file": "zoom-bot-warehouse-qa.webp",
+   "x": 1123,
+   "y": 692,
+   "w": 373,
+   "h": 338,
+   "depth": 13.3
+  },
+  {
+   "id": "landing-review",
+   "file": "zoom-bot-landing-review.webp",
+   "x": 1533,
+   "y": 940,
+   "w": 327.0,
+   "h": 339,
+   "depth": 18.52
+  },
+  {
+   "id": "outreach-copy",
+   "file": "zoom-bot-outreach-copy.webp",
+   "x": 1343,
+   "y": 1022,
+   "w": 370,
+   "h": 362,
+   "depth": 20.52
+  },
+  {
+   "id": "claude-app",
+   "file": "zoom-bot-claude-app.webp",
+   "x": 801,
+   "y": 437,
+   "w": 341,
+   "h": 267,
+   "depth": 6.45
+  },
+  {
+   "id": "release-notes",
+   "file": "zoom-bot-release-notes.webp",
+   "x": 1776,
+   "y": 851,
+   "w": 84.0,
+   "h": 318,
+   "depth": 16.1
+  }
+ ],
+ "bots": {
+  "graph-map": {
+   "project": "atlas",
+   "source": "cli",
+   "state": "working",
+   "head": [
+    1521.4,
+    272.8
+   ],
+   "foot": [
+    1521.4,
+    438.9
+   ],
+   "depth": 2.99
+  },
+  "entity-audit": {
+   "project": "atlas",
+   "source": "codex",
+   "state": "working",
+   "head": [
+    1694.2,
+    332.7
+   ],
+   "foot": [
+    1694.2,
+    525.3
+   ],
+   "depth": 4.79
+  },
+  "privacy-guard": {
+   "project": "privacy",
+   "source": "cli",
+   "state": "input",
+   "head": [
+    2111.8,
+    531.4
+   ],
+   "foot": [
+    2111.8,
+    734.1
+   ],
+   "depth": 9.14
+  },
+  "redaction-check": {
+   "project": "privacy",
+   "source": "codex",
+   "state": "working",
+   "head": [
+    2255.8,
+    613.5
+   ],
+   "foot": [
+    2255.8,
+    806.1
+   ],
+   "depth": 10.64
+  },
+  "partner-connector": {
+   "project": "connector",
+   "source": "cli",
+   "state": "working",
+   "head": [
+    2622.5,
+    826.2
+   ],
+   "foot": [
+    2622.5,
+    992.4
+   ],
+   "depth": 14.52
+  },
+  "tool-schema": {
+   "project": "connector",
+   "source": "cli",
+   "state": "error",
+   "head": [
+    2766.5,
+    921.8
+   ],
+   "foot": [
+    2766.5,
+    1064.4
+   ],
+   "depth": 16.02
+  },
+  "model-refresh": {
+   "project": "warehouse",
+   "source": "cli",
+   "state": "approval",
+   "head": [
+    1071.1,
+    650.4
+   ],
+   "foot": [
+    1071.1,
+    862.8
+   ],
+   "depth": 11.82
+  },
+  "segment-models": {
+   "project": "warehouse",
+   "source": "codex",
+   "state": "working",
+   "head": [
+    898.3,
+    756.6
+   ],
+   "foot": [
+    898.3,
+    949.2
+   ],
+   "depth": 13.62
+  },
+  "warehouse-qa": {
+   "project": "warehouse",
+   "source": "cli",
+   "state": "input",
+   "head": [
+    1270.8,
+    731.1
+   ],
+   "foot": [
+    1270.8,
+    933.8
+   ],
+   "depth": 13.3
+  },
+  "landing-review": {
+   "project": "launch",
+   "source": "cli",
+   "state": "working",
+   "head": [
+    1752.7,
+    1018.2
+   ],
+   "foot": [
+    1752.7,
+    1184.4
+   ],
+   "depth": 18.52
+  },
+  "outreach-copy": {
+   "project": "launch",
+   "source": "codex",
+   "state": "input",
+   "head": [
+    1560.7,
+    1043.4
+   ],
+   "foot": [
+    1560.7,
+    1280.4
+   ],
+   "depth": 20.52
+  },
+  "claude-app": {
+   "project": null,
+   "source": "app",
+   "state": "offline",
+   "head": [
+    997.2,
+    478.0
+   ],
+   "foot": [
+    997.2,
+    605.0
+   ],
+   "depth": 6.45
+  },
+  "release-notes": {
+   "project": "connector",
+   "source": "codex",
+   "state": "idle",
+   "head": [
+    1923.6,
+    890.9
+   ],
+   "foot": [
+    1923.6,
+    1068.2
+   ],
+   "depth": 16.1
+  }
+ },
+ "projects": {
+  "atlas": {
+   "plate": [
+    1472.4,
+    -66.4
+   ],
+   "center": [
+    1520.4,
+    559.4
+   ],
+   "poly": [
+    [
+     1472.4,
+     295.4
+    ],
+    [
+     992.4,
+     535.4
+    ],
+    [
+     1568.4,
+     823.4
+    ],
+    [
+     2048.4,
+     583.4
+    ]
+   ]
+  },
+  "privacy": {
+   "plate": [
+    2048.4,
+    221.6
+   ],
+   "center": [
+    2096.4,
+    847.4
+   ],
+   "poly": [
+    [
+     2048.4,
+     583.4
+    ],
+    [
+     1568.4,
+     823.4
+    ],
+    [
+     2144.4,
+     1111.4
+    ],
+    [
+     2624.4,
+     871.4
+    ]
+   ]
+  },
+  "connector": {
+   "plate": [
+    2624.4,
+    509.6
+   ],
+   "center": [
+    2672.4,
+    1135.4
+   ],
+   "poly": [
+    [
+     2624.4,
+     871.4
+    ],
+    [
+     2144.4,
+     1111.4
+    ],
+    [
+     2720.4,
+     1399.4
+    ],
+    [
+     3200.4,
+     1159.4
+    ]
+   ]
+  },
+  "warehouse": {
+   "plate": [
+    858.0,
+    240.8
+   ],
+   "center": [
+    949.2,
+    917.0
+   ],
+   "poly": [
+    [
+     858.0,
+     602.6
+    ],
+    [
+     320.4,
+     871.4
+    ],
+    [
+     1040.4,
+     1231.4
+    ],
+    [
+     1578.0,
+     962.6
+    ]
+   ]
+  },
+  "launch": {
+   "plate": [
+    1578.0,
+    841.8
+   ],
+   "center": [
+    1813.2,
+    1349.0
+   ],
+   "poly": [
+    [
+     1578.0,
+     962.6
+    ],
+    [
+     1040.4,
+     1231.4
+    ],
+    [
+     2048.4,
+     1735.4
+    ],
+    [
+     2586.0,
+     1466.6
+    ]
+   ]
+  }
+ }
+}

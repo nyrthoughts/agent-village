@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Agent Village states</title><link rel="stylesheet" href="board.css">
+<style>
+  .grid { grid-template-columns: 170px repeat(6, 1fr); }
+  .frames { display: flex; gap: 4px; align-items: flex-end; }
+  .frames figure { margin: 0; text-align: center; }
+  .frames figcaption { font: 10.5px var(--mono); color: var(--muted); margin-top: 2px; }
+  .frames svg { width: 44px; height: 62px; background: repeating-conic-gradient(#101115 0 25%, #0B0C0F 0 50%) 0 0/10px 10px; border-radius: 6px; }
+  .src3 { display: flex; gap: 2px; align-items: flex-end; }
+  .src3 svg { width: 56px; height: 72px; }
+  .mini svg { width: 100%; height: 132px; }
+  .ui { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; position: relative; min-height: 120px; }
+  .ui .bub, .ui .chip { position: static; transform: none; animation: none; }
+  .ui .bub.big { transform: none; width: 100%; max-width: 240px; }
+  .ui .bub.big::after { display: none; }
+  .ui .bub::after { display: none; }
+  .tok { display: flex; flex-direction: column; gap: 8px; }
+  .tok .ic { width: 28px; height: 28px; border-radius: 99px; display: grid; place-items: center; }
+  .tok .ic svg { width: 15px; height: 15px; }
+  .rules { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 0 0 22px; }
+  .rules div { background: #0B0C0F; border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; font-size: 13.5px; line-height: 1.4; }
+  .rules b { display: block; font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+</style></head>
+<body class="board shot">
+<div class="kick">Étape 2 · États des agents et contrat d’animation</div>
+<h1>Six états, lisibles sans la couleur</h1>
+<p class="lede">Chaque état combine des signaux redondants : la forme de l’anneau au sol, l’expression de la visière, l’icône de la bulle et le mouvement. Sans couleur ni mouvement, il reste au moins la forme de l’anneau et la visière. Un daltonien ou un utilisateur en mouvement réduit lit le même état. Les trois demandes « À toi » ont chacune leur couleur, leur icône, leur mot et leur geste.</p>
+<div class="rules">
+  <div><b>Bâtiment</b>= projet. Décor propre, même grammaire : murs, sol, bureaux, lampe.</div>
+  <div><b>Silhouette</b>= source. Cube à visière <span class="mono">&gt;_</span> : Claude Code CLI. Capsule à antenne : Codex. Sphère : App Claude.</div>
+  <div><b>Anneau, visière, bulle</b>= état. Jamais la couleur du corps.</div>
+  <div><b>Couleur saturée</b>réservée aux états. Les projets n’ont que des teintes sourdes (tapis, liseré de mur).</div>
+</div>
+<div class="grid" id="g"></div>
+<script src="iso.js"></script>
+<script>
+const S = ['working','idle','approval','input','error','offline'];
+const NAMES = { working:'Actif · working', idle:'Inactif · idle', approval:'Approbation', input:'Question · input', error:'Erreur', offline:'Hors ligne · offline' };
+const ICON = {
+  approval:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.3 7.5 9.5 4.3-1.2 7.5-4.9 7.5-9.5V6Z"/><path d="m8.8 12 2.2 2.2 4.4-4.6"/></svg>',
+  input:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M9.2 9.3a3 3 0 0 1 5.6 1.2c0 2-3 2.6-3 4.3"/><path d="M12 18.3h.01"/></svg>',
+  error:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4.5M12 17.3h.01"/><path d="M10.3 3.9 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>'
+};
+const FR = {
+  idle:     [['', 'f0 0ms'], ['scale(1,1.018)', 'f1 800'], ['scale(1.02,1.035)', 'f2 1600'], ['', 'f3 blink', 'blink']],
+  working:  [['', 'f0 0ms'], ['translate(0,-1)', 'f1 175'], ['translate(0,-2)', 'f2 350', 'nocaret'], ['translate(0,-1)', 'f3 525']],
+  approval: [['', 'f0 0'], ['translate(0,-7)', 'f1 1560'], ['', 'f2 1720'], ['translate(0,-2)', 'f3 1840']],
+  input:    [['', 'f0 0'], ['rotate(-5)', 'f1 780'], ['', 'f2 1170'], ['rotate(4)', 'f3 1560']],
+  error:    [['translate(-2,0)', 'f0 120'], ['translate(2,0)', 'f1 240'], ['translate(-1,0)', 'f2 360'], ['', 'f3 tenu']],
+  offline:  [['', 'f0 seul']]
+};
+const MOTION = {
+  working:  '<b>Boucle</b> 700 ms aller-retour, ease-in-out. Bob vertical 2 px. Curseur <span class="mono">_</span> clignote 1 s. Anneau en tirets qui tourne, 1,2 s linéaire. LED du moniteur fixe.',
+  idle:     '<b>Boucle</b> 3,2 s. Respiration (échelle Y +3,5 %). Clignement toutes les 4 à 7 s, aléatoire. Peut marcher sur les allées à 0,8 case/s.',
+  approval: '<b>Boucle</b> 2 s. Petit saut de 7 px puis rebond de 2 px, toutes les 2 s. Halo ambre qui s’élargit, 1,8 s. Bulle qui apparaît avec un pop de 350 ms.',
+  input:    '<b>Boucle</b> 2,6 s. Inclinaison −5° / +4° (« il regarde autour »). Halo bleu. Visière : un œil et un « ? ».',
+  error:    '<b>Une fois</b> à l’entrée, puis toutes les 6 s : tremblement 480 ms. Ensuite immobile. Yeux en croix. Anneau double rouge. Pas de clignotement continu.',
+  offline:  '<b>Aucun mouvement.</b> Corps désaturé à 70 %, yeux éteints, anneau pointillé gris. Moniteur éteint.'
+};
+const REDUCED = {
+  working:  'Frame f0 fixe. Anneau en tirets <b>fixe</b> (la forme dit « actif »). Curseur plein.',
+  idle:     'Frame f0 fixe. Pas de marche : le bot reste à son poste.',
+  approval: 'Frame f0 fixe. Anneau à 4 crans + yeux ronds. Bulle sans pop.',
+  input:    'Frame f0 fixe. Anneau ouvert + « ? » dans la visière portent l’état.',
+  error:    'Pas de tremblement. Yeux en croix + anneau double suffisent.',
+  offline:  'Identique (déjà statique).'
+};
+const SRCCOL = { cli: 'Claude Code CLI', codex: 'Codex', app: 'App Claude' };
+const g = document.getElementById('g');
+const cell = (html, cls = '') => `<div class="${cls}">${html}</div>`;
+let h = cell('', 'gh') + S.map(s => cell(`<span style="width:9px;height:9px;border-radius:3px;background:${Iso.STATE[s].c};margin-right:8px;display:inline-block"></span>${NAMES[s]}`, 'gh')).join('');
+// row 1 : sources
+h += cell('Silhouettes par source<small>cube CLI · capsule Codex. Sphère App Claude : hors ligne seulement tant que la source est indisponible</small>', 'rh');
+h += S.map(s => cell(`<div class="src3">${(s === 'offline' ? ['cli','codex','app'] : ['cli','codex']).map(src => Iso.svgWrap(`<g>${Iso.ring(s)}</g><g transform="translate(0,-6)">${Iso.botSprite(src, s)}</g>`, [-30, -70, 60, 84])).join('')}</div>`)).join('');
+// row 2 : frames
+h += cell('Frames du sprite<small>4 frames max · caméra et échelle fixes · ancre au sol (50 %, 100 %)</small>', 'rh');
+h += S.map(s => cell(`<div class="frames">${FR[s].map(([t, lab, o]) => `<figure>${Iso.svgWrap(`<line x1="-22" y1="0" x2="22" y2="0" stroke="#2F3336"/><circle cx="0" cy="0" r="1.5" fill="#F4212E"/><g transform="${t}">${Iso.botSprite('cli', s, { frame: o === 'blink' ? 'blink' : '' })}</g>`, [-22, -62, 44, 64])}<figcaption>${lab}</figcaption></figure>`).join('')}</div>`)).join('');
+// row 3 : at the desk
+h += cell('Au poste<small>anneau au sol, lumière d’écran, LED du moniteur</small>', 'rh');
+h += S.map(s => {
+  const b = { id: 'x', source: s === 'offline' ? 'app' : 'cli', state: s };
+  const bp = Iso.botAt(b, .72, -.38);
+  return cell(`<div class="mini">${Iso.svgWrap(`<polygon points="${Iso.pts([[-.6,-1.2,0],[2,-1.2,0],[2,1.2,0],[-.6,1.2,0]])}" fill="#8E5D3F"/>` + bp.s + Iso.A.desk(0, 0, s), [-48, -88, 120, 130])}</div>`);
+}).join('');
+// row 4 : UI
+h += cell('Calque UI<small>HTML au-dessus de la scène, jamais dans l’image</small>', 'rh');
+const BIG = { approval: ['Approbation demandée', 'Lancer le build complet en sandbox ?'], input: ['Information demandée', 'Quel délai de rétention pour ce compte ?'], error: ['Erreur', 'Arrêt : le schéma d’outil ne passe pas la validation.'] };
+h += S.map(s => {
+  if (BIG[s]) return cell(`<div class="ui"><div class="bub ${s}"><span class="ic">${ICON[s]}</span>model-refresh</div><div class="bub ${s} big"><div class="hd"><span class="ic">${ICON[s]}</span>${BIG[s][0]}</div><div class="tx">${BIG[s][1]}</div><div class="ft">Claude Code CLI · 3 min</div></div></div>`);
+  const lab = { working: 'actif · 1 min', idle: 'inactif · 32 min', offline: 'hors ligne · source indisponible' }[s];
+  return cell(`<div class="ui"><div class="chip"><span class="d" style="background:${Iso.STATE[s].c}"></span>${s === 'offline' ? 'roadmap-chat' : s === 'idle' ? 'warehouse-qa' : 'segment-models'}<span class="s">· ${lab}</span></div><span class="note">Puce au survol ou au focus clavier seulement. Pas de bulle : rien n’attend l’utilisateur.</span></div>`);
+}).join('');
+// row 5 : motion
+h += cell('Contrat de mouvement<small>CSS transform et opacity uniquement, cible 60 fps (non mesurée), aucune vidéo</small>', 'rh');
+h += S.map(s => cell(`<div class="spec">${MOTION[s]}</div>`)).join('');
+// row 6 : reduced
+h += cell('Mouvement réduit<small>prefers-reduced-motion ou bouton « Animations réduites »</small>', 'rh');
+h += S.map(s => cell(`<div class="spec">${REDUCED[s]}</div>`)).join('');
+// row 7 : tokens
+h += cell('Jeton<small>couleur · icône · mot · forme d’anneau</small>', 'rh');
+const RING = { working: 'tirets', idle: 'aucun', approval: 'plein + 4 crans', input: 'ouvert (coupé)', error: 'double', offline: 'pointillé' };
+h += S.map(s => cell(`<div class="tok"><div class="sw-row"><i style="background:${Iso.STATE[s].c}"></i>${Iso.STATE[s].c}</div><div class="sw-row">${ICON[s] ? `<span class="ic" style="background:${Iso.STATE[s].c};color:${s === 'approval' ? '#000' : '#fff'};width:22px;height:22px;border-radius:99px;display:grid;place-items:center"><span style="width:12px;height:12px;display:grid">${ICON[s]}</span></span>` : ''}anneau ${RING[s]}</div></div>`)).join('');
+g.innerHTML = h;
+</script>
+</body></html>

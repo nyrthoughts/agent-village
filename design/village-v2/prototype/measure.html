@@ -1,0 +1,38 @@
+<!doctype html><html><body><svg id="s" width="2000" height="2000" viewBox="-1000 -1000 2000 2000"></svg><pre id="o"></pre>
+<script src="iso.js"></script><script>
+const {A, botSprite, ring} = Iso;
+const L = [
+ ['pavilion-floor.webp','structure','Pavilion floor slab 6x5 + plinth',()=>Iso.box(-.25,-.25,-.35,6.25,5.25,.35,'#2B2F3D',{top:'#8E5D3F'}),1],
+ ['pavilion-wall-back.webp','structure','Back wall, trim tinted in code',()=>Iso.box(-.2,-.2,0,6.2,.2,2.2,'#4A5070'),1],
+ ['pavilion-wall-left.webp','structure','Left wall',()=>Iso.box(-.2,0,0,.2,5,2.2,'#4A5070'),1],
+ ['desk.webp','structure','Desk + monitor back; screen glow and LED are a separate state layer',()=>A.desk(0,0,'idle'),1],
+ ['lamp.webp','structure','Floor lamp; halo is an additive layer',()=>A.lamp(0,0),1],
+ ['plant.webp','structure','Potted plant',()=>A.plant(0,0),1],
+ ['prop-shelf.webp','signature:atlas','Atlas bookshelf',()=>A.shelf(0,0,2.6,'#9D8FD6'),1],
+ ['prop-graph-board.webp','signature:atlas','Atlas wall graph board (wall decal)',()=>A.graphBoard(0,3.8,0,.8,'#9D8FD6'),1],
+ ['prop-lockers.webp','signature:privacy','Privacy Desk lockers x3',()=>A.lockers(0,3,'#7FB59E'),1],
+ ['prop-safe.webp','signature:privacy','Privacy Desk safe',()=>A.safe(0,0),1],
+ ['prop-pegboard.webp','signature:connector','Connector Lab pegboard (wall decal)',()=>A.pegboard(0,3.9,0,.8,'#7E9CC9'),1],
+ ['prop-bench.webp','signature:connector','Connector Lab workbench',()=>A.bench(0,0,2.0),1],
+ ['prop-spool.webp','signature:connector','Cable spool',()=>A.spool(0,0),1],
+ ['prop-rack.webp','signature:warehouse','Warehouse server rack; LEDs are a separate blink layer',()=>A.rack(0,0),1],
+ ['prop-vat.webp','signature:warehouse','Warehouse vat',()=>A.vat(0,0,'#C9A86A'),1],
+ ['prop-whiteboard.webp','signature:launch','Launch Studio whiteboard on easel',()=>A.whiteboard(0,0),1],
+ ['prop-couch.webp','signature:launch','Launch Studio couch',()=>A.couch(0,0,'#6F5D86'),1],
+ ['prop-spotlight.webp','signature:launch','Launch Studio spotlight on tripod',()=>A.spot(0,0),1],
+ ['tree.webp','exterior','Low-poly tree',()=>A.tree(0,0),1],
+ ['lamp-post.webp','exterior','Path lamp post',()=>A.post(0,0),1],
+ ['cone.webp','exterior','Cone, empty lot',()=>A.cone(0,0),1],
+ ['crate.webp','exterior','Crate, empty lot',()=>A.crate(0,0),1],
+ ['beanbag.webp','structure','Beanbag (idle seat)',()=>A.beanbag(0,0,'#6F5D86'),1]
+];
+const s=document.getElementById('s'), out=[];
+L.forEach(([file,group,role,fn])=>{ s.innerHTML='<defs>'+Iso.BASE_DEFS+Iso.takeDefs()+'</defs><g id="g">'+fn()+'</g>'; const b=document.getElementById('g').getBBox();
+  const x=Math.floor(b.x)-2,y=Math.floor(b.y)-2,w=Math.ceil(b.width)+4,h=Math.ceil(b.height)+4;
+  out.push({file,group,role,size_1x:[w,h],size_2x:[w*2,h*2],anchor_px_1x:[-x,-y],anchor_rule:'world origin (0,0,0) of the prop',frames:1}); });
+['cli','codex','app'].forEach(src=>{ s.innerHTML='<defs>'+Iso.BASE_DEFS+Iso.takeDefs()+'</defs><g id="g">'+botSprite(src,'approval')+'</g>'; const b=document.getElementById('g').getBBox();
+  out.push({file:`bot-${src}.webp`,group:'bot',role:`Sprite sheet for source ${Iso.SOURCE[src].label}`,frame_size_1x:[48,72],frame_size_2x:[96,144],sheet_layout:'4 columns (f0-f3) x 6 rows (working, idle, approval, input, error, offline)',sheet_size_2x:[384,864],anchor_px_1x:[24,66],anchor_rule:'ground contact point, bottom centre; bot body floats 12 px above it',frames:{working:4,idle:4,approval:4,input:4,error:4,offline:1},measured_body_bbox_1x:[Math.round(b.width),Math.round(b.height)]}); });
+out.push({file:'ring-{state}.svg',group:'ui-svg',role:'State rings (working, approval, input, error, offline). SVG, never raster.',size_1x:[50,25],anchor_rule:'ellipse centre = bot ground point',frames:'CSS animated'});
+out.push({file:'bubbles, plates, chips',group:'ui-html',role:'HTML/CSS overlay positioned from scene anchors. Never in images.',frames:'CSS'});
+document.getElementById('o').textContent=JSON.stringify({version:'design-draft-2026-11-07',status:'proposal, not validated',projection:{type:'isometric 2:1',tile_px_1x:[64,32],z_px_per_unit_1x:38,formula:'screen = ((x - y) * 32, (x + y) * 16 - z * 38)'},export:{format:'WebP with alpha, @2x, sRGB',rules:['no baked text','no secrets or transcripts','constant camera and scale','no magenta halo: premultiplied alpha, transparent background from source']},assets:out},null,2);
+</script></body></html>
