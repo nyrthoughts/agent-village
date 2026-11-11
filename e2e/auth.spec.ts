@@ -44,6 +44,8 @@ test('real passkey verifier protects native data, rejects replay and clears the 
     await page.getByRole('button', { name: 'Créer ma clé d’accès' }).click();
     const enrolled = await enrollment;
     expect(enrolled.status()).toBe(200);
+    await expect(page.getByRole('button', { name: 'Ouvrir Orchard', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Liste', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Journal du village' })).toBeVisible();
     const bearer = (await enrolled.json()).token as string;
     expect(reads).toBeGreaterThan(0);
@@ -101,6 +103,8 @@ test('real passkey verifier protects native data, rejects replay and clears the 
     await page.getByRole('button', { name: 'Open my village' }).click();
     const loggedIn = await login;
     expect(loggedIn.status()).toBe(200);
+    await expect(page.getByRole('button', { name: 'Open Orchard', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'List', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Village journal' })).toBeVisible();
     await page.getByRole('button', { name: 'Open Orchard', exact: true }).click();
     await expect(page.getByText('Ship a private orchard journal', { exact: true })).toBeVisible();

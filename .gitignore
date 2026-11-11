@@ -15,3 +15,5 @@ bootstrap.txt
 ingestion.header
 owner.json
 project-plans.json
+villager-overrides.json
+__pycache__/

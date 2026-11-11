@@ -29,6 +29,7 @@ async function openBuildingVillage(page: Page, construction = false) {
   await page.route('**/api/village', (route) => route.fulfill({ json: village }));
   await page.route('**/api/activity', (route) => route.fulfill({ json: { status: 'live', fetchedAt: timestamp, workers: [] } }));
   await page.goto('/');
+  await page.getByRole('button', { name: /^(Liste|List)$/ }).click();
   await expect(page.getByTestId('village-map-2d')).toHaveAttribute('data-building-count', String(selected.length));
 }
 

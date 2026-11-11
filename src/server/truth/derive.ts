@@ -71,7 +71,7 @@ export interface DerivedProject {
 }
 
 export interface DerivedWorkspace {
-  observation?: { fetchedAt: string; errors: string[]; historyWindow: string; focusProjects?: string[]; coverage?: string[]; sources?: ObservedSource[] };
+  observation?: { fetchedAt: string; errors: string[]; historyWindow: string; focusProjects?: string[]; coverage?: string[]; sources?: ObservedSource[]; villagerOverrides?: Record<string, number>; fixture?: true };
   version: 1;
   name: string;
   progress: ProgressRollup;
