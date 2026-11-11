@@ -7,3 +7,5 @@ Step 2, fourth visual iteration: design only, awaiting validation. Start with `D
 - Earlier iterations: `../village-v2/`, `../village-v3/`, `../village-v4/`.
 
 All data is demo data. Names are fictional. Nothing is taken from an existing game. No image-generation model and no paid call were used.
+
+- Step 3 brief (for Codex or any agent): `NEXT.md`.
