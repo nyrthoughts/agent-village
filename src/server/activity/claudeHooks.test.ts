@@ -18,6 +18,8 @@ describe('Claude Code hook settings', () => {
     expect(JSON.stringify(merged)).toContain('127.0.0.1:4180/api/hooks/claude');
     expect(merged.hooks.SubagentStart).toHaveLength(1);
     expect(merged.hooks.SubagentStop).toHaveLength(1);
+    // Needs-you signals: typed notifications, permission requests, and the tool start that answers them.
+    for (const event of ['Notification', 'PermissionRequest', 'PreToolUse']) expect(merged.hooks[event]).toHaveLength(1);
     const command = merged.hooks.Stop?.[1]?.hooks[0]?.command;
     expect(command).toMatch(/^curl -q --noproxy '\*' --proto '=http' --max-redirs 0 /);
     expect(command).not.toContain('--location');

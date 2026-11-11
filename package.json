@@ -17,6 +17,7 @@
     "auth:setup": "tsx scripts/auth-setup.ts",
     "connect:claude": "tsx scripts/connect-claude.ts",
     "disconnect:claude": "tsx scripts/connect-claude.ts --remove",
+    "sources:doctor": "tsx scripts/sources-doctor.ts",
     "prebuild": "tsx scripts/export-demo.ts",
     "build": "vite build",
     "e2e": "playwright test",
@@ -30,7 +31,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "yaml": "^2.5.0",
-    "zod": "^3.23.8"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
@@ -43,7 +44,7 @@
     "jsdom": "^24.1.1",
     "tsx": "^4.23.13",
     "typescript": "^5.5.4",
-    "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vite": "^8.3.7",
+    "vitest": "^4.1.12"
   }
 }

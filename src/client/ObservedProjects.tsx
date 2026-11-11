@@ -8,8 +8,20 @@ import './observed-projects.css';
 import { ProjectPlanPanel } from './ProjectPlanPanel.js';
 import { milestoneTaskId, projectDistrict } from './observedDistrict.js';
 import { hasRecentActivity, isConfirmedWorking, presentWorkerState } from '../shared/workerPresentation.js';
+import type { MatchedBy, MatchVia, ObservedSession, OwnerLink, SourceStatus } from '../shared/observation.js';
+import type { SessionOrigin, WorkerAttention } from '../shared/activity.js';
 
 const states = { working: 'En cours', waiting: 'En attente', idle: 'Sans activité récente', unknown: 'État non confirmé' } as const;
+const matchLabels = { rule: 'Rangé par votre règle', remote: 'Même dépôt distant', 'git-root': 'Même dépôt Git', folder: 'Même dossier', unassigned: 'Non classée' } as const satisfies Record<MatchedBy, string>;
+const viaLabels = { session: 'identifiant de session', path: 'chemin', remote: 'dépôt distant', title: 'titre', recorded: 'enregistré par Codex',
+  'claude-worktree': 'worktree Claude', 'catch-all': 'dossier fourre-tout', 'no-cwd': 'aucun dossier enregistré', 'unknown-hash': 'dossier Gemini non retrouvé' } as const satisfies Record<MatchVia, string>;
+// Product names are not translated.
+const sourceGroups = [['codex', 'Codex'], ['claude', 'Claude Code'], ['gemini', 'Gemini CLI'], ['openclaw', 'OpenClaw'], ['other', '']] as const;
+const knownTools: readonly string[] = sourceGroups.map(([tool]) => tool).filter((tool) => tool !== 'other');
+const originLabels = { cli: 'CLI', desktop: 'App de bureau', ide: 'IDE', exec: 'Lancement scripté', cloud: 'Cloud', unknown: 'Origine inconnue' } as const satisfies Record<SessionOrigin, string>;
+const attentionLabels = { approval: 'Approbation demandée', input: 'Réponse attendue' } as const satisfies Record<WorkerAttention['kind'], string>;
+const sourceStatusLabels = { supported: 'pris en charge', experimental: 'expérimental', unavailable: 'indisponible' } as const satisfies Record<SourceStatus, string>;
+const linkSources = { 'claude-app': 'Claude app', chatgpt: 'ChatGPT', other: '' } as const satisfies Record<OwnerLink['source'], string>;
 function savedRead(): Record<string, string> {
   try {
     const value: unknown = JSON.parse(localStorage.getItem('agent-village:read') ?? '{}');
@@ -51,11 +63,26 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
   const helpers = sessions.filter((session) => session.role === 'helper');
   const selectedSessions = selected?.observation?.sessions ?? [];
   const selectedHelpers = selectedSessions.filter((session) => session.role === 'helper');
+  // The Unassigned inbox is not a project: no building, no plan, listed apart.
+  const inbox = village.projects.find((project) => project.observation?.unassigned);
+  const inboxRoots = inbox?.observation?.sessions.filter((session) => session.role !== 'helper') ?? [];
+  const projects = village.projects.filter((project) => project !== inbox);
+  const projectName = (project: { name: string; observation?: { unassigned?: boolean } }) => project.observation?.unassigned ? t('Sessions non classées') : project.name;
   const focusNames = village.observation?.focusProjects ?? [];
-  const focused = focusNames.length ? village.projects.filter((project) => focusNames.includes(project.name)) : village.projects;
-  const candidates = showAll || filter ? village.projects : focused;
+  const focused = focusNames.length ? projects.filter((project) => focusNames.includes(project.name)) : projects;
+  const candidates = showAll || filter ? projects : focused;
   const visible = candidates.filter((project) => project.name.toLowerCase().includes(filter.toLowerCase()));
-  const briefing = villageBriefing(visible.map((project) => ({ id: project.id, name: project.name, sessions: project.observation?.sessions ?? [] })), read);
+  const briefing = villageBriefing([...visible, ...(inbox ? [inbox] : [])].map((project) => ({ id: project.id, name: projectName(project), sessions: project.observation?.sessions ?? [] })), read);
+  const provenance = (session: ObservedSession) => {
+    if (!session.matchedBy) return t('Signal de cycle de vie seul · projet à identifier');
+    const via = session.matchVia && !(session.matchedBy === 'remote' && session.matchVia === 'remote') ? ` (${t(viaLabels[session.matchVia])})` : '';
+    return `${t(matchLabels[session.matchedBy])}${via}${session.matchDetail ? ` · ${session.matchDetail}` : ''}`;
+  };
+  const sources = village.observation?.sources ?? [];
+  const experimental = new Set(sources.filter((source) => source.experimental).map((source) => source.id as string));
+  const needsYou = (entries: ObservedSession[]) => entries.filter((entry) => entry.attention).length;
+  const assignSnippet = `projects:\n  - name: ${t('Mon projet')}\n    sessions: [${inboxRoots[0]?.id ?? 'codex:ID'}]\n    titles: ["^${t('mon-projet')}:"]`;
+  const selectedLinks = selected?.observation?.links ?? [];
   const brief = selected && projectBrief(selected.observation?.sessions ?? [], read[selected.id]);
   const district = visible.find((project) => project.id === districtId);
   const mapProjects = district ? [projectDistrict(district)] : visible.slice(0, 9).sort((a, b) => a.id.localeCompare(b.id));
@@ -92,7 +119,8 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
 
   return <main className="app-shell observed-shell" aria-label={t('Agent Village privé')}>
     <header className="observed-header">
-      <div><small>{t('AGENT VILLAGE / LOCAL PRIVÉ')}</small><h1>{t('Journal du village')}</h1><p>{village.projects.length} {t('projets')} · {roots.length} sessions</p>{helpers.length > 0 && <p>{t('{count} sous-agents détectés', { count: helpers.length })} · {t('historique ≠ activité')}</p>}</div>
+      <div><small>{t('AGENT VILLAGE / LOCAL PRIVÉ')}</small><h1>{t('Journal du village')}</h1><p>{projects.length} {t('projets')} · {roots.length} sessions{needsYou(sessions) > 0 && <> · <b className="observed-attention">{t('{count} vous attendent', { count: needsYou(sessions) })}</b></>}</p>{helpers.length > 0 && <p>{t('{count} sous-agents détectés', { count: helpers.length })} · {t('historique ≠ activité')}</p>}
+        {sources.length > 0 && <ul className="observed-source-status" aria-label={t('Sources locales')}>{sources.map((source) => <li key={source.id} className={`observed-source-status--${source.status}`}>{source.label} · {t(sourceStatusLabels[source.status])}</li>)}</ul>}</div>
       <div><strong>{t('{count} en cours confirmés', { count: sessions.filter((session) => isConfirmedWorking(session, now)).length })}</strong><p>{t('Lu à')} {date(village.observation!.fetchedAt)} · {t('actualisation 5 s')}</p>
         <label className="observed-language">Langue / Language <select value={language} onChange={(event) => setLanguage(event.target.value as Language)}><option value="fr">Français</option><option value="en">English</option></select></label>
       </div>
@@ -109,18 +137,26 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
           </button>)}</div>
           {briefing.length === 0 && <p className="observed-briefing__empty">{t('Aucun nouveau compte rendu dans les sources lues. Les projets restent consultables.')}</p>}
         </section>
-        {focusNames.length > 0 && focused.length < village.projects.length && <button type="button" className="observed-scope" onClick={() => setShowAll(!showAll)}>{showAll ? t('Revenir aux {count} projets suivis', { count: focused.length }) : t('Voir aussi les {count} autres projets', { count: village.projects.length - focused.length })}</button>}
+        {inbox && <section className="observed-inbox" aria-labelledby="observed-inbox-title">
+          <h2 id="observed-inbox-title">{t('Sessions non classées')} · {inboxRoots.length}</h2>
+          <p>{t('Lancées depuis le dossier personnel, /tmp ou sans dossier connu. Pour les ranger, ajoutez une règle dans projects.yaml :')} <code>{`sessions: [${inboxRoots[0]?.id ?? 'codex:ID'}]`}</code></p>
+          <button type="button" onClick={(event) => select(inbox.id, event.currentTarget)}>{t('Trier ces sessions')}</button>
+        </section>}
+        {focusNames.length > 0 && focused.length < projects.length && <button type="button" className="observed-scope" onClick={() => setShowAll(!showAll)}>{showAll ? t('Revenir aux {count} projets suivis', { count: focused.length }) : t('Voir aussi les {count} autres projets', { count: projects.length - focused.length })}</button>}
         <label>{t('Rechercher un projet')}<input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder={t('Projet…')} /></label>
         {visible.map((project) => {
           const entries = project.observation?.sessions ?? [];
           const working = entries.filter((entry) => isConfirmedWorking(entry, now)).length;
           const summary = projectBrief(entries, read[project.id]);
+          const links = project.observation?.links.length ?? 0;
+          const lastAt = summary.latest?.at ?? project.observation?.lastActivityAt;
           return <button type="button" key={project.id} aria-label={t('Ouvrir {name}', { name: project.name })} onClick={(event) => select(project.id, event.currentTarget)}>
-            <strong>{project.name}</strong><small>{entries.filter((e) => e.role !== 'helper').length} sessions · {entries.length === 0 ? t('Plan conservé · aucune conversation récente') : working ? `${working} ${t('en cours')}` : t('Derniers échanges')}</small>
+            <strong>{project.name}</strong><small>{entries.filter((e) => e.role !== 'helper').length} sessions{links ? ` · ${t('{count} chats liés', { count: links })}` : ''} · {entries.length === 0 ? project.plan ? t('Plan conservé · aucune conversation récente') : t('Aucune conversation observée') : working ? `${working} ${t('en cours')}` : t('Derniers échanges')}</small>
             <small className="observed-project-plan">{project.plan ? t('{done}/{total} jalons validés', { done: project.progress.verified, total: project.progress.total }) : t('Plan à définir')}</small>
             {summary.unread > 0 && <b className="observed-new">{summary.unread} {t('nouveaux échanges')}</b>}
+            {needsYou(entries) > 0 && <b className="observed-attention">{t('{count} vous attendent', { count: needsYou(entries) })}</b>}
             <span>{summary.latest?.text.slice(0, 90) ?? entries[0]?.objective?.slice(0, 90) ?? t('Ouvrir les sessions')}</span>
-            <time>{date(summary.latest?.at ?? project.observation!.lastActivityAt)}</time>
+            {lastAt && <time>{date(lastAt)}</time>}
           </button>;
         })}
       </nav>
@@ -139,15 +175,23 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
     <footer className="observed-footer"><details><summary>{t('Sources et confidentialité')}</summary>{translateDiagnostic(language, village.observation?.historyWindow ?? '')}. {t('Les résumés sont les déclarations des agents, non des résultats vérifiés. Rien n’est envoyé à GitHub.')} {t('Les conversations sources restent dans leur langue d’origine.')}{village.observation?.coverage?.map((note) => <p key={note}>{translateDiagnostic(language, note)}</p>)}</details></footer>
     {selected && <div className="drawer-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedId(undefined); }}>
       <aside ref={dialog} className="detail-drawer observed-drawer" role="dialog" aria-modal="true" aria-labelledby="observed-project-title">
-        <header className="detail-drawer__header"><div><span>{t('Projet connecté')}</span><h2 id="observed-project-title">{selected.name}</h2></div><button ref={close} className="drawer-close" type="button" aria-label={t('Fermer le projet')} onClick={() => setSelectedId(undefined)}>×</button></header>
+        <header className="detail-drawer__header"><div><span>{t(selected === inbox ? 'À trier' : 'Projet connecté')}</span><h2 id="observed-project-title">{projectName(selected)}</h2></div><button ref={close} className="drawer-close" type="button" aria-label={t('Fermer le projet')} onClick={() => setSelectedId(undefined)}>×</button></header>
         <div className="detail-drawer__body">
           <nav className="observed-tabs" aria-label={t('Vue du projet')}><button type="button" aria-pressed={tab === 'brief'} onClick={() => setTab('brief')}>{t('Bilan')}</button><button type="button" aria-pressed={tab === 'timeline'} onClick={() => setTab('timeline')}>{t('Évolution')}</button><button type="button" aria-pressed={tab === 'sessions'} onClick={() => { setTab('sessions'); setSessionId(undefined); }}>{t('Conversations')}</button><button type="button" onClick={markRead}>{t('Marquer comme lu')}</button></nav>
           <p>{t('{count} en cours confirmés', { count: selectedSessions.filter((s) => isConfirmedWorking(s, now)).length })} · {brief?.waiting} {t('en attente')} · {brief?.unread ?? 0} {t('nouveaux échanges depuis le dernier point de lecture.')}</p>
           {tab === 'brief' && brief && <section className="observed-brief">
-            {selected.id !== district?.id && <button type="button" className="observed-explore" onClick={() => explore(selected.id)}>{t('Explorer ce quartier')}</button>}
-            <ProjectPlanPanel key={selected.id} project={selected} language={language} selectedMilestoneId={selectedMilestoneId} />
+            {selected === inbox ? <section className="observed-assign" aria-labelledby="observed-assign-title">
+              <h3 id="observed-assign-title">{t('Ranger ces sessions')}</h3>
+              <p>{t('Aucune règle, aucun dépôt Git et aucun dossier de projet ne les rattache. Ajoutez une règle dans projects.yaml, dans votre dossier privé Agent Village ; elle est relue automatiquement :')}</p>
+              <pre><code>{assignSnippet}</code></pre>
+              <p className="observed-explanation">{t('Règles possibles : sessions, titles (expression régulière), paths, remotes. Les liens de chats Claude app se déclarent au même endroit (links).')}</p>
+            </section> : <>
+              {selected.id !== district?.id && <button type="button" className="observed-explore" onClick={() => explore(selected.id)}>{t('Explorer ce quartier')}</button>}
+              <ProjectPlanPanel key={selected.id} project={selected} language={language} selectedMilestoneId={selectedMilestoneId} />
+            </>}
             <section className="observed-agent-stats" aria-label={t('Agents et observations')}>
               <h3>{t('Agents et observations')}</h3><dl>
+                <div className="observed-agent-stats__wide"><dt>{t('Regroupement')}</dt><dd>{selected.observation?.matchedBy.map((by) => t(matchLabels[by])).join(' · ') || (selectedSessions.length ? t('Signal de cycle de vie seul · projet à identifier') : selectedLinks.length ? t('Liens saisis par vous') : '—')}</dd></div>
                 <div><dt>{t('Conversations principales')}</dt><dd>{selectedSessions.length - selectedHelpers.length}</dd></div>
                 <div><dt>{t('Sous-agents')}</dt><dd>{t('{count} sous-agents détectés', { count: selectedHelpers.length })}</dd></div>
                 <div><dt>{t('Activité récente')}</dt><dd>{selectedHelpers.filter((s) => hasRecentActivity(s, now)).length}</dd></div>
@@ -162,8 +206,16 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
             {(['done', 'next', 'blocked'] as const).map((section) => brief.reported[section].length > 0 && <section key={section}><h3>{t(({ done: 'Fait — déclaré par les agents', next: 'Suite explicitement annoncée', blocked: 'Blocages explicitement signalés' } as const)[section])}</h3><ul>{brief.reported[section].map((entry, index) => <li key={index}><p>{entry.text}</p>{source(entry)}</li>)}</ul></section>)}
           </section>}
           {tab === 'timeline' && <section className="observed-evolution"><h3>{t('Ce qui a changé')}</h3><p>{t('Chronologie réunie de toutes les conversations du projet. Les changements d’état seuls ne sont pas comptés comme du travail livré.')}</p><ol>{brief?.timeline.map((entry, index) => <li key={`${entry.sessionId}:${entry.at}:${index}`}><strong>{t(entry.kind === 'report' ? 'Compte rendu' : 'Demande')}</strong>{source(entry)}<p>{entry.text}</p></li>)}</ol></section>}
-          {tab === 'sessions' && selected.observation?.sessions.filter((session) => !sessionId || session.id === sessionId).map((session) => <article className="observed-session" key={session.id}>
-            <header><small>{session.tool.toUpperCase()} · {t(session.role === 'helper' ? 'Sous-agent' : 'Conversation principale')} · {t(states[presentWorkerState(session, true, now)])}</small><h3>{session.title}</h3><time>{date(session.lastActivityAt)}</time></header>
+          {tab === 'sessions' && sourceGroups.map(([tool, label]) => {
+            const list = selectedSessions.filter((session) => (session.tool === tool || (tool === 'other' && !knownTools.includes(session.tool))) && (!sessionId || session.id === sessionId));
+            const title = `${label || t('Autre source')}${experimental.has(tool) ? ` (${t('expérimental')})` : ''}`;
+            return list.length > 0 && <section className="observed-source-group" key={tool} aria-label={title}>
+              {!sessionId && <h3 className="observed-source-group__title">{title} · {list.length}</h3>}
+              {list.map((session) => <article className="observed-session" key={session.id}>
+            <header><small>{session.tool.toUpperCase()}{session.origin && session.origin !== 'unknown' && <> · <span className="observed-origin">{t(originLabels[session.origin])}</span></>} · {t(session.role === 'helper' ? 'Sous-agent' : 'Conversation principale')} · {session.attention
+              ? <b className="observed-attention">{t(attentionLabels[session.attention.kind])} · {date(session.attention.at)}</b>
+              : t(states[presentWorkerState(session, true, now)])}</small><h3>{session.title}</h3><time>{date(session.lastActivityAt)}</time></header>
+            <p className="observed-provenance">{t('Rattachement : {value}', { value: provenance(session) })}</p>
             {session.activityEvidence && <p>{t(session.activityEvidence.level === 'confirmed' ? 'Activité confirmée' : session.activityEvidence.level === 'recent' ? 'Activité récente' : 'Activité détectée')} · {session.activityEvidence.source} · {date(session.activityEvidence.observedAt)}</p>}
             {session.parentId && <p>{t('Conversation parente')} : {selectedSessions.find((s) => s.id === session.parentId)?.title ?? session.parentId}</p>}
             {session.terminal && <p>{t('Terminal tmux :')} <code>{session.terminal}</code></p>}
@@ -172,6 +224,18 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
             <section><h4>{t('Historique récent')}</h4><ol>{session.history.slice().reverse().map((update, index) => <li key={`${update.at}:${index}`}><small>{date(update.at)} · {update.kind === 'report' ? 'Agent' : t('Demande')}</small><p>{update.text}</p></li>)}</ol></section>
             <small>{translateDiagnostic(language, session.sourceNote ?? '')} · {session.id}</small>
           </article>)}
+            </section>;
+          })}
+          {tab === 'sessions' && !sessionId && (Object.keys(linkSources) as OwnerLink['source'][]).map((source) => {
+            const list = selectedLinks.filter((link) => link.source === source);
+            const label = linkSources[source] || t('Autre chat');
+            return list.length > 0 && <section className="observed-source-group observed-links" key={`link:${source}`} aria-label={label}>
+              <h3 className="observed-source-group__title">{label} · {list.length}</h3>
+              <p className="observed-explanation">{t('Saisis par vous dans projects.yaml. Agent Village ne lit ni ne télécharge ces conversations.')}</p>
+              <ul>{list.map((link) => <li key={link.url}><a href={link.url} target="_blank" rel="noopener noreferrer">{link.title}</a> <small>{t('Rattachement : {value}', { value: t('Saisi par vous') })}</small></li>)}</ul>
+            </section>;
+          })}
+          {tab === 'sessions' && !sessionId && selectedSessions.length === 0 && selectedLinks.length === 0 && <p>{t('Aucune conversation observée')}</p>}
         </div>
       </aside>
     </div>}

@@ -3,10 +3,12 @@ import { randomBytes } from 'node:crypto';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { mergeClaudeHooks, removeClaudeHooks } from '../src/server/activity/claudeHooks.js';
+import { CLAUDE_HOOK_EVENTS } from '../src/server/activity/hookStore.js';
 import { DEFAULT_AUTH_DIRECTORY, readPrivateFile } from '../src/server/auth/privateState.js';
 
+// Claude Code reads user settings from CLAUDE_CONFIG_DIR when it is set, else ~/.claude.
 const settingsPath = process.env.CLAUDE_SETTINGS_PATH
-  ?? join(homedir(), '.claude', 'settings.json');
+  ?? join(process.env.CLAUDE_CONFIG_DIR?.trim() || join(homedir(), '.claude'), 'settings.json');
 const endpoint = process.env.AGENT_VILLAGE_HOOK_URL
   ?? 'http://127.0.0.1:4180/api/hooks/claude';
 const remove = process.argv.includes('--remove');
@@ -27,4 +29,4 @@ await writeFile(temporaryPath, `${JSON.stringify(next, null, 2)}\n`, { encoding:
 await rename(temporaryPath, settingsPath);
 console.log(remove
   ? `Removed Agent Village hooks from ${settingsPath}`
-  : `Connected Claude Code hooks to ${endpoint}`);
+  : `Connected Claude Code hooks to ${endpoint} for ${CLAUDE_HOOK_EVENTS.join(', ')}`);

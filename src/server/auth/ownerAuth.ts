@@ -14,12 +14,12 @@ export const SESSION_MINUTES = 30;
 const CHALLENGE_TTL_MS = 2 * 60_000;
 const tokenPattern = /^[A-Za-z0-9_-]{43}$/;
 const base64url = z.string().min(1).max(4096).regex(/^[A-Za-z0-9_-]+$/);
-const ownerSchema = z.object({
+const ownerSchema = z.strictObject({
   version: z.literal(1), rpID: z.literal('localhost'), userId: base64url,
-  credential: z.object({ id: base64url, publicKey: base64url, counter: z.number().int().nonnegative(),
+  credential: z.strictObject({ id: base64url, publicKey: base64url, counter: z.number().int().nonnegative(),
     transports: z.array(z.enum(['usb', 'nfc', 'ble', 'internal', 'cable', 'hybrid', 'smart-card'])).optional(),
-  }).strict(),
-}).strict();
+  }),
+});
 type Owner = z.infer<typeof ownerSchema>;
 type Challenge = { kind: 'enroll' | 'login'; challenge: string; origin: string; expiresAt: number; userId?: string };
 

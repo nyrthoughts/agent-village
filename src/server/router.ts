@@ -10,7 +10,8 @@ import { deriveWorkspace } from './truth/derive.js';
 import { verifyWorkspaceEvidence } from './truth/evidence/verify.js';
 import { hasTraversal, readStatic } from './static.js';
 import type { LocalSessions } from './activity/localSessions.js';
-import { observedVillage, mergeLiveSessions, projectId } from './activity/projectObserver.js';
+import { observedVillage, mergeLiveSessions, planAdoptions, projectId } from './activity/projectObserver.js';
+import { UNASSIGNED_KEY } from './activity/projectResolver.js';
 import { AuthError, OwnerAuth } from './auth/ownerAuth.js';
 import { ProjectPlans } from './projectPlans.js';
 import { planWriteSchema, type ProjectPlansById } from '../shared/projectPlan.js';
@@ -192,10 +193,12 @@ export function createRouter(options: RouterOptions) {
       if (!input.success) { json(response, 422, { error: 'invalid_plan' }); return; }
       const snapshot = await observed();
       const session = snapshot.sessions.find((session) => projectId(session.projectKey) === input.data.projectId);
-      if (session?.projectKey.startsWith('hook:')) { json(response, 409, { error: 'project_identity_pending' }); return; }
+      // Hook-only identities and the Unassigned inbox are not projects yet.
+      if (session?.projectKey.startsWith('hook:') || session?.projectKey === UNASSIGNED_KEY) { json(response, 409, { error: 'project_identity_pending' }); return; }
+      const declared = (snapshot.declared ?? []).find((entry) => projectId(entry.key) === input.data.projectId);
       try {
-        if (!session && !plans.read()[input.data.projectId]) { json(response, 404, { error: 'unknown_project' }); return; }
-        json(response, 200, plans.save(input.data.projectId, input.data.plan, input.data.revision, 'owner', session?.project));
+        if (!session && !declared && !plans.read()[input.data.projectId]) { json(response, 404, { error: 'unknown_project' }); return; }
+        json(response, 200, plans.save(input.data.projectId, input.data.plan, input.data.revision, 'owner', session?.project ?? declared?.name));
       }
       catch (error) {
         const code = error instanceof Error ? error.message : '';
@@ -220,9 +223,17 @@ export function createRouter(options: RouterOptions) {
         const snapshot = await observed();
         let saved: ProjectPlansById = {};
         const errors = [...snapshot.errors];
-        try { saved = plans?.read() ?? {}; } catch { errors.push('Objectifs privés illisibles. Aucune progression déduite.'); }
-        const village = observedVillage(snapshot.sessions, errors, options.focusProjects, saved);
+        try {
+          saved = plans?.read() ?? {};
+          // Regrouping (a new remote match or owner rule) carries an unambiguous saved plan along.
+          const adoptions = plans ? planAdoptions(snapshot.moves ?? [], Object.keys(saved), snapshot.sessions.map((session) => session.projectKey)) : [];
+          let adopted = false;
+          for (const move of adoptions) adopted = plans!.adopt(move.from, move.to) || adopted;
+          if (adopted) saved = plans!.read();
+        } catch { errors.push('Objectifs privés illisibles. Aucune progression déduite.'); }
+        const village = observedVillage(snapshot.sessions, errors, options.focusProjects, saved, snapshot.declared);
         if ('coverage' in snapshot) village.observation!.coverage = snapshot.coverage as string[];
+        if (snapshot.sources) village.observation!.sources = snapshot.sources;
         json(response, 200, village); return;
       }
       const loaded = loadWorkspace(options.villagePath);

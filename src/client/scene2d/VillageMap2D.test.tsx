@@ -65,7 +65,7 @@ const nativeDistrict: DerivedWorkspace = {
   observation: { fetchedAt: '2026-09-05T12:00:00Z', errors: [], historyWindow: '', focusProjects: [] },
   projects: [{
     ...village.projects[0]!,
-    observation: { sessions: [], lastActivityAt: '2026-09-05T12:00:00Z', buildingFamilyIndex: 0 },
+    observation: { sessions: [], lastActivityAt: '2026-09-05T12:00:00Z', buildingFamilyIndex: 0, matchedBy: [], links: [] },
     plan: { objective: 'Map it', revision: 1, updatedAt: '2026-09-05T12:00:00Z', milestones: [{ id: 'contours', title: 'Contours', validated: false, note: '' }, { id: 'library', title: 'Library', validated: true, note: 'Reviewed', validatedBy: 'owner', validatedAt: '2026-09-05T12:00:00Z' }] },
     tasks: [{ ...village.projects[0]!.tasks[0]!, id: 'atlas', title: 'Common house' }, ...village.projects[0]!.tasks.map((task) => ({ ...task, id: `atlas:${task.id}` }))],
   }],

@@ -12,7 +12,7 @@ function task(overrides: Partial<DerivedTask> = {}): DerivedTask {
 const project: DerivedProject = { id: 'atlas', name: 'Atlas', objective: 'Map it', effectiveStatus: 'in_progress', progress: { verified: 0, total: 0, remaining: 0 }, features: [], tasks: [] };
 const nativeProject: DerivedProject = {
   ...project,
-  observation: { sessions: [], lastActivityAt: '2026-09-04T12:00:00Z', buildingFamilyIndex: 0 },
+  observation: { sessions: [], lastActivityAt: '2026-09-04T12:00:00Z', buildingFamilyIndex: 0, matchedBy: [], links: [] },
   plan: { objective: 'Map it', revision: 1, updatedAt: '2026-09-04T12:00:00Z', milestones: [{ id: 'map', title: 'Map', validated: false, note: '' }] },
 };
 

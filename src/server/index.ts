@@ -1,5 +1,6 @@
 import { createServer, type Server } from 'node:http';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
+import { MANIFEST_FILE } from './config/projectManifest.js';
 import { pathToFileURL } from 'node:url';
 import { resolveMode } from './mode.js';
 import { createRouter, type RouterOptions } from './router.js';
@@ -54,7 +55,8 @@ async function main(): Promise<void> {
     amcEndpoint: process.env.AMC_ENDPOINT,
     demoActivityPath: resolve(process.env.AMC_FIXTURE ?? 'fixtures/amc/dashboard.nominal.json'),
     nativeActivity: mode === 'native' ? nativeActivity : undefined,
-    localSessions: mode === 'native' ? new LocalSessions({ aliases: JSON.parse(process.env.VILLAGE_PROJECT_ALIASES ?? '{}') }) : undefined,
+    localSessions: mode === 'native' ? new LocalSessions({ env: process.env, aliases: JSON.parse(process.env.VILLAGE_PROJECT_ALIASES ?? '{}'),
+      manifestPath: join(process.env.VILLAGE_AUTH_DIR ?? DEFAULT_AUTH_DIRECTORY, MANIFEST_FILE) }) : undefined,
     focusProjects: JSON.parse(process.env.VILLAGE_FOCUS_PROJECTS ?? '[]'),
   });
   await listenLocal(server, port);

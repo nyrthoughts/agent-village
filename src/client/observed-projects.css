@@ -69,6 +69,21 @@
 .observed-tabs button { min-height:36px; padding:8px 12px; border:1px solid #ccd3c0; background:transparent; color:#536a56; cursor:pointer; font-size:12px; }
 .observed-tabs button[aria-pressed='true'] { background:#365543; border-color:#365543; color:#faf6e8; }
 .observed-tabs button:last-child { margin-left:auto; }
+.observed-inbox { padding:14px 0 16px; border-top:1px solid var(--journal-line); border-bottom:1px solid var(--journal-line); }
+.observed-inbox h2 { margin:0 0 6px; font-size:14px; font-weight:600; letter-spacing:-.02em; }
+.observed-inbox p { margin:0 0 10px; color:#5b6b5d; font-size:11px; line-height:1.55; overflow-wrap:anywhere; }
+.observed-inbox code,.observed-assign code { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px; }
+.observed-inbox button { min-height:36px; padding:6px 12px; border:1px solid #56714e; background:#e7edcf; color:var(--journal-ink); font:inherit; font-size:12px; cursor:pointer; }
+.observed-assign { padding:0 0 18px; margin-bottom:18px; border-bottom:1px solid #c8d0b9; }
+.observed-assign pre { max-width:100%; margin:12px 0; padding:0; border:0; background:transparent; }
+.observed-assign pre code { display:block; overflow-x:auto; padding:12px; white-space:pre; font-size:12px; line-height:1.5; }
+.observed-session .observed-provenance { margin:4px 0; color:#4f6a47; font-size:12px; line-height:1.5; }
+.observed-source-group__title { margin:22px 0 0; padding-bottom:6px; border-bottom:2px solid #c8d0b9; font-size:13px; letter-spacing:.02em; }
+.observed-links ul { padding-left:18px; }
+.observed-links li { padding:6px 0; overflow-wrap:anywhere; }
+.observed-links a { color:#365543; }
+.observed-agent-stats .observed-agent-stats__wide { grid-column:1 / -1; }
+.observed-agent-stats .observed-agent-stats__wide dd { font-size:13px; font-weight:500; }
 .observed-source { display:block; padding:4px 0; border:0; background:transparent; color:#617650; font:11px/1.5 'Avenir Next','Trebuchet MS',sans-serif; text-decoration:underline; text-underline-offset:2px; text-align:left; cursor:pointer; }
 .observed-brief p,.observed-evolution p,.observed-session p { white-space:pre-wrap; overflow-wrap:anywhere; font:14px/1.7 'Avenir Next','Trebuchet MS',sans-serif; }
 .observed-brief article { padding:16px 0; margin:12px 0; border-bottom:1px solid #d7ddca; }
@@ -77,6 +92,14 @@
 .observed-evolution ol,.observed-session ol { padding-left:20px; }
 .observed-evolution li { padding:15px 0; border-bottom:1px solid #d7ddca; }
 .observed-new { color:#9c703d; font-size:10px; font-weight:600; }
+.observed-attention { color:#a1452f; font-weight:700; }
+.observed-projects .observed-attention { font-size:10px; }
+.observed-origin { padding:0 5px; border:1px solid #b5c1a6; background:#f2f1e6; color:#365543; font-weight:600; letter-spacing:.04em; }
+.observed-source-status { display:flex; flex-wrap:wrap; gap:4px 12px; margin:6px 0 0; padding:0; list-style:none; color:var(--journal-muted); font-size:11px; }
+.observed-source-status li::before { content:''; display:inline-block; width:7px; height:7px; margin-right:5px; background:#718759; }
+.observed-source-status--experimental::before { background:#c49a52 !important; }
+.observed-source-status--unavailable { opacity:.7; }
+.observed-source-status--unavailable::before { background:#b9bdb2 !important; }
 .observed-explanation { color:#6e7c65; }
 .observed-session { padding:20px 0; border-bottom:1px solid #d4dbc9; }
 .observed-session h3 { margin:8px 0; }
@@ -108,6 +131,7 @@
   .observed-projects > label { order:2; margin:5px 0 -12px; }
   .observed-projects > button { order:3; margin:-10px 0; min-height:72px; }
   .observed-projects > button.observed-scope { order:4; margin:0; }
+  .observed-inbox { order:5; }
   .observed-footer { font-size:11px; }
   .observed-drawer { width:100%; border-left:0; }
   .observed-drawer .detail-drawer__header,.observed-drawer .detail-drawer__body { padding-left:20px; padding-right:20px; }

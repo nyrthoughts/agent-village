@@ -52,6 +52,40 @@ describe('HookActivityStore', () => {
     expect(store.workers()).toEqual([]);
   });
 
+  it('records approval and input requests from typed notifications only, without their message, until later activity', () => {
+    let now = new Date('2026-09-01T12:00:00.000Z');
+    const store = new HookActivityStore(() => now);
+    const lead = () => store.workers().find((worker) => worker.id === 'claude:s1');
+    const send = (hook_event_name: string, extra: object = {}) => store.ingestClaude({ session_id: 's1', hook_event_name, cwd: '/work/atlas', ...extra });
+    expect(send('Notification', { notification_type: 'permission_prompt', message: 'Claude needs your permission to use SECRET_TOOL' })).toBe(true);
+    expect(lead()).toMatchObject({ state: 'waiting', attention: { kind: 'approval', at: '2026-09-01T12:00:00.000Z', source: 'claude-hook' } });
+    expect(JSON.stringify(store.workers())).not.toMatch(/SECRET_TOOL|permission_prompt|message/);
+    now = new Date('2026-09-01T12:00:10.000Z');
+    send('PreToolUse', { tool_name: 'Bash', tool_input: { command: 'SECRET_COMMAND' } });
+    expect(lead()?.attention).toBeUndefined();
+    expect(JSON.stringify(store.workers())).not.toContain('SECRET_COMMAND');
+
+    for (const [type, kind] of [['idle_prompt', 'input'], ['elicitation_dialog', 'input']] as const) {
+      send('Notification', { notification_type: type });
+      expect(lead()?.attention?.kind).toBe(kind);
+      send('UserPromptSubmit', { prompt: 'answer' });
+      expect(lead()?.attention).toBeUndefined();
+    }
+    send('PermissionRequest', { tool_name: 'Edit' });
+    expect(lead()?.attention?.kind).toBe('approval');
+    // A notification without a known type and a helper starting leave the request pending.
+    send('Notification', { notification_type: 'auth_success' });
+    send('Notification');
+    send('SubagentStart', { agent_id: 'h1', agent_type: 'reviewer' });
+    expect(lead()?.attention?.kind).toBe('approval');
+    expect(store.workers().find((worker) => worker.role === 'helper')?.attention).toBeUndefined();
+    for (const event of ['PostToolUse', 'Stop']) {
+      send('PermissionRequest');
+      send(event);
+      expect(lead()?.attention).toBeUndefined();
+    }
+  });
+
   it('rejects malformed hook payloads', () => {
     const store = new HookActivityStore();
     expect(store.ingestClaude({ session_id: '../bad', hook_event_name: 'Stop', cwd: '/tmp' })).toBe(false);

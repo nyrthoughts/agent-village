@@ -5,6 +5,7 @@ interface LiveAgentsPanelProps { activity?: ActivitySnapshot }
 const toolLabels: Record<WorkerTool, string> = {
   codex: 'Codex',
   claude: 'Claude',
+  gemini: 'Gemini',
   openclaw: 'OpenClaw',
   other: 'Other',
 };

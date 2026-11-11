@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseTranscript, observedVillage, mergeLiveSessions } from './projectObserver.js';
+import { parseTranscript, observedVillage, mergeLiveSessions, planAdoptions, projectId } from './projectObserver.js';
 
 const line = (type: string, payload: unknown, timestamp = '2026-09-04T12:00:00Z') => JSON.stringify({ type, payload, timestamp });
 
@@ -24,6 +24,15 @@ describe('private project observer', () => {
     expect(new Set(village.projects.map((project) => project.observation?.buildingFamilyIndex)).size).toBe(6);
     expect(observedVillage([sessions[4]!], [], names).projects[0]?.observation?.buildingFamilyIndex).toBe(4);
   });
+  it('carries a newer hook attention signal onto the journal session and lets a later hook clear it', () => {
+    const sessions = [{ id: 'claude:a', tool: 'claude' as const, state: 'idle' as const, projectKey: 'repo', project: 'Project', history: [], lastActivityAt: '2026-09-04T12:00:00Z' }];
+    const asked = mergeLiveSessions(sessions, [{ id: 'claude:a', tool: 'claude', state: 'waiting', lastActivityAt: '2026-09-04T12:01:00Z',
+      attention: { kind: 'approval', at: '2026-09-04T12:01:00Z', source: 'claude-hook' } }]);
+    expect(asked[0]).toMatchObject({ state: 'waiting', attention: { kind: 'approval' } });
+    const answered = mergeLiveSessions(asked, [{ id: 'claude:a', tool: 'claude', state: 'working', lastActivityAt: '2026-09-04T12:02:00Z' }]);
+    expect(answered[0]?.attention).toBeUndefined();
+  });
+
   it('attaches helpers to the project and applies newer hooks without losing reports', () => {
     const sessions = [{ id: 'claude:a', tool: 'claude' as const, state: 'unknown' as const, projectKey: 'repo', project: 'Project', attachedTaskId: 'building', history: [], summary: 'Built parser.', lastActivityAt: '2026-09-04T12:00:00Z' }];
     const result = mergeLiveSessions(sessions, [
@@ -50,6 +59,15 @@ describe('private project observer', () => {
     expect(JSON.stringify(parsed)).not.toMatch(/SECRET|PRIVATE|partial/);
   });
 
+  it('keeps a Codex session whose recorded remote has a malformed escape', () => {
+    const parsed = parseTranscript([
+      line('session_meta', { id: 'x', git: { repository_url: 'https://example.com/org/%' } }),
+      line('response_item', { type: 'message', role: 'user', content: [{ type: 'input_text', text: 'Still readable' }] }),
+    ].join('\n'), 'codex');
+    expect(parsed.repository).toBeUndefined();
+    expect(parsed.objective).toBe('Still readable');
+  });
+
   it('uses actual lifecycle events for Codex state', () => {
     expect(parseTranscript(line('event_msg', { type: 'task_started' }), 'codex').state).toBe('working');
     expect(parseTranscript(line('event_msg', { type: 'task_complete' }), 'codex').state).toBe('waiting');
@@ -72,6 +90,72 @@ describe('private project observer', () => {
   it('deduplicates transcript reports and bounds history', () => {
     const entry = line('response_item', { type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'Built.' }] });
     expect(parseTranscript(Array(100).fill(entry).join('\n'), 'codex').history).toHaveLength(1);
+  });
+
+  it('reads the Codex repository record without keeping credentials, and the first request for title rules', () => {
+    const parsed = parseTranscript([
+      line('session_meta', { cwd: '/w/app', git: { repository_url: 'https://demo:fake-token@github.com/demo-org/app.git' } }),
+      line('response_item', { type: 'message', role: 'user', content: [{ type: 'input_text', text: 'app: first' }] }),
+      line('response_item', { type: 'message', role: 'user', content: [{ type: 'input_text', text: 'second' }] }, '2026-09-04T12:01:00Z'),
+    ].join('\n'), 'codex');
+    expect(parsed.repository).toBe('github.com/demo-org/app');
+    expect(parsed.firstRequest).toBe('app: first');
+    expect(parsed.objective).toBe('second');
+    expect(JSON.stringify(parsed)).not.toContain('fake-token');
+  });
+
+  it('lets a hook helper inherit its lead project provenance, while hook-only leads stay pending', () => {
+    const lead = { id: 'claude:a', tool: 'claude' as const, state: 'idle' as const, projectKey: 'remote:github.com/demo-org/app', project: 'app', attachedTaskId: 'b', history: [], lastActivityAt: '2026-09-04T12:00:00Z', matchedBy: 'remote' as const, matchDetail: 'github.com/demo-org/app' };
+    const result = mergeLiveSessions([lead], [
+      { id: 'claude:a:helper:1', tool: 'claude', role: 'helper', parentId: 'claude:a', state: 'working', lastActivityAt: '2026-09-04T12:01:00Z' },
+      { id: 'claude:solo', tool: 'claude', role: 'lead', state: 'working', lastActivityAt: '2026-09-04T12:01:00Z' },
+    ]);
+    expect(result.find((s) => s.id === 'claude:a:helper:1')).toMatchObject({ matchedBy: 'remote', matchDetail: 'github.com/demo-org/app', projectKey: lead.projectKey });
+    expect(result.find((s) => s.id === 'claude:solo')?.matchedBy).toBeUndefined();
+  });
+
+  it('exposes provenance, owner links and the Unassigned inbox without creating progress', () => {
+    const base = { tool: 'codex' as const, state: 'idle' as const, history: [], lastActivityAt: '2026-09-04T12:00:00Z' };
+    const village = observedVillage([
+      { ...base, id: 'codex:1', projectKey: 'remote:github.com/demo-org/app', project: 'app', matchedBy: 'remote' },
+      { ...base, id: 'claude:2', tool: 'claude', projectKey: 'remote:github.com/demo-org/app', project: 'app', matchedBy: 'rule' },
+      { ...base, id: 'claude:3', tool: 'claude', projectKey: 'unassigned', project: 'Sessions non classées', matchedBy: 'unassigned' },
+    ], [], [], {}, [
+      { key: 'alias:Research', name: 'Research', links: [{ title: 'Pricing brainstorm', url: 'https://claude.ai/chat/demo', source: 'claude-app' }] },
+      { key: 'alias:Empty', name: 'Empty', links: [] },
+    ]);
+    const byName = (name: string) => village.projects.find((project) => project.name === name);
+    expect(byName('app')?.observation).toMatchObject({ matchedBy: ['rule', 'remote'], links: [] });
+    expect(byName('app')?.observation?.unassigned).toBeUndefined();
+    expect(byName('Sessions non classées')?.observation).toMatchObject({ unassigned: true, matchedBy: ['unassigned'] });
+    expect(byName('Research')?.observation).toMatchObject({ sessions: [], lastActivityAt: '', links: [{ title: 'Pricing brainstorm' }] });
+    expect(byName('Research')?.id).toBe(projectId('alias:Research'));
+    expect(byName('Empty')).toBeUndefined();
+    expect(village.progress.verified).toBe(0);
+    expect(village.projects.at(-1)?.name).toBe('Research');
+  });
+
+  it('moves a saved plan to the regrouped project only when the move is unambiguous', () => {
+    const plans = [projectId('/w/app'), projectId('/w/mono'), projectId('/w/kept'), projectId('remote:github.com/demo-org/kept')];
+    const moves = planAdoptions([
+      { from: '/w/app', to: 'remote:github.com/demo-org/app' },
+      { from: '/w/app', to: 'remote:github.com/demo-org/app' },
+      { from: '/w/mono', to: 'alias:A' }, { from: '/w/mono', to: 'alias:B' },
+      { from: '/w/kept', to: 'remote:github.com/demo-org/kept' },
+      { from: '/w/without-plan', to: 'remote:github.com/demo-org/other' },
+      { from: '/w/app', to: 'unassigned' },
+    ], plans);
+    expect(moves).toEqual([{ from: projectId('/w/app'), to: projectId('remote:github.com/demo-org/app') }]);
+    expect(planAdoptions([{ from: '/w/one', to: 'remote:x/y/z' }, { from: '/w/two', to: 'remote:x/y/z' }], [projectId('/w/one'), projectId('/w/two')])).toEqual([]);
+  });
+
+  it('keeps the plan with the folder project when an owner rule splits only one session out of it', () => {
+    // Two sessions in /w/notes: one is pinned to a rule, the other stays a folder project.
+    const moves = [{ from: '/w/notes', to: 'alias:Side project' }];
+    expect(planAdoptions(moves, [projectId('/w/notes')], ['/w/notes', 'alias:Side project'])).toEqual([]);
+    // Once no session resolves to the old key, the move is unambiguous again.
+    expect(planAdoptions(moves, [projectId('/w/notes')], ['alias:Side project']))
+      .toEqual([{ from: projectId('/w/notes'), to: projectId('alias:Side project') }]);
   });
 
   it('groups conversations into one building without claiming verified progress', () => {

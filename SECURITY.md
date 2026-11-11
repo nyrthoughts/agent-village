@@ -20,7 +20,7 @@ See [owner access](docs/owner-access.md) for setup, limits and recovery boundari
 - Claude/OpenClaw hooks use a separate bearer from `ingestion.header`. It permits observation submissions only, never native reads, owner enrollment or browser login. Missing and incorrect authorization are rejected.
 - Native hooks validate event names and schemas, enforce a 64 KiB body limit, bound request time/rate and retain a bounded set of allowlisted metadata in memory. Unknown events are rejected.
 - Claude forwards local lifecycle payloads; the store keeps only allowlisted metadata. The OpenClaw plugin never reads prompt or transcript fields. Neither integration installs automatically.
-- Codex observation reads its existing SQLite index in read-only mode and bounded transcript tails. Claude observation reads existing journals and allowlisted process metadata. No additional conversation database or remote inference service is created.
+- Codex observation reads its existing SQLite index in read-only mode and bounded transcript tails. Claude observation reads existing journals and allowlisted process metadata. Gemini observation reads saved chat files. Approval and input signals keep only their kind and time, never notification text. The sources doctor prints counts and client identifiers only. No additional conversation database or remote inference service is created.
 - Commit evidence paths must stay below the YAML directory; absolute paths, upward traversal and escaping symlinks are rejected. Static file traversal is rejected before path resolution.
 - AMC-compatible sources use loopback HTTP with an 800 ms timeout. Their fields are allowlisted and likely paths, emails and common secret formats are redacted.
 

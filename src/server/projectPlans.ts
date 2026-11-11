@@ -14,6 +14,16 @@ export class ProjectPlans {
     const raw = readPrivateFile(join(this.directory, 'project-plans.json'));
     return raw ? ledgerSchema.parse(JSON.parse(raw.text)).plans : {};
   }
+  /** Moves a plan to a project's new id after regrouping. Never overwrites an existing plan. */
+  adopt(from: string, to: string): boolean {
+    if (!nativeProjectId.safeParse(from).success || !nativeProjectId.safeParse(to).success || from === to) return false;
+    const plans = this.read();
+    if (!plans[from] || plans[to]) return false;
+    plans[to] = plans[from];
+    delete plans[from];
+    writePrivateFile(join(this.directory, 'project-plans.json'), JSON.stringify({ version: 1, plans }));
+    return true;
+  }
   save(id: string, input: unknown, revision: number, actor: 'owner' | 'local-check' = 'owner', projectName?: string): ProjectPlan {
     const parsed = planDraftSchema.safeParse(input);
     if (!nativeProjectId.safeParse(id).success || !parsed.success || !Number.isInteger(revision) || revision < 0) throw new Error('invalid_plan');
