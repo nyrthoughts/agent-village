@@ -12,7 +12,7 @@ import { codexSource } from './codex.js';
 import { GEMINI_HASH, geminiFiles, geminiProjectHash, geminiSource, readGeminiFile } from './gemini.js';
 import { findFiles, readHeadLine, readTail } from './journal.js';
 import { claudeOrigin, codexOrigin } from './origin.js';
-import { WEEK_MS, type SessionSource, type SourceRoot } from './types.js';
+import { WEEK_MS, sessionLimit, type SessionSource, type SourceRoot } from './types.js';
 
 /**
  * `npm run sources:doctor`: what each local source reader would find on this computer.
@@ -69,6 +69,7 @@ export function desktopCandidates(home: string, env: DoctorOptions['env']): Reco
 export async function runSourcesDoctor(options: DoctorOptions): Promise<string> {
   const { home, env, platform } = options;
   const now = options.now ?? Date.now();
+  const limit = sessionLimit(env); // the same limit the server applies at startup
   const out: string[] = [];
   const show = (path: string) => displayPath(path, home);
   const fromLabel = (root: SourceRoot) => root.from === 'default' ? 'default' : root.from === 'manifest' ? 'projects.yaml' : root.variable!;
@@ -101,8 +102,14 @@ export async function runSourcesDoctor(options: DoctorOptions): Promise<string> 
     if (await exists(database)) {
       try {
         const { stdout } = await execute('sqlite3', ['-readonly', '-json', database,
-          "SELECT count(*) AS threads FROM threads WHERE updated_at > strftime('%s','now')-604800"], { timeout: 3000, maxBuffer: 64 * 1024 });
-        out.push(`    index state_5.sqlite: readable · ${Number((JSON.parse(stdout || '[]') as { threads?: number }[])[0]?.threads ?? 0)} threads updated in 7 days`);
+          "SELECT count(*) AS threads, sum(archived=0 AND (agent_path IS NULL OR agent_path='/root')) AS lead, sum(archived=0 AND NOT (agent_path IS NULL OR agent_path='/root')) AS helper, sum(archived<>0) AS archived FROM threads WHERE updated_at > strftime('%s','now')-604800"],
+          { timeout: 3000, maxBuffer: 64 * 1024 });
+        const row = (JSON.parse(stdout || '[]') as { threads?: number; lead?: number; helper?: number; archived?: number }[])[0] ?? {};
+        const lead = Number(row.lead ?? 0);
+        out.push(`    index state_5.sqlite: readable · ${Number(row.threads ?? 0)} threads updated in 7 days: ${lead} lead, ${Number(row.helper ?? 0)} sub-agent, ${Number(row.archived ?? 0)} archived`);
+        out.push(lead > limit
+          ? `    session limit: the server reads the ${limit} most recent lead threads; ${lead - limit} older ones are not shown (raise VILLAGE_SESSION_LIMIT, max 500)`
+          : `    session limit: ${limit} · every lead thread is read`);
         const { stdout: cwds } = await execute('sqlite3', ['-readonly', '-json', database,
           "SELECT DISTINCT cwd FROM threads WHERE updated_at > strftime('%s','now')-604800 LIMIT 500"], { timeout: 3000, maxBuffer: 512 * 1024 });
         for (const row of JSON.parse(cwds || '[]') as { cwd?: unknown }[]) if (typeof row.cwd === 'string' && row.cwd.startsWith('/')) folders.add(row.cwd);
@@ -166,6 +173,9 @@ export async function runSourcesDoctor(options: DoctorOptions): Promise<string> 
       } catch { failures++; }
     }
     out.push(`    journals (7 days): ${journals.length}${journals.length > ORIGIN_SAMPLE ? ` (first ${ORIGIN_SAMPLE} inspected)` : ''} · parse failures: ${failures} · process records: ${processes}`);
+    out.push(journals.length > limit
+      ? `    session limit: the server reads the ${limit} most recent sessions; ${journals.length - limit} older ones are not shown (raise VILLAGE_SESSION_LIMIT, max 500)`
+      : `    session limit: ${limit} · every recent session is read`);
     out.push(`    origins: ${list(origins)}`);
     out.push(`    raw entrypoint: ${list(raw)}`);
     let hooks = '    hooks: settings.json missing · run npm run connect:claude to receive approval and input signals';

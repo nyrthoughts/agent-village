@@ -60,6 +60,7 @@ describe('sources doctor', () => {
     expect(output).toContain('raw originator/source: (none)/(none) ×1, Codex Desktop/vscode ×1, codex_cli_rs/cli ×1');
     expect(output).toContain('approval-request events (exec_approval_request, apply_patch_approval_request): 1 in 1 of 3 recent rollouts');
     expect(output).toContain('journals (7 days): 2 · parse failures: 0 · process records: 0');
+    expect(output).toContain('session limit: 120 · every recent session is read');
     expect(output).toContain('raw entrypoint: claude-vscode ×1, cli ×1');
     expect(output).toMatch(/hooks: installed for 10\/11 events · missing: PermissionRequest · run npm run connect:claude/);
     expect(output).toContain('project folders: 2 (2 hashed, 0 other names)');
@@ -81,5 +82,27 @@ describe('sources doctor', () => {
     expect(output).toContain('Gemini CLI [experimental]');
     expect(output).not.toContain(SECRET_TEXT);
     expect(output).not.toContain(home);
+  });
+
+  it('splits Codex index threads into lead, sub-agent and archived, and says when the limit hides lead threads', async () => {
+    const home = await fixture();
+    const rows = Array.from({ length: 13 }, (_, i) => `('t${i}','','','/w/app','',strftime('%s','now'),0,NULL)`)
+      .concat(["('h1','','','/w/app','',strftime('%s','now'),0,'/root/child')", "('old','','','/w/app','',strftime('%s','now'),1,NULL)"]);
+    execFileSync('sqlite3', [join(home, '.codex/state_5.sqlite'),
+      `CREATE TABLE threads(id,name,title,cwd,rollout_path,updated_at,archived,agent_path); INSERT INTO threads VALUES ${rows.join(',')};`]);
+    const limited = await runSourcesDoctor({ home, env: { VILLAGE_SESSION_LIMIT: '10' }, platform: 'linux' });
+    expect(limited).toContain('15 threads updated in 7 days: 13 lead, 1 sub-agent, 1 archived');
+    expect(limited).toContain('reads the 10 most recent lead threads; 3 older ones are not shown');
+  });
+});
+
+describe('session limit', () => {
+  it('defaults to 120 and clamps VILLAGE_SESSION_LIMIT to 10–500', async () => {
+    const { sessionLimit } = await import('./types.js');
+    expect(sessionLimit({})).toBe(120);
+    expect(sessionLimit({ VILLAGE_SESSION_LIMIT: '300' })).toBe(300);
+    expect(sessionLimit({ VILLAGE_SESSION_LIMIT: '2' })).toBe(10);
+    expect(sessionLimit({ VILLAGE_SESSION_LIMIT: '9000' })).toBe(500);
+    expect(sessionLimit({ VILLAGE_SESSION_LIMIT: 'lots' })).toBe(120);
   });
 });

@@ -6,7 +6,10 @@ import type { SessionOrigin } from '../../../shared/activity.js';
  * owner can report it and the mapping can be extended.
  */
 
-/** Codex `session_meta.originator` (e.g. `codex_cli_rs`, `codex_vscode`) and `source` (`cli`, `vscode`, `exec`, `mcp`). */
+/**
+ * Codex `session_meta.originator` (e.g. `codex_cli_rs`, `codex_vscode`, `Codex Desktop`) and `source` (`cli`, `vscode`, `exec`, `mcp`, `subagent`).
+ * Verified live: the desktop app records originator `Codex Desktop` with source `vscode`, so the originator decides first.
+ */
 export function codexOrigin(originator?: string, source?: string): SessionOrigin {
   const name = originator?.toLowerCase() ?? '';
   if (/desktop|codex[_ -]?app\b|mac[_ -]?app/.test(name)) return 'desktop';

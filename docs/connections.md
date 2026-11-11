@@ -19,7 +19,7 @@ Setup also creates `ingestion.header`, a separate observation-only authorization
 
 ## Local sources
 
-Every source is read from local files only, through one adapter per tool (`src/server/activity/sources/`). Each adapter lists the roots it reads; all sessions then go through the same project resolution. Common limits: up to 60 lead sessions per source, updated in the last seven days, journal reads capped at 4 MiB, 24 displayed exchanges per session, no reasoning or tool payloads. A tool that is not installed shows as **unavailable** in the header rather than as an error. Sessions are tagged with their **origin** when the tool records it: CLI, desktop app, IDE, scripted run (`exec`, SDK) or cloud; anything else stays unknown.
+Every source is read from local files only, through one adapter per tool (`src/server/activity/sources/`). Each adapter lists the roots it reads; all sessions then go through the same project resolution. Common limits: up to 120 lead sessions per source (`VILLAGE_SESSION_LIMIT`, 10–500; the doctor says when it hides sessions), updated in the last seven days, journal reads capped at 4 MiB, 24 displayed exchanges per session, no reasoning or tool payloads. A tool that is not installed shows as **unavailable** in the header rather than as an error. Sessions are tagged with their **origin** when the tool records it: CLI, desktop app, IDE, scripted run (`exec`, SDK) or cloud; anything else stays unknown.
 
 | Source | Status | Roots read (in order) | Origin field |
 | --- | --- | --- | --- |
@@ -31,8 +31,12 @@ Every source is read from local files only, through one adapter per tool (`src/s
 
 ### What is verified and what is assumed
 
-- **Verified on a live install:** Claude Code journal lines carry `cwd`, `entrypoint`, `userType` and `version`, and process records carry `entrypoint`. The value `remote_desktop` was seen on a cloud session started from the Claude desktop app and is shown as *cloud*.
-- **Tested on fictional fixtures only:** the Codex index columns (`git_origin_url`, `source`), the `session_meta` fields `originator` and `source`, rollout files read without an index, the Claude entrypoint values `cli`, `sdk-*`, `claude-vscode` and `claude-desktop`, and the whole Gemini format. Unknown originator or entrypoint strings stay *unknown* instead of being guessed; the doctor prints them so the mapping can be extended.
+- **Verified on live installs** (doctor output on macOS, counts and identifiers only):
+  - The **Codex desktop app** writes its threads to `~/.codex` like the CLI: `state_5.sqlite` and rollouts, with `originator` = `Codex Desktop` and `source` = `vscode` (lead threads) or `subagent` (helpers). These are shown as *desktop app*. No extra root is needed.
+  - **Claude Code in the Claude desktop app** writes its journals to `~/.claude` like the CLI, with `entrypoint` = `claude-desktop` (*desktop app*). `sdk-cli` (sessions driven through the Agent SDK) is shown as *scripted run*, `cli` as *CLI*, and `remote_desktop` (a cloud session started from the desktop app) as *cloud*.
+  - Journal lines carry `cwd`, `entrypoint`, `userType` and `version`; process records carry `entrypoint`.
+  - `~/Library/Application Support/Claude` and `…/Codex` hold app state as `*.json` files, not sessions; they are not read.
+- **Tested on fictional fixtures only:** the Codex index columns (`git_origin_url`, `source`), rollout files read without an index, the Claude entrypoint `claude-vscode`, and the whole Gemini format. Unknown originator or entrypoint strings stay *unknown* instead of being guessed; the doctor prints them so the mapping can be extended.
 - **Not known:** where the Codex desktop app and Claude Code in the Claude desktop app store sessions when they do not use `~/.codex` or `~/.claude`. The doctor checks the usual application folders and only reports what exists.
 - **Not on disk:** Codex cloud tasks, Claude Code on the web and other cloud sessions run elsewhere and leave no local journal. Claude app (claude.ai) chats have no local source either. Add any of them as `links` in `projects.yaml`.
 
@@ -46,7 +50,7 @@ Parent-child edges add up to 200 helper metadata records at depth eight. Helpers
 
 ### Claude Code
 
-Existing conversations need no hooks. Native mode reads recent journals below `<root>/projects` and allowlisted process metadata below `<root>/sessions` for every root. It selects up to 60 sessions, preferring running processes; those may be older than seven days. Existing tmux metadata appears when available. Agents need not restart.
+Existing conversations need no hooks. Native mode reads recent journals below `<root>/projects` and allowlisted process metadata below `<root>/sessions` for every root. It selects up to `VILLAGE_SESSION_LIMIT` sessions (default 120), preferring running processes; those may be older than seven days. Existing tmux metadata appears when available. Agents need not restart.
 
 After first-time `auth:setup`, optional lifecycle hooks can be installed with:
 
@@ -79,7 +83,7 @@ To place a session, the hash is compared with folders already known: working dir
 Approval and input requests are shown only from structured events, never inferred from text, and only their kind and time are kept.
 
 - **Claude Code (hooks; event names from the hook documentation, tested on fixtures):** `Notification` with `notification_type` `permission_prompt` and `PermissionRequest` mean approval; `idle_prompt` and `elicitation_dialog` mean input. The notification message is discarded. A later `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `Stop`, `SessionStart` or `SessionEnd` for the same session clears it. Requires `npm run connect:claude`; hook state expires after thirty minutes.
-- **Codex (journal, unverified):** rollout `event_msg` entries `exec_approval_request` and `apply_patch_approval_request` mark an approval while no later activity is recorded. Codex may not write these events to its rollouts at all; the doctor counts them so you can confirm.
+- **Codex (journal, unverified):** rollout `event_msg` entries `exec_approval_request` and `apply_patch_approval_request` mark an approval while no later activity is recorded. Codex may not write these events to its rollouts at all; on the first live install checked, none appeared in 60 recent desktop-app rollouts, so treat Codex approval as unconfirmed. The doctor keeps counting them.
 
 ### Check what is found: sources doctor
 

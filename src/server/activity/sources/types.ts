@@ -57,7 +57,15 @@ export interface SessionSource {
 
 export const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 export const RECENT_MS = 120_000;
-export const SESSION_LIMIT = 60;
+export const DEFAULT_SESSION_LIMIT = 120;
+
+/** Lead sessions read per source. `VILLAGE_SESSION_LIMIT` overrides it, clamped to 10–500. */
+export function sessionLimit(env: Readonly<Record<string, string | undefined>> = process.env): number {
+  const value = Number.parseInt(env.VILLAGE_SESSION_LIMIT ?? '', 10);
+  return Number.isFinite(value) ? Math.min(500, Math.max(10, value)) : DEFAULT_SESSION_LIMIT;
+}
+
+export const SESSION_LIMIT = sessionLimit();
 
 export function recent(at: string, now = Date.now()): boolean {
   const age = now - Date.parse(at);
