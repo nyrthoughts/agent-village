@@ -86,6 +86,19 @@ describe('HookActivityStore', () => {
     }
   });
 
+  it('marks a failed turn only from StopFailure and clears it on a new prompt', () => {
+    const now = new Date('2026-09-01T12:00:00.000Z');
+    const store = new HookActivityStore(() => now);
+    const event = { session_id: 's1', cwd: '/work/atlas' };
+    store.ingestClaude({ ...event, hook_event_name: 'PostToolUseFailure' });
+    expect(store.workers()[0]?.failure).toBeUndefined();
+    store.ingestClaude({ ...event, hook_event_name: 'StopFailure', error: 'PRIVATE_ERROR_TEXT' });
+    expect(store.workers()[0]?.failure).toEqual({ at: now.toISOString(), source: 'claude-hook' });
+    expect(JSON.stringify(store.workers())).not.toContain('PRIVATE_ERROR_TEXT');
+    store.ingestClaude({ ...event, hook_event_name: 'UserPromptSubmit' });
+    expect(store.workers()[0]?.failure).toBeUndefined();
+  });
+
   it('rejects malformed hook payloads', () => {
     const store = new HookActivityStore();
     expect(store.ingestClaude({ session_id: '../bad', hook_event_name: 'Stop', cwd: '/tmp' })).toBe(false);

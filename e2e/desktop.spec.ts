@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { captureRpg, openRpg } from './rpg-fixture.js';
 
 test('desktop pixel village exposes construction, navigation and one-click context', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -48,4 +49,32 @@ test('desktop pixel village exposes construction, navigation and one-click conte
   await expect(scene.locator('.pixel-worker__count', { hasText: '1' })).toBeVisible();
   const personTargets = await scene.locator('.pixel-worker').evaluateAll((elements) => elements.map((element) => ({ width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height })));
   expect(personTargets.every(({ width, height }) => width >= 44 && height >= 44)).toBe(true);
+});
+
+test('native village opens a project and its source, then switches to List', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openRpg(page);
+  await expect(page.locator('.rpg-house')).toHaveCount(5);
+  await expect(page.locator('.rpg-empty')).toHaveCount(3);
+  await expect(page.getByRole('heading', { name: 'Needs you 4' })).toBeVisible();
+  await captureRpg(page, '01-village-desktop');
+  await page.getByRole('button', { name: 'Open Warehouse', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Warehouse' })).toBeVisible();
+  await expect(page.locator('.rpg-house[data-dim=true]')).toHaveCount(4);
+  await captureRpg(page, '02-village-projet');
+  await page.getByRole('button', { name: 'Close project' }).click();
+  await page.locator('.rpg-request', { hasText: 'Refresh the models' }).click();
+  await expect(page.getByRole('heading', { name: 'Refresh the models', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'List', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Village journal' })).toBeVisible();
+});
+
+test('a ninth project uses the next map', async ({ page }) => {
+  await openRpg(page, 9);
+  await expect(page.locator('.rpg-house')).toHaveCount(8);
+  await page.getByRole('button', { name: 'Next map' }).click();
+  await expect(page.locator('.rpg-house')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Previous map' }).click();
+  await expect(page.locator('.rpg-house')).toHaveCount(8);
 });

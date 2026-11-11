@@ -116,7 +116,7 @@ export function mergeLiveSessions(sessions: ObservedSession[], hooks: Worker[]):
       const previousAt = Date.parse(previous.activityEvidence?.observedAt ?? previous.lastActivityAt);
       // A newer hook also carries the current "needs you" signal: absent means a later event cleared it.
       if (hookAt >= previousAt) entries.set(hook.id, { ...previous, state: hook.state, lastActivityAt: hook.lastActivityAt,
-        role: previous.role ?? hook.role, activityEvidence: hook.activityEvidence ?? previous.activityEvidence, attention: hook.attention });
+        role: previous.role ?? hook.role, activityEvidence: hook.activityEvidence ?? previous.activityEvidence, attention: hook.attention, failure: hook.failure });
     } else {
       const parent = hook.parentId ? entries.get(hook.parentId) : undefined;
       const key = parent?.projectKey ?? `hook:${hook.id}`;

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { captureRpg, openRpg } from './rpg-fixture.js';
 
 test('390 px field view is ordered, reachable and does not overflow', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -14,4 +15,17 @@ test('390 px field view is ordered, reachable and does not overflow', async ({ p
   await page.locator('.attention-list').getByRole('button', { name: /Timber bridge/i }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Close details' })).toBeFocused();
+});
+
+test('native village focuses one house on mobile and opens the request sheet', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openRpg(page);
+  await page.locator('.rpg-project-strip').getByRole('button', { name: 'Warehouse', exact: true }).click();
+  await expect(page.locator('.rpg-house[data-dim=false]')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Needs you · 4' }).click();
+  await expect(page.locator('.rpg-request', { hasText: 'Refresh the models' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await captureRpg(page, '03-village-mobile');
+  await page.locator('.rpg-request', { hasText: 'Refresh the models' }).click();
+  await expect(page.getByRole('dialog', { name: 'Warehouse' })).toBeVisible();
 });

@@ -14,6 +14,12 @@ export class ProjectPlans {
     const raw = readPrivateFile(join(this.directory, 'project-plans.json'));
     return raw ? ledgerSchema.parse(JSON.parse(raw.text)).plans : {};
   }
+  readVillagerOverrides(sessionIds: readonly string[]): Record<string, number> {
+    const raw = readPrivateFile(join(this.directory, 'villager-overrides.json'));
+    if (!raw) return {};
+    const overrides = z.record(z.string().min(1).max(260), z.number().int().min(0).max(15)).parse(JSON.parse(raw.text));
+    return Object.fromEntries(sessionIds.filter((id) => Object.hasOwn(overrides, id)).map((id) => [id, overrides[id]!]));
+  }
   /** Moves a plan to a project's new id after regrouping. Never overwrites an existing plan. */
   adopt(from: string, to: string): boolean {
     if (!nativeProjectId.safeParse(from).success || !nativeProjectId.safeParse(to).success || from === to) return false;

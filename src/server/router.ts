@@ -234,6 +234,10 @@ export function createRouter(options: RouterOptions) {
         const village = observedVillage(snapshot.sessions, errors, options.focusProjects, saved, snapshot.declared);
         if ('coverage' in snapshot) village.observation!.coverage = snapshot.coverage as string[];
         if (snapshot.sources) village.observation!.sources = snapshot.sources;
+        try {
+          const overrides = plans?.readVillagerOverrides(snapshot.sessions.map(({ id }) => id));
+          if (overrides && Object.keys(overrides).length > 0) village.observation!.villagerOverrides = overrides;
+        } catch { village.observation!.errors.push('Apparences privées illisibles. Les apparences par défaut restent affichées.'); }
         json(response, 200, village); return;
       }
       const loaded = loadWorkspace(options.villagePath);

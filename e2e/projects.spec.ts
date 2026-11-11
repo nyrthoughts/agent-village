@@ -18,6 +18,7 @@ test('groups sessions by project, explains each match and keeps unassigned sessi
   await page.route('**/api/village', (route) => route.fulfill({ json: snapshot }));
   await page.route('**/api/activity', (route) => route.fulfill({ json: { status: 'live', fetchedAt: at, workers: [] } }));
   await page.goto('/');
+  await page.getByRole('button', { name: /^(Liste|List)$/ }).click();
   await expect(page.locator('[data-task-id]')).toHaveCount(2);
   const inbox = page.getByRole('region', { name: 'Sessions non classées · 1' });
   await expect(inbox).toContainText('sessions: [claude:home]');

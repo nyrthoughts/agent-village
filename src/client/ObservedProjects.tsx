@@ -5,6 +5,9 @@ import { VillageMap2D } from './scene2d/VillageMap2D.js';
 import { projectBrief, villageBriefing, type SourcedUpdate } from '../shared/projectBrief.js';
 import { LANGUAGE_KEY, savedLanguage, translate, translateDiagnostic, type Language } from './language.js';
 import './observed-projects.css';
+import './rpg/rpg.css';
+import { RpgVillage, stateLabels } from './rpg/RpgVillage.js';
+import { assignLots, sessionState } from './rpg/model.js';
 import { ProjectPlanPanel } from './ProjectPlanPanel.js';
 import { milestoneTaskId, projectDistrict } from './observedDistrict.js';
 import { hasRecentActivity, isConfirmedWorking, presentWorkerState } from '../shared/workerPresentation.js';
@@ -29,7 +32,10 @@ function savedRead(): Record<string, string> {
   } catch { return {}; }
 }
 
-export function ObservedProjects({ village, activity, error }: { village: DerivedWorkspace; activity?: ActivitySnapshot; error?: string }) {
+export function ObservedProjects({ village, activity, error, initialView = 'list' }: { village: DerivedWorkspace; activity?: ActivitySnapshot; error?: string; initialView?: 'village' | 'list' }) {
+  const [view, setView] = useState(initialView);
+  const [lots, setLots] = useState(() => assignLots(village.projects));
+  useEffect(() => { setLots((prior) => assignLots(village.projects, prior)); }, [village.projects]);
   const [language, setLanguage] = useState(savedLanguage);
   const [, refreshClock] = useState(0);
   const now = Date.now();
@@ -80,7 +86,8 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
   };
   const sources = village.observation?.sources ?? [];
   const experimental = new Set(sources.filter((source) => source.experimental).map((source) => source.id as string));
-  const needsYou = (entries: ObservedSession[]) => entries.filter((entry) => entry.attention).length;
+  const needsYou = (entries: ObservedSession[]) => entries.filter((entry) => view === 'village'
+    ? ['approval', 'input', 'error'].includes(sessionState(entry, now)) : Boolean(entry.attention)).length;
   const assignSnippet = `projects:\n  - name: ${t('Mon projet')}\n    sessions: [${inboxRoots[0]?.id ?? 'codex:ID'}]\n    titles: ["^${t('mon-projet')}:"]`;
   const selectedLinks = selected?.observation?.links ?? [];
   const brief = selected && projectBrief(selected.observation?.sessions ?? [], read[selected.id]);
@@ -89,6 +96,7 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
   const mapActivity = activity && { ...activity, workers: activity.workers.filter((worker) => mapProjects.some((project) => project.id === worker.attachedTaskId)) };
   const select = (id: string, element: HTMLElement, milestoneId?: string) => { trigger.current = element; setSelectedId(id); setSelectedMilestoneId(milestoneId); setTab('brief'); setSessionId(undefined); };
   const explore = (id?: string) => {
+    setView('list');
     setDistrictId(id);
     // A district switch replaces the map, including a house that opened the dialog.
     if (selectedId) { trigger.current = districtControl.current ?? undefined; setSelectedId(undefined); }
@@ -117,16 +125,24 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
     return () => { document.removeEventListener('keydown', keyboard); (trigger.current?.isConnected ? trigger.current : districtControl.current)?.focus(); };
   }, [selectedId]);
 
-  return <main className="app-shell observed-shell" aria-label={t('Agent Village privé')}>
+  return <main className={`app-shell observed-shell${view === 'village' ? ' rpg-shell' : ''}`} aria-label={t('Agent Village privé')}>
     <header className="observed-header">
-      <div><small>{t('AGENT VILLAGE / LOCAL PRIVÉ')}</small><h1>{t('Journal du village')}</h1><p>{projects.length} {t('projets')} · {roots.length} sessions{needsYou(sessions) > 0 && <> · <b className="observed-attention">{t('{count} vous attendent', { count: needsYou(sessions) })}</b></>}</p>{helpers.length > 0 && <p>{t('{count} sous-agents détectés', { count: helpers.length })} · {t('historique ≠ activité')}</p>}
+      <div><small>{t('AGENT VILLAGE / LOCAL PRIVÉ')}</small><h1>{t(view === 'village' ? 'Village' : 'Journal du village')}</h1>{village.observation?.fixture && <b className="rpg-demo-badge">{t('DÉMO')}</b>}<p>{projects.length} {t('projets')} · {roots.length} sessions{needsYou(sessions) > 0 && <> · <b className="observed-attention">{t('{count} vous attendent', { count: needsYou(sessions) })}</b></>}</p>{helpers.length > 0 && <p>{t('{count} sous-agents détectés', { count: helpers.length })} · {t('historique ≠ activité')}</p>}
         {sources.length > 0 && <ul className="observed-source-status" aria-label={t('Sources locales')}>{sources.map((source) => <li key={source.id} className={`observed-source-status--${source.status}`}>{source.label} · {t(sourceStatusLabels[source.status])}</li>)}</ul>}</div>
+      <nav className="rpg-tabs" aria-label={t('Vue du village')}>
+        <button type="button" aria-pressed={view === 'village'} onClick={() => setView('village')}>{view === 'village' && '▶ '}{t('Village')}</button>
+        <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>{view === 'list' && '▶ '}{t('Liste')}</button>
+      </nav>
       <div><strong>{t('{count} en cours confirmés', { count: sessions.filter((session) => isConfirmedWorking(session, now)).length })}</strong><p>{t('Lu à')} {date(village.observation!.fetchedAt)} · {t('actualisation 5 s')}</p>
         <label className="observed-language">Langue / Language <select value={language} onChange={(event) => setLanguage(event.target.value as Language)}><option value="fr">Français</option><option value="en">English</option></select></label>
       </div>
     </header>
     {(error || village.observation?.errors.length !== 0) && <p role="alert" className="observed-warning">{error ? translateDiagnostic(language, error) : village.observation?.errors.map((message) => translateDiagnostic(language, message)).join(' · ')}. {t('Les données déjà lues restent affichées.')}</p>}
-    <div className="observed-layout">
+    {view === 'village' ? <RpgVillage projects={village.projects} lots={lots} language={language} now={now} selectedId={selectedId} overrides={village.observation?.villagerOverrides} fixture={village.observation?.fixture}
+      onProject={(id, element, sourceId) => {
+        select(id, element);
+        if (sourceId) { setTab('sessions'); setSessionId(sourceId); }
+      }} /> : <div className="observed-layout">
       <nav className="observed-projects" aria-label={t('Projets connectés')}>
         <section className="observed-briefing" aria-labelledby="village-briefing-title">
           <header className="observed-briefing__header"><small>{t('Votre point de départ')}</small><h2 id="village-briefing-title">{t('À lire en premier')}</h2><p>{t('Derniers signalements, pas des priorités déduites.')}</p></header>
@@ -172,6 +188,7 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
         <p className="observed-map-note">{district ? t(district.plan ? 'Une parcelle par jalon. La maison commune résume le plan ; les agents y sont regroupés, sans jalon attribué.' : 'Aucun jalon défini : ouvre la maison commune pour préparer le plan.') : t('{count} entrées de quartiers. Choisis un quartier pour voir ses chantiers.', { count: mapProjects.length })}</p>
       </section>
     </div>
+    }
     <footer className="observed-footer"><details><summary>{t('Sources et confidentialité')}</summary>{translateDiagnostic(language, village.observation?.historyWindow ?? '')}. {t('Les résumés sont les déclarations des agents, non des résultats vérifiés. Rien n’est envoyé à GitHub.')} {t('Les conversations sources restent dans leur langue d’origine.')}{village.observation?.coverage?.map((note) => <p key={note}>{translateDiagnostic(language, note)}</p>)}</details></footer>
     {selected && <div className="drawer-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedId(undefined); }}>
       <aside ref={dialog} className="detail-drawer observed-drawer" role="dialog" aria-modal="true" aria-labelledby="observed-project-title">
@@ -187,7 +204,17 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
               <p className="observed-explanation">{t('Règles possibles : sessions, titles (expression régulière), paths, remotes. Les liens de chats Claude app se déclarent au même endroit (links).')}</p>
             </section> : <>
               {selected.id !== district?.id && <button type="button" className="observed-explore" onClick={() => explore(selected.id)}>{t('Explorer ce quartier')}</button>}
-              <ProjectPlanPanel key={selected.id} project={selected} language={language} selectedMilestoneId={selectedMilestoneId} />
+              {view === 'village' && selectedSessions.length > 0 && <section className="rpg-drawer-agents rpg-window">
+                <h3>{t('Agents et observations')}</h3>
+                <ul>{selectedSessions.slice(0, 5).map((entry) => {
+                  const state = sessionState(entry, now);
+                  return <li key={entry.id}><button type="button" onClick={() => { setTab('sessions'); setSessionId(entry.id); }}>
+                    <strong>{entry.title ?? entry.tool}</strong><small>{t(stateLabels[state])} · {entry.tool}</small>
+                  </button></li>;
+                })}</ul>
+                {selectedSessions.length > 5 && <button type="button" onClick={() => { setTab('sessions'); setSessionId(undefined); }}>{t('Conversations')} · {selectedSessions.length}</button>}
+              </section>}
+              <ProjectPlanPanel key={selected.id} project={selected} language={language} selectedMilestoneId={selectedMilestoneId} showProgressBar={view === 'list'} />
             </>}
             <section className="observed-agent-stats" aria-label={t('Agents et observations')}>
               <h3>{t('Agents et observations')}</h3><dl>
@@ -212,7 +239,7 @@ export function ObservedProjects({ village, activity, error }: { village: Derive
             return list.length > 0 && <section className="observed-source-group" key={tool} aria-label={title}>
               {!sessionId && <h3 className="observed-source-group__title">{title} · {list.length}</h3>}
               {list.map((session) => <article className="observed-session" key={session.id}>
-            <header><small>{session.tool.toUpperCase()}{session.origin && session.origin !== 'unknown' && <> · <span className="observed-origin">{t(originLabels[session.origin])}</span></>} · {t(session.role === 'helper' ? 'Sous-agent' : 'Conversation principale')} · {session.attention
+            <header><small>{session.tool.toUpperCase()}{session.origin && session.origin !== 'unknown' && <> · <span className="observed-origin">{t(originLabels[session.origin])}</span></>} · {t(session.role === 'helper' ? 'Sous-agent' : 'Conversation principale')} · {view === 'village' ? t(stateLabels[sessionState(session, now)]) : session.attention
               ? <b className="observed-attention">{t(attentionLabels[session.attention.kind])} · {date(session.attention.at)}</b>
               : t(states[presentWorkerState(session, true, now)])}</small><h3>{session.title}</h3><time>{date(session.lastActivityAt)}</time></header>
             <p className="observed-provenance">{t('Rattachement : {value}', { value: provenance(session) })}</p>

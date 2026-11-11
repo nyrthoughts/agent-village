@@ -17,6 +17,7 @@ async function openFictionalVillage(page: Page, additionalProjects = 0, withWork
   await page.route('**/api/village', (route) => { reads++; return route.fulfill({ json: village }); });
   await page.route('**/api/activity', (route) => route.fulfill({ json: { status: 'live', fetchedAt: '2026-09-04T12:00:00Z', workers } }));
   await page.goto('/');
+  await page.getByRole('button', { name: /^(Liste|List)$/ }).click();
   await expect(page.getByTestId('village-map-2d')).toHaveAttribute('data-building-count', '6');
   return () => reads;
 }

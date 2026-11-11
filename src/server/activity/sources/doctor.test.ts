@@ -62,7 +62,7 @@ describe('sources doctor', () => {
     expect(output).toContain('journals (7 days): 2 · parse failures: 0 · process records: 0');
     expect(output).toContain('session limit: 120 · every recent session is read');
     expect(output).toContain('raw entrypoint: claude-vscode ×1, cli ×1');
-    expect(output).toMatch(/hooks: installed for 10\/11 events · missing: PermissionRequest · run npm run connect:claude/);
+    expect(output).toMatch(/hooks: installed for 11\/12 events · missing: PermissionRequest · run npm run connect:claude/);
     expect(output).toContain('project folders: 2 (2 hashed, 0 other names)');
     expect(output).toContain('hashes resolved: 1 of 2 · unresolved: 1');
     expect(output).toContain('~/.config/Claude · exists · 1 *.jsonl, 1 *.json');

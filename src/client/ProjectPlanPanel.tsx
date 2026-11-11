@@ -6,7 +6,7 @@ import { translate, type Language } from './language.js';
 import './project-plan.css';
 
 const emptyMilestone = () => ({ id: crypto.randomUUID(), title: '', validated: false, note: '' });
-export function ProjectPlanPanel({ project, language, selectedMilestoneId }: { project: DerivedProject; language: Language; selectedMilestoneId?: string }) {
+export function ProjectPlanPanel({ project, language, selectedMilestoneId, showProgressBar = true }: { project: DerivedProject; language: Language; selectedMilestoneId?: string; showProgressBar?: boolean }) {
   const t = (key: Parameters<typeof translate>[1], values?: Record<string, string | number>) => translate(language, key, values);
   const [saved, setSaved] = useState<ProjectPlan>();
   const provisional = Boolean(project.observation?.sessions.length && project.observation.sessions.every((s) => s.projectKey.startsWith('hook:')));
@@ -50,7 +50,7 @@ export function ProjectPlanPanel({ project, language, selectedMilestoneId }: { p
       {plan ? <>
         <p className="project-plan__goal">{plan.objective}</p>
         <div className="project-plan__progress"><strong>{t('{done}/{total} jalons validés', { done: count, total: plan.milestones.length })}</strong><span>{t('{count} restants', { count: plan.milestones.length - count })}</span></div>
-        <progress aria-label={t('Jalons validés')} value={count} max={plan.milestones.length} />
+        {showProgressBar && <progress aria-label={t('Jalons validés')} value={count} max={plan.milestones.length} />}
         <ol className="project-plan__milestones">{plan.milestones.map((m) => <li key={m.id} data-validated={m.validated} data-selected={m.id === selectedMilestoneId || undefined}>
           <span className="project-plan__check" aria-hidden="true">{m.validated ? '✓' : '·'}</span>
           <div><strong>{m.title}</strong>{m.note && <p>{m.note}</p>}{m.validated && <small>{t(m.validatedBy === 'local-check' ? 'Contrôle local' : 'Validé par vous')} · {new Date(m.validatedAt!).toLocaleDateString(language === 'en' ? 'en-GB' : 'fr-FR')}</small>}</div>

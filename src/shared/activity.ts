@@ -37,6 +37,7 @@ export interface Worker {
   activityEvidence?: WorkerActivityEvidence;
   origin?: SessionOrigin;
   attention?: WorkerAttention;
+  failure?: { at: string; source: 'claude-hook' };
 }
 
 export interface ActivitySnapshot {

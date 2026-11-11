@@ -9,6 +9,7 @@ test('private project cockpit keeps six buildings, sourced history and increment
   await page.route('**/api/village', (route) => route.fulfill({ json: snapshot }));
   await page.route('**/api/activity', (route) => route.fulfill({ json: { status: 'live', fetchedAt: '2026-09-04T12:00:00Z', workers: [] } }));
   await page.goto('/');
+  await page.getByRole('button', { name: /^(Liste|List)$/ }).click();
   await expect(page.locator('[data-task-id]')).toHaveCount(6);
   expect(new Set(await page.locator('[data-task-id]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-family')))).size).toBe(6);
   await page.getByRole('button', { name: 'Ouvrir Product', exact: true }).click();
@@ -28,11 +29,13 @@ test('private project cockpit keeps six buildings, sourced history and increment
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.reload();
+  await page.getByRole('button', { name: /^(Liste|List)$/ }).click();
   await expect(page.getByText('1 nouveaux échanges', { exact: true })).toBeVisible();
   await page.getByRole('combobox', { name: 'Langue / Language' }).selectOption('en');
   await expect(page.getByRole('heading', { name: 'Village journal' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.reload();
+  await page.getByRole('button', { name: /^(Liste|List)$/ }).click();
   await expect(page.getByRole('combobox', { name: 'Langue / Language' })).toHaveValue('en');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await page.getByRole('button', { name: 'Open Product', exact: true }).click();
